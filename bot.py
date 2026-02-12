@@ -1,20 +1,14 @@
-import asyncio
 import os
-from aiogram import Bot, Dispatcher
-from aiogram.types import Message
-from aiogram.filters import CommandStart
+from aiogram import Bot, Dispatcher, executor, types
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-async def main():
-    bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher()
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
 
-    @dp.message(CommandStart())
-    async def start_cmd(message: Message):
-        await message.answer("Ассалому алайкум! Қуръон ўрганиш ботимизга хуш келибсиз.")
-
-    await dp.start_polling(bot)
+@dp.message_handler(commands=['start'])
+async def start_cmd(message: types.Message):
+    await message.reply("Ассалому алайкум! Қуръон ўрганиш ботимизга хуш келибсиз.")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    executor.start_polling(dp, skip_updates=True)
