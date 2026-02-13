@@ -2,9 +2,31 @@ import sqlite3
 import os
 import json
 import random
+from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+def generate_ayah_image(arabic_text, filename="ayah.png"):
+    width = 1200
+    height = 400
+
+    img = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(img)
+
+    try:
+        font = ImageFont.truetype("arial.ttf", 80)
+    except:
+        font = ImageFont.load_default()
+
+    text_width, text_height = draw.textsize(arabic_text, font=font)
+
+    x = (width - text_width) / 2
+    y = (height - text_height) / 2
+
+    draw.text((x, y), arabic_text, fill="black", font=font)
+
+    img.save(filename)
+
 
 # ======================
 # TOKEN
@@ -149,23 +171,25 @@ async def today_ayah(message: types.Message):
 
     for ayah in ayahs:
 
+        # 📌 Араб матнни расм қилиш
+        generate_ayah_image(ayah['arabic'])
+
+        # 📌 Расмни юбориш
+        with open("ayah.png", "rb") as photo:
+            await message.answer_photo(photo)
+
+        # 📌 Таржима ва маълумот
+        await message.answer(f"{ayah['sura']}:{ayah['ayah']}")
+        await message.answer(ayah['text'])
+
+        # 📌 Аудио
         sura = str(ayah['sura']).zfill(3)
         ayah_number = str(ayah['ayah']).zfill(3)
 
         audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
 
-        text = f"{ayah['sura']}:{ayah['ayah']}\n"
-        await message.answer(
-    ayah['arabic'],
-)
-
-await message.answer(
-    ayah['text']
-)
-
-
-        await message.answer(text)
         await message.answer_audio(audio_url)
+
 
 # ======================
 # RUN
