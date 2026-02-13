@@ -1,3 +1,4 @@
+import requests
 import sqlite3
 import os
 import json
