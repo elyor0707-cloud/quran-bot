@@ -150,8 +150,9 @@ async def today_ayah(message: types.Message):
     text = "📖 Бугунги 5 та оят:\n\n"
 
     for ayah in ayahs:
-        text += f"{ayah['sura']}:{ayah['ayah']}\n"
-        text += f"{ayah['text']}\n\n"
+    text += f"{ayah['sura']}:{ayah['ayah']}\n"
+    text += f"{ayah['arabic']}\n"
+    text += f"{ayah['text']}\n\n"
 
     save_progress(user_id, end_index)
 
