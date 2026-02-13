@@ -14,7 +14,7 @@ def generate_ayah_image(arabic_text, filename="ayah.png"):
     draw = ImageDraw.Draw(img)
 
     try:
-        font = ImageFont.truetype("Amiri-Regular.ttf", 90)
+       font = ImageFont.load_default()
     except:
         font = ImageFont.load_default()
 
