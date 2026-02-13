@@ -155,8 +155,14 @@ async def today_ayah(message: types.Message):
         audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
 
         text = f"{ayah['sura']}:{ayah['ayah']}\n"
-        text += f"{ayah['arabic']}\n"
-        text += f"{ayah['text']}\n"
+        await message.answer(
+    ayah['arabic'],
+)
+
+await message.answer(
+    ayah['text']
+)
+
 
         await message.answer(text)
         await message.answer_audio(audio_url)
