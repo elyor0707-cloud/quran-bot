@@ -178,12 +178,17 @@ async def today_ayah(message: types.Message):
         translation = ""
 
         for edition in data['data']:
-            if edition['edition']['identifier'] == "quran-uthmani":
+            identifier = edition['edition']['identifier']
+
+            if "uthmani" in identifier:
                 arabic = edition['text']
-            elif edition['edition']['identifier'] == "uz.transliteration":
+
+            elif "transliteration" in identifier:
                 transliteration = edition['text']
-            elif edition['edition']['identifier'] == "uz.sodik":
+
+            elif "sodik" in identifier:
                 translation = edition['text']
+
 
 
         arabic = data['data'][0]['text']
