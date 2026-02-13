@@ -154,21 +154,18 @@ async def today_ayah(message: types.Message):
     text = "📖 Бугунги 5 та оят:\n\n"
 
     for ayah in ayahs:
-        text += f"{ayah['sura']}:{ayah['ayah']}\n"
-        text += f"{ayah['arabic']}\n"
-        text += f"{ayah['text']}\n"
+    text += f"{ayah['sura']}:{ayah['ayah']}\n"
+    text += f"{ayah['arabic']}\n"
+    text += f"{ayah['text']}\n\n"
 
-        sura = str(ayah['sura']).zfill(3)
-        ayah_number = str(ayah['ayah']).zfill(3)
+    sura = str(ayah['sura']).zfill(3)
+    ayah_number = str(ayah['ayah']).zfill(3)
 
-        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
 
-        text += f"🎧 Аудио: {audio_url}\n\n"
-
+    await message.answer_audio(audio_url)
+    
     await message.answer(text)
-
-
-
 # ======================
 # RUN
 # ======================
