@@ -19,7 +19,13 @@ with open("quran.json", "r", encoding="utf-8") as f:
 # Keyboard
 # ======================
 keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+
 keyboard.add(KeyboardButton("📖 Бугунги оят"))
+keyboard.add(KeyboardButton("📘 Араб алифбоси"))
+keyboard.add(KeyboardButton("📚 Грамматика"))
+keyboard.add(KeyboardButton("🕌 Қуръон ўқиш"))
+keyboard.add(KeyboardButton("💎 Premium"))
+
 
 # ======================
 # START
