@@ -171,17 +171,20 @@ async def today_ayah(message: types.Message):
 
     for ayah in ayahs:
 
-       generate_ayah_image(ayah['arabic'])
+        # 📌 Араб матнни расм қилиш
+        generate_ayah_image(ayah['arabic'])
 
-        
+        # 📌 Расмни юбориш
         with open("ayah.png", "rb") as photo:
-        await message.answer_photo(photo)
+            await message.answer_photo(photo)
 
-       
+        # 📌 Сура ва оят рақами
         await message.answer(f"{ayah['sura']}:{ayah['ayah']}")
+
+        # 📌 Таржима
         await message.answer(ayah['text'])
 
-       
+        # 📌 Аудио
         sura = str(ayah['sura']).zfill(3)
         ayah_number = str(ayah['ayah']).zfill(3)
 
