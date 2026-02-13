@@ -69,10 +69,16 @@ arabic_letters = [
     "ي — Йа — й/и"
 ]
 
+# ======================
+# TAJWID QOIDALARI
+# ======================
 tajwid_rules = {
-    "ن": "🟢 Нун — ихфо ёки идғом бўлиши мумкин",
-    "م": "🔵 Мим — идғом ёки ихфо",
+    "نْ": "🟢 Нун сокин — ихфо / идғом / изҳор текширилади",
+    "مْ": "🔵 Мим сокин — ихфо шафавий ёки идғом",
+    "ر": "🟡 Ро — тафхим ёки тарқиқ",
+    "ل": "🟣 Лом — Аллоҳ калимасида тафхим бўлиши мумкин"
 }
+
 
 # ======================
 # PROGRESS FUNCTIONS
@@ -149,10 +155,17 @@ async def today_ayah(message: types.Message):
 
     text = "📖 Бугунги 5 та оят:\n\n"
 
-    for ayah in ayahs:
+   for ayah in ayahs:
     text += f"{ayah['sura']}:{ayah['ayah']}\n"
     text += f"{ayah['arabic']}\n"
-    text += f"{ayah['text']}\n\n"
+    text += f"{ayah['text']}\n"
+
+    # TAJWID TEKSHIRISH
+    for letter, rule in tajwid_rules.items():
+        if letter in ayah['arabic']:
+            text += f"{rule}\n"
+
+    text += "\n"
 
     save_progress(user_id, end_index)
 
