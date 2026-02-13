@@ -21,6 +21,16 @@ async def start_cmd(message: types.Message):
         reply_markup=keyboard
     )
 
+@dp.message_handler(lambda message: message.text == "📚 Араб алифбоси")
+async def alphabet_section(message: types.Message):
+    await message.answer(
+        "📚 Араб алифбоси бўлими\n\n"
+        "1️⃣ Алиф\n"
+        "2️⃣ Ба\n"
+        "3️⃣ Та\n\n"
+        "Тез кунда интерактив дарслар қўшилади."
+    )
+
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
