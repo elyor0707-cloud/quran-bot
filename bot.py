@@ -176,8 +176,9 @@ async def today_ayah(message: types.Message):
         data = response.json()
 
         arabic = data['data'][0]['text']
-        uzbek = data['data'][1]['text']
-
+        transliteration = data['data'][1]['text']
+        translation = data['data'][2]['text']
+        
         await message.answer(f"{i}-оят")
         await message.answer(arabic)
         await message.answer(uzbek)
