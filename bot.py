@@ -161,8 +161,9 @@ async def arabic_lesson(message: types.Message):
 # ======================
 # BUGUNGI 5 OYAT
 # ======================
-@dp.message_handler(lambda message: "Бугунги оят" in message.text)
+@dp.message_handler(lambda message: message.text == "📖 Бугунги оят")
 async def today_ayah(message: types.Message):
+
 
     start_index = 0
     end_index = 5
@@ -171,26 +172,20 @@ async def today_ayah(message: types.Message):
 
     for ayah in ayahs:
 
-        # 📌 Араб матнни расм қилиш
-        generate_ayah_image(ayah['arabic'])
+    generate_ayah_image(ayah['arabic'])
 
-        # 📌 Расмни юбориш
-        with open("ayah.png", "rb") as photo:
-            await message.answer_photo(photo)
+    with open("ayah.png", "rb") as photo:
+        await message.answer_photo(photo)
 
-        # 📌 Сура ва оят рақами
-        await message.answer(f"{ayah['sura']}:{ayah['ayah']}")
+    await message.answer(f"{ayah['sura']}:{ayah['ayah']}")
+    await message.answer(ayah['text'])
 
-        # 📌 Таржима
-        await message.answer(ayah['text'])
+    sura = str(ayah['sura']).zfill(3)
+    ayah_number = str(ayah['ayah']).zfill(3)
 
-        # 📌 Аудио
-        sura = str(ayah['sura']).zfill(3)
-        ayah_number = str(ayah['ayah']).zfill(3)
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
 
-        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
-
-        await message.answer_audio(audio_url)
+    await message.answer_audio(audio_url)
 
 
 # ======================
