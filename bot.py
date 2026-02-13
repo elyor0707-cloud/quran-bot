@@ -173,11 +173,12 @@ async def today_ayah(message: types.Message):
        response = requests.get(
     f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.transliteration,uz.sodik"
 )
-        data = response.json()
+       data = response.json()
 
-        arabic = data['data'][0]['text']
-        transliteration = data['data'][1]['text']
-        translation = data['data'][2]['text']
+arabic = data['data'][0]['text']
+transliteration = data['data'][1]['text']
+translation = data['data'][2]['text']
+
         
         await message.answer(f"{i}-оят")
         await message.answer(arabic)
