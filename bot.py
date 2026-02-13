@@ -1,3 +1,4 @@
+import sqlite3
 import os
 import json
 import random
@@ -12,6 +13,21 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
+
+# ======================
+# DATABASE
+# ======================
+conn = sqlite3.connect("database.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY,
+    progress INTEGER DEFAULT 0
+)
+""")
+
+conn.commit()
 
 # ======================
 # QURAN JSON yuklash
@@ -40,27 +56,28 @@ tajwid_rules = {
 # ======================
 # PROGRESS FUNCTIONS
 # ======================
-def save_progress(user_id, value):
-    data = {}
-    try:
-        with open("progress.json", "r") as f:
-            data = json.load(f)
-    except:
-        pass
-
-    data[str(user_id)] = value
-
-    with open("progress.json", "w") as f:
-        json.dump(data, f)
-
-
 def get_progress(user_id):
-    try:
-        with open("progress.json", "r") as f:
-            data = json.load(f)
-            return data.get(str(user_id), 0)
-    except:
+    cursor.execute("SELECT progress FROM users WHERE user_id=?", (user_id,))
+    result = cursor.fetchone()
+
+    if result:
+        return result[0]
+    else:
+        cursor.execute(
+            "INSERT INTO users (user_id, progress) VALUES (?, ?)",
+            (user_id, 0)
+        )
+        conn.commit()
         return 0
+
+
+def save_progress(user_id, value):
+    cursor.execute(
+        "UPDATE users SET progress=? WHERE user_id=?",
+        (value, user_id)
+    )
+    conn.commit()
+
 
 # ======================
 # KEYBOARD
@@ -98,11 +115,9 @@ async def arabic_lesson(message: types.Message):
 @dp.message_handler(lambda message: message.text == "📖 Бугунги оят")
 async def today_ayah(message: types.Message):
 
-    today = datetime.now().date()
-    start_date = datetime(2026, 1, 1).date()
+    user_id = message.from_user.id
 
-    days_passed = (today - start_date).days
-    start_index = days_passed * 5
+    start_index = get_progress(user_id)
     end_index = start_index + 5
 
     if start_index >= len(quran):
@@ -111,22 +126,16 @@ async def today_ayah(message: types.Message):
 
     ayahs = quran[start_index:end_index]
 
-    save_progress(message.from_user.id, end_index)
-
     text = "📖 Бугунги 5 та оят:\n\n"
 
     for ayah in ayahs:
         text += f"{ayah['sura']}:{ayah['ayah']}\n"
-        text += f"{ayah['text']}\n"
+        text += f"{ayah['text']}\n\n"
 
-        # Tajwid tekshirish
-        for letter, rule in tajwid_rules.items():
-            if letter in ayah['text']:
-                text += f"{rule}\n"
-
-        text += "\n"
+    save_progress(user_id, end_index)
 
     await message.answer(text)
+
 
 # ======================
 # RUN
