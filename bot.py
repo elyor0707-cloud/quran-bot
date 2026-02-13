@@ -142,30 +142,25 @@ async def arabic_lesson(message: types.Message):
 @dp.message_handler(lambda message: message.text == "📖 Бугунги оят")
 async def today_ayah(message: types.Message):
 
-    today = datetime.now().date()
-    start_date = datetime(2026, 1, 1).date()
-
-    days_passed = (today - start_date).days
-    start_index = days_passed * 5
-    end_index = start_index + 5
+    start_index = 0
+    end_index = 5
 
     ayahs = quran[start_index:end_index]
 
-    text = "📖 Бугунги 5 та оят:\n\n"
-
     for ayah in ayahs:
-    text += f"{ayah['sura']}:{ayah['ayah']}\n"
-    text += f"{ayah['arabic']}\n"
-    text += f"{ayah['text']}\n\n"
 
-    sura = str(ayah['sura']).zfill(3)
-    ayah_number = str(ayah['ayah']).zfill(3)
+        sura = str(ayah['sura']).zfill(3)
+        ayah_number = str(ayah['ayah']).zfill(3)
 
-    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
 
-    await message.answer_audio(audio_url)
-    
-    await message.answer(text)
+        text = f"{ayah['sura']}:{ayah['ayah']}\n"
+        text += f"{ayah['arabic']}\n"
+        text += f"{ayah['text']}\n"
+
+        await message.answer(text)
+        await message.answer_audio(audio_url)
+
 # ======================
 # RUN
 # ======================
