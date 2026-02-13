@@ -161,7 +161,7 @@ async def arabic_lesson(message: types.Message):
 # ======================
 # BUGUNGI 5 OYAT
 # ======================
-@dp.message_handler(lambda message: message.text == "📖 Бугунги оят")
+@dp.message_handler(lambda message: "Бугунги оят" in message.text)
 async def today_ayah(message: types.Message):
 
     start_index = 0
