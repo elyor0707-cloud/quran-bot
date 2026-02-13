@@ -172,24 +172,6 @@ async def today_ayah(message: types.Message):
 
         response = requests.get(f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.sodik")
         data = response.json()
-        
-        arabic = ""
-        transliteration = ""
-        translation = ""
-
-        for edition in data['data']:
-            identifier = edition['edition']['identifier']
-
-            if "uthmani" in identifier:
-                arabic = edition['text']
-
-            elif "transliteration" in identifier:
-                transliteration = edition['text']
-
-            elif "sodik" in identifier:
-                translation = edition['text']
-
-
 
         arabic = data['data'][0]['text']
         uzbek = data['data'][1]['text']
@@ -197,9 +179,6 @@ async def today_ayah(message: types.Message):
         await message.answer(f"{i}-оят")
         await message.answer(arabic)
         await message.answer(uzbek)
-        await message.answer(f"📖 Ўқилиши:\n{transliteration}")
-        await message.answer(translation)
-
 
         sura = str(data['data'][0]['surah']['number']).zfill(3)
         ayah_number = str(data['data'][0]['numberInSurah']).zfill(3)
