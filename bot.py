@@ -193,7 +193,6 @@ async def today_ayah(message: types.Message):
         await message.answer(arabic)
         await message.answer(uzbek)
         await message.answer(f"📖 Ўқилиши:\n{transliteration}")
-        await message.answer(arabic)
         await message.answer(translation)
 
 
