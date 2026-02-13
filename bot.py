@@ -3,6 +3,16 @@ import json
 from aiogram import Bot, Dispatcher, executor, types
 from datetime import datetime
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+arabic_letters = [
+    "ا — Алиф",
+    "ب — Ба",
+    "ت — Та",
+    "ث — Са",
+    "ج — Жим",
+    "ح — Ҳа",
+    "خ — Хо"
+]
+
 
 # TOKEN
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -37,6 +47,15 @@ async def start_cmd(message: types.Message):
         "Ассалому алайкум!\nБугунги оятни олиш учун тугмани босинг.",
         reply_markup=keyboard
     )
+@dp.message_handler(lambda message: message.text == "📘 Араб алифбоси")
+async def arabic_lesson(message: types.Message):
+
+    text = "📘 Араб алифбоси:\n\n"
+
+    for letter in arabic_letters:
+        text += letter + "\n"
+
+    await message.answer(text)
 
 # ======================
 # BUGUNGI OYAT
