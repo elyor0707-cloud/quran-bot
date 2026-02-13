@@ -164,28 +164,24 @@ async def arabic_lesson(message: types.Message):
 @dp.message_handler(lambda message: message.text == "📖 Бугунги оят")
 async def today_ayah(message: types.Message):
 
+    for i in range(1, 6):  # 5 та оят
 
-    start_index = 0
-    end_index = 5
+        response = requests.get(f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.sodik")
+        data = response.json()
 
-    ayahs = quran[start_index:end_index]
+        arabic = data['data'][0]['text']
+        uzbek = data['data'][1]['text']
 
-    for ayah in ayahs:
+        await message.answer(f"{i}-оят")
+        await message.answer(arabic)
+        await message.answer(uzbek)
 
-    generate_ayah_image(ayah['arabic'])
+        sura = str(data['data'][0]['surah']['number']).zfill(3)
+        ayah_number = str(data['data'][0]['numberInSurah']).zfill(3)
 
-    with open("ayah.png", "rb") as photo:
-        await message.answer_photo(photo)
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
+        await message.answer_audio(audio_url)
 
-    await message.answer(f"{ayah['sura']}:{ayah['ayah']}")
-    await message.answer(ayah['text'])
-
-    sura = str(ayah['sura']).zfill(3)
-    ayah_number = str(ayah['ayah']).zfill(3)
-
-    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
-
-    await message.answer_audio(audio_url)
 
 
 # ======================
