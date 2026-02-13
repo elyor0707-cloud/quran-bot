@@ -39,6 +39,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
+current_letter = {}
 
 # ======================
 # DATABASE
@@ -65,35 +66,30 @@ with open("quran.json", "r", encoding="utf-8") as f:
 # DATA
 # ======================
 arabic_letters = [
-    "ا — Алиф — а",
-    "ب — Ба — б",
-    "ت — Та — т",
-    "ث — Са — с",
-    "ج — Жим — ж",
-    "ح — Ҳа — қаттиқ ҳ",
-    "خ — Хо — х",
-    "د — Дал — д",
-    "ذ — Зал — з",
-    "ر — Ро — р",
-    "ز — Зай — з",
-    "س — Син — с",
-    "ش — Шин — ш",
-    "ص — Сод — қаттиқ с",
-    "ض — Дод — қаттиқ д",
-    "ط — То — қаттиқ т",
-    "ظ — Зо — қаттиқ з",
-    "ع — Айн — томоқ товуш",
-    "غ — Ғайн — ғ",
-    "ف — Фа — ф",
-    "ق — Қоф — қ",
-    "ك — Каф — к",
-    "ل — Лам — л",
-    "م — Мим — м",
-    "ن — Нун — н",
-    "ه — Ҳа — ҳ",
-    "و — Вов — в/у",
-    "ي — Йа — й/и"
+    {
+        "letter": "ا",
+        "name": "Алиф",
+        "pronunciation": "А товуши",
+        "reading": "а",
+        "begin": "ا",
+        "middle": "ـا",
+        "end": "ـا",
+        "example": "اللّٰه",
+        "audio": "https://everyayah.com/data/Alafasy_128kbps/001001.mp3"
+    },
+    {
+        "letter": "ب",
+        "name": "Ба",
+        "pronunciation": "Б товуши",
+        "reading": "б",
+        "begin": "بـ",
+        "middle": "ـبـ",
+        "end": "ـب",
+        "example": "بسم",
+        "audio": "https://everyayah.com/data/Alafasy_128kbps/001002.mp3"
+    }
 ]
+
 
 # ======================
 # TAJWID QOIDALARI
@@ -157,10 +153,70 @@ async def start_cmd(message: types.Message):
 # ======================
 @dp.message_handler(lambda message: message.text == "📘 Араб алифбоси")
 async def arabic_lesson(message: types.Message):
-    text = "📘 Араб алифбоси:\n\n"
-    for letter in arabic_letters:
-        text += letter + "\n"
+
+    index = 0
+    letter = arabic_letters[index]
+
+    current_letter[message.from_user.id] = index
+
+    text = f"""
+📘 Ҳарф: {letter['letter']}
+
+🔤 Номи: {letter['name']}
+🗣 Талаффуз: {letter['pronunciation']}
+📖 Ўқилиши: {letter['reading']}
+
+📌 Сўз бошида: {letter['begin']}
+📌 Сўз ўртасида: {letter['middle']}
+📌 Сўз охирида: {letter['end']}
+
+🕌 Қуръондан мисол: {letter['example']}
+"""
+
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add("➡ Кейинги ҳарф")
+    keyboard.add("🔊 Талаффуз аудио")
+
+    await message.answer(text, reply_markup=keyboard)
+@dp.message_handler(lambda message: message.text == "➡ Кейинги ҳарф")
+async def next_letter(message: types.Message):
+
+    user_id = message.from_user.id
+
+    index = current_letter.get(user_id, 0) + 1
+
+    if index >= len(arabic_letters):
+        await message.answer("🎉 Алифбо тугади!")
+        return
+
+    current_letter[user_id] = index
+    letter = arabic_letters[index]
+
+    text = f"""
+📘 Ҳарф: {letter['letter']}
+
+🔤 Номи: {letter['name']}
+🗣 Талаффуз: {letter['pronunciation']}
+📖 Ўқилиши: {letter['reading']}
+
+📌 Сўз бошида: {letter['begin']}
+📌 Сўз ўртасида: {letter['middle']}
+📌 Сўз охирида: {letter['end']}
+
+🕌 Қуръондан мисол: {letter['example']}
+"""
+
     await message.answer(text)
+@dp.message_handler(lambda message: message.text == "🔊 Талаффуз аудио")
+async def letter_audio(message: types.Message):
+
+    user_id = message.from_user.id
+    index = current_letter.get(user_id, 0)
+
+    letter = arabic_letters[index]
+
+    await message.answer_audio(letter["audio"])
+
 
 # ======================
 # BUGUNGI 5 OYAT
