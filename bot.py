@@ -142,34 +142,31 @@ async def arabic_lesson(message: types.Message):
 @dp.message_handler(lambda message: message.text == "📖 Бугунги оят")
 async def today_ayah(message: types.Message):
 
-    user_id = message.from_user.id
+    today = datetime.now().date()
+    start_date = datetime(2026, 1, 1).date()
 
-    start_index = get_progress(user_id)
+    days_passed = (today - start_date).days
+    start_index = days_passed * 5
     end_index = start_index + 5
-
-    if start_index >= len(quran):
-        await message.answer("Қуръон тўлиқ ўқиб бўлинди 🤲")
-        return
 
     ayahs = quran[start_index:end_index]
 
     text = "📖 Бугунги 5 та оят:\n\n"
 
-   for ayah in ayahs:
-    text += f"{ayah['sura']}:{ayah['ayah']}\n"
-    text += f"{ayah['arabic']}\n"
-    text += f"{ayah['text']}\n"
+    for ayah in ayahs:
+        text += f"{ayah['sura']}:{ayah['ayah']}\n"
+        text += f"{ayah['arabic']}\n"
+        text += f"{ayah['text']}\n"
 
-    # TAJWID TEKSHIRISH
-    for letter, rule in tajwid_rules.items():
-        if letter in ayah['arabic']:
-            text += f"{rule}\n"
+        sura = str(ayah['sura']).zfill(3)
+        ayah_number = str(ayah['ayah']).zfill(3)
 
-    text += "\n"
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
 
-    save_progress(user_id, end_index)
+        text += f"🎧 Аудио: {audio_url}\n\n"
 
     await message.answer(text)
+
 
 
 # ======================
