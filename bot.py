@@ -14,11 +14,13 @@ def generate_ayah_image(arabic_text, filename="ayah.png"):
     draw = ImageDraw.Draw(img)
 
     try:
-       font = ImageFont.load_default()
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 80)
     except:
         font = ImageFont.load_default()
 
-    text_width, text_height = draw.textsize(arabic_text, font=font)
+    bbox = draw.textbbox((0, 0), arabic_text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
 
     x = (width - text_width) / 2
     y = (height - text_height) / 2
@@ -26,6 +28,7 @@ def generate_ayah_image(arabic_text, filename="ayah.png"):
     draw.text((x, y), arabic_text, fill="black", font=font)
 
     img.save(filename)
+
 
 
 # ======================
