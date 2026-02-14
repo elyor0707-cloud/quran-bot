@@ -66,28 +66,23 @@ with open("quran.json", "r", encoding="utf-8") as f:
 # DATA
 # ======================
 arabic_letters = [
-    {
-        "letter": "ا",
-        "name": "Алиф",
-        "pronunciation": "А товуши",
-        "reading": "а",
-        "begin": "ا",
-        "middle": "ـا",
-        "end": "ـا",
-        "example": "اللّٰه",
-        "audio": "https://everyayah.com/data/Alafasy_128kbps/001001.mp3"
+  {
+    "id": 1,
+    "harf": "ا",
+    "nomi": "Alif",
+    "talaffuz": "Halqum boshidan chiqadi",
+    "shakllar": {
+      "alohida": "ا",
+      "boshida": "ا",
+      "ortasida": "ـا",
+      "oxirida": "ـا"
     },
-    {
-        "letter": "ب",
-        "name": "Ба",
-        "pronunciation": "Б товуши",
-        "reading": "б",
-        "begin": "بـ",
-        "middle": "ـبـ",
-        "end": "ـب",
-        "example": "بسم",
-        "audio": "https://everyayah.com/data/Alafasy_128kbps/001002.mp3"
-    }
+    "misollar": [
+      "اَللّٰه",
+      "اِيمَان"
+    ],
+    "tajwid": "Madd harfi bo‘lishi mumkin"
+  }
 ]
 
 
