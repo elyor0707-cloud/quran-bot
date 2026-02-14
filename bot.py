@@ -5,13 +5,11 @@ import random
 import stripe
 from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
 
 # ======================
 # CONFIG
@@ -20,7 +18,8 @@ from reportlab.pdfbase import pdfmetrics
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 STRIPE_SECRET = os.getenv("STRIPE_SECRET")
 
-stripe.api_key = STRIPE_SECRET
+if STRIPE_SECRET:
+    stripe.api_key = STRIPE_SECRET
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
@@ -64,7 +63,6 @@ def activate_premium(user_id):
 # ======================
 
 main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-main_keyboard.add("📖 Бугунги оят")
 main_keyboard.add("🧠 Тест режими")
 main_keyboard.add("📊 Leaderboard")
 main_keyboard.add("📜 Сертификат")
@@ -72,10 +70,13 @@ main_keyboard.add("📚 Грамматика")
 main_keyboard.add("💳 Premium")
 
 # ======================
-# TEST SYSTEM
+# TEST SYSTEM (10 SAVOL)
 # ======================
 
-arabic_letters = ["ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"]
+arabic_letters = [
+"ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش",
+"ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"
+]
 
 tests = {}
 
@@ -88,19 +89,21 @@ async def ask_question(message):
     letter = random.choice(arabic_letters)
     tests[message.from_user.id]["correct"] = letter
     tests[message.from_user.id]["count"] += 1
-    await message.answer(f"{tests[message.from_user.id]['count']}/10\nБу қайси ҳарф?\n\n{letter}")
+    await message.answer(
+        f"{tests[message.from_user.id]['count']}/10\n\nБу қайси ҳарф?\n\n{letter}"
+    )
 
 @dp.message_handler(lambda m: m.from_user.id in tests and m.text!="🏠 Бош меню")
 async def check_answer(message: types.Message):
     user_test = tests[message.from_user.id]
 
-    if message.text.strip()==user_test["correct"]:
-        user_test["score"] +=1
+    if message.text.strip() == user_test["correct"]:
+        user_test["score"] += 1
         await message.answer("✅ Тўғри")
     else:
         await message.answer(f"❌ Нотўғри. Жавоб: {user_test['correct']}")
 
-    if user_test["count"]<10:
+    if user_test["count"] < 10:
         await ask_question(message)
     else:
         final_score = user_test["score"]
@@ -110,7 +113,9 @@ async def check_answer(message: types.Message):
         kb.add("🏠 Бош меню")
 
         await message.answer(
-            f"🏁 Тест тугади!\n\nНатижа: {final_score}/10\nБалл: {final_score*10}",
+            f"🏁 Тест тугади!\n\n"
+            f"Натижа: {final_score}/10\n"
+            f"Балл: {final_score*10}",
             reply_markup=kb
         )
 
@@ -142,7 +147,7 @@ async def leaderboard(message: types.Message):
     await message.answer(text)
 
 # ======================
-# CERTIFICATE (Professional PDF)
+# CERTIFICATE (PRO VERSION)
 # ======================
 
 @dp.message_handler(lambda m: m.text=="📜 Сертификат")
@@ -150,20 +155,19 @@ async def generate_certificate(message: types.Message):
 
     filename="certificate.pdf"
     doc = SimpleDocTemplate(filename, pagesize=A4)
-
     elements = []
 
     style = ParagraphStyle(
         name='Normal',
-        fontSize=22,
+        fontSize=24,
         textColor=colors.darkblue
     )
 
     elements.append(Paragraph("QURAN LEARNING CERTIFICATE", style))
-    elements.append(Spacer(1, 30))
+    elements.append(Spacer(1, 40))
     elements.append(Paragraph(f"User ID: {message.from_user.id}", style))
     elements.append(Spacer(1, 20))
-    elements.append(Paragraph("Successfully completed test module.", style))
+    elements.append(Paragraph("Successfully completed the 10-question test module.", style))
 
     doc.build(elements)
 
@@ -171,11 +175,15 @@ async def generate_certificate(message: types.Message):
         await message.answer_document(f)
 
 # ======================
-# PREMIUM (Stripe Checkout)
+# PREMIUM (SAFE STRIPE)
 # ======================
 
 @dp.message_handler(lambda m: m.text=="💳 Premium")
 async def premium_payment(message: types.Message):
+
+    if not STRIPE_SECRET:
+        await message.answer("Stripe уланмаган. Админ билан боғланинг.")
+        return
 
     session = stripe.checkout.Session.create(
         payment_method_types=['card'],
@@ -183,7 +191,7 @@ async def premium_payment(message: types.Message):
             'price_data':{
                 'currency':'usd',
                 'product_data':{'name':'Quran Premium'},
-                'unit_amount':3000,
+                'unit_amount':3000,  # 30 USD
             },
             'quantity':1,
         }],
@@ -193,6 +201,9 @@ async def premium_payment(message: types.Message):
     )
 
     await message.answer(f"💳 Тўлов учун ҳавола:\n{session.url}")
+
+    # ТЕСТ РЕЖИМИДА автомат активлаш
+    activate_premium(message.from_user.id)
 
 # ======================
 # GRAMMAR
@@ -210,9 +221,19 @@ async def grammar_menu(message: types.Message):
 4️⃣ Шадда
 5️⃣ Исм ва феъл фарқи
 6️⃣ Жумла тузилиши
+7️⃣ Муфрад ва жамъ
+8️⃣ Музаккар ва муаннас
 """
 
     await message.answer(text)
+
+# ======================
+# START
+# ======================
+
+@dp.message_handler(commands=['start'])
+async def start_cmd(message: types.Message):
+    await message.answer("Ассалому алайкум!", reply_markup=main_keyboard)
 
 # ======================
 # RUN
