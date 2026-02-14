@@ -2,11 +2,17 @@ import requests
 import os
 import sqlite3
 import random
+import stripe
 from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardMarkup
+from reportlab.pdfgen import canvas
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+STRIPE_SECRET = os.getenv("STRIPE_SECRET")
+
+stripe.api_key = STRIPE_SECRET
+
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
@@ -36,10 +42,6 @@ def get_user(user_id):
         return 1,0,0
     return row
 
-def update_progress(user_id, value):
-    cursor.execute("UPDATE users SET ayah_progress=? WHERE user_id=?", (value, user_id))
-    conn.commit()
-
 def add_score(user_id, points):
     cursor.execute("UPDATE users SET score=score+? WHERE user_id=?", (points,user_id))
     conn.commit()
@@ -49,41 +51,6 @@ def activate_premium(user_id):
     conn.commit()
 
 # ======================
-# ARABIC LETTERS FULL (28)
-# ======================
-
-arabic_letters = [
-("ا","Алиф","а","ا","ـا","ـا","اللّٰه"),
-("ب","Ба","б","بـ","ـبـ","ـب","بسم"),
-("ت","Та","т","تـ","ـتـ","ـت","توبة"),
-("ث","Са","с","ثـ","ـثـ","ـث","ثواب"),
-("ج","Жим","ж","جـ","ـجـ","ـج","جنة"),
-("ح","Ҳа","ҳ","حـ","ـحـ","ـح","حق"),
-("خ","Хо","х","خـ","ـخـ","ـخ","خلق"),
-("د","Дал","д","د","ـد","ـد","دين"),
-("ذ","Зал","з","ذ","ـذ","ـذ","ذكر"),
-("ر","Ро","р","ر","ـر","ـر","رحمن"),
-("ز","Зай","з","ز","ـز","ـز","زكاة"),
-("س","Син","с","سـ","ـسـ","ـس","سلام"),
-("ش","Шин","ш","شـ","ـشـ","ـش","شمس"),
-("ص","Сод","с","صـ","ـصـ","ـص","صلاة"),
-("ض","Дод","д","ضـ","ـضـ","ـض","ضلال"),
-("ط","То","т","طـ","ـطـ","ـط","طاعة"),
-("ظ","Зо","з","ظـ","ـظـ","ـظ","ظلم"),
-("ع","Айн","ъ","عـ","ـعـ","ـع","علم"),
-("غ","Ғайн","ғ","غـ","ـغـ","ـغ","غفور"),
-("ف","Фа","ф","فـ","ـفـ","ـف","فجر"),
-("ق","Қоф","қ","قـ","ـقـ","ـق","قرآن"),
-("ك","Каф","к","كـ","ـكـ","ـك","كتاب"),
-("ل","Лам","л","لـ","ـلـ","ـل","الله"),
-("م","Мим","м","مـ","ـمـ","ـم","ملك"),
-("ن","Нун","н","نـ","ـنـ","ـن","نور"),
-("ه","Ҳа","ҳ","هـ","ـهـ","ـه","هدى"),
-("و","Вов","в","و","ـو","ـو","وعد"),
-("ي","Йа","й","يـ","ـيـ","ـي","يوم"),
-]
-
-# ======================
 # MENUS
 # ======================
 
@@ -91,54 +58,13 @@ main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
 main_keyboard.add("📖 Бугунги оят")
 main_keyboard.add("📘 Араб алифбоси")
 main_keyboard.add("🧠 Тест режими")
-main_keyboard.add("📊 Статистика")
+main_keyboard.add("📊 Leaderboard")
+main_keyboard.add("📜 Сертификат")
 main_keyboard.add("📚 Грамматика")
-main_keyboard.add("💎 Premium")
-
-def alphabet_table():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=7)
-    kb.add(*[l[0] for l in arabic_letters])
-    kb.add("🏠 Уйга қайтиш")
-    return kb
+main_keyboard.add("💳 Premium")
 
 # ======================
-# START
-# ======================
-
-@dp.message_handler(commands=['start'])
-async def start_cmd(message: types.Message):
-    await message.answer("Ассалому алайкум!", reply_markup=main_keyboard)
-
-# ======================
-# ALPHABET
-# ======================
-
-@dp.message_handler(lambda m: m.text == "📘 Араб алифбоси")
-async def alphabet_menu(message: types.Message):
-    await message.answer("Ҳарфни танланг:", reply_markup=alphabet_table())
-
-@dp.message_handler(lambda m: m.text in [l[0] for l in arabic_letters])
-async def letter_info(message: types.Message):
-    letter = next(l for l in arabic_letters if l[0]==message.text)
-    await message.answer(f"""
-📘 Ҳарф: {letter[0]}
-
-🔤 Номи: {letter[1]}
-📖 Ўқилиши: {letter[2]}
-
-📌 Бошида: {letter[3]}
-📌 Ўртасида: {letter[4]}
-📌 Охирида: {letter[5]}
-
-🕌 Мисол: {letter[6]}
-""")
-
-@dp.message_handler(lambda m: m.text=="🏠 Уйга қайтиш")
-async def home(message: types.Message):
-    await message.answer("Бош меню", reply_markup=main_keyboard)
-
-# ======================
-# TEST SYSTEM (10 QUESTIONS)
+# TEST SYSTEM (10)
 # ======================
 
 tests = {}
@@ -149,15 +75,15 @@ async def start_test(message: types.Message):
     await ask_question(message)
 
 async def ask_question(message):
-    q = random.choice(arabic_letters)
-    tests[message.from_user.id]["correct"] = q[2]
+    letter = random.choice(["ا","ب","ت","ث","ج","ح","خ","د"])
+    tests[message.from_user.id]["correct"] = letter
     tests[message.from_user.id]["count"] += 1
-    await message.answer(f"{tests[message.from_user.id]['count']}/10\nБу қайси ҳарф?\n\n{q[0]}")
+    await message.answer(f"{tests[message.from_user.id]['count']}/10\nБу қайси ҳарф?\n\n{letter}")
 
 @dp.message_handler(lambda m: m.from_user.id in tests)
 async def check_answer(message: types.Message):
     user_test = tests[message.from_user.id]
-    if message.text.lower()==user_test["correct"]:
+    if message.text.strip()==user_test["correct"]:
         user_test["score"] +=1
         await message.answer("✅ Тўғри")
     else:
@@ -167,79 +93,75 @@ async def check_answer(message: types.Message):
     else:
         final_score = user_test["score"]
         add_score(message.from_user.id, final_score*10)
-        await message.answer(f"""
-🏁 Тест тугади!
-
-Натижа: {final_score}/10
-Балл қўшилди: {final_score*10}
-""")
+        kb = ReplyKeyboardMarkup(resize_keyboard=True)
+        kb.add("🏠 Бош меню")
+        await message.answer(f"🏁 Тест тугади!\nНатижа: {final_score}/10\nБалл: {final_score*10}", reply_markup=kb)
         del tests[message.from_user.id]
 
-# ======================
-# TODAY AYAH
-# ======================
-
-@dp.message_handler(lambda m: m.text=="📖 Бугунги оят")
-async def today_ayah(message: types.Message):
-
-    user_id = message.from_user.id
-    ayah_index,premium,score = get_user(user_id)
-    limit = 5 if premium==0 else 20
-
-    for i in range(ayah_index, ayah_index+limit):
-        response = requests.get(
-            f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.sodik"
-        )
-        data = response.json()
-        arabic = data['data'][0]['text']
-        uzbek = data['data'][1]['text']
-        surah_name = data['data'][0]['surah']['englishName']
-        await message.answer(f"{surah_name} сураси {data['data'][0]['numberInSurah']}-оят")
-        await message.answer(arabic)
-        await message.answer(uzbek)
-        sura = str(data['data'][0]['surah']['number']).zfill(3)
-        ayah_number = str(data['data'][0]['numberInSurah']).zfill(3)
-        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
-        await message.answer_audio(audio_url)
-
-    update_progress(user_id, ayah_index+limit)
+@dp.message_handler(lambda m: m.text=="🏠 Бош меню")
+async def back_home(message: types.Message):
+    await message.answer("Бош меню", reply_markup=main_keyboard)
 
 # ======================
-# GRAMMAR
+# LEADERBOARD
+# ======================
+
+@dp.message_handler(lambda m: m.text=="📊 Leaderboard")
+async def leaderboard(message: types.Message):
+    cursor.execute("SELECT user_id,score FROM users ORDER BY score DESC LIMIT 10")
+    rows = cursor.fetchall()
+    text="🏆 ТОП 10\n\n"
+    for i,row in enumerate(rows,1):
+        text+=f"{i}. {row[0]} — {row[1]} балл\n"
+    await message.answer(text)
+
+# ======================
+# CERTIFICATE PDF
+# ======================
+
+@dp.message_handler(lambda m: m.text=="📜 Сертификат")
+async def generate_certificate(message: types.Message):
+    filename="certificate.pdf"
+    c=canvas.Canvas(filename)
+    c.drawString(100,750,"Quran Learning Certificate")
+    c.drawString(100,720,f"User ID: {message.from_user.id}")
+    c.save()
+    with open(filename,"rb") as f:
+        await message.answer_document(f)
+
+# ======================
+# PREMIUM PAYMENT (Stripe)
+# ======================
+
+@dp.message_handler(lambda m: m.text=="💳 Premium")
+async def premium_payment(message: types.Message):
+    session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=[{
+            'price_data':{
+                'currency':'usd',
+                'product_data':{'name':'Quran Premium'},
+                'unit_amount':2000,
+            },
+            'quantity':1,
+        }],
+        mode='payment',
+        success_url='https://example.com/success',
+        cancel_url='https://example.com/cancel',
+    )
+    await message.answer(f"💳 Тўлов учун ҳавола:\n{session.url}")
+    activate_premium(message.from_user.id)
+
+# ======================
+# GRAMMAR MODULE
 # ======================
 
 @dp.message_handler(lambda m: m.text=="📚 Грамматика")
-async def grammar(message: types.Message):
-    await message.answer("""
-📚 Араб грамматикаси:
-
-1️⃣ Ҳаракатлар (фатҳа, касра, дамма)
-2️⃣ Танвин
-3️⃣ Сукун
-4️⃣ Шадда
-5️⃣ Исм ва феъл фарқи
-6️⃣ Жумла тузилиши
-""")
-
-# ======================
-# PREMIUM
-# ======================
-
-@dp.message_handler(lambda m: m.text=="💎 Premium")
-async def premium_info(message: types.Message):
-    await message.answer("""
-💎 Premium режа:
-
-✔ 20 та оят/кун
-✔ Чуқур тест
-✔ Сертификат
-✔ Прогресс аналитика
-
-💳 Нархи: 20–30 USD
-
-Тўлов учун админга мурожаат қилинг.
-""")
-    activate_premium(message.from_user.id)
+async def grammar_menu(message: types.Message):
+    kb=ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add("Ҳаракатлар","Танвин","Сукун")
+    kb.add("🏠 Бош меню")
+    await message.answer("📚 Бўлимни танланг:",reply_markup=kb)
 
 # ======================
 # RUN
