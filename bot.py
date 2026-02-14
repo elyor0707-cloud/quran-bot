@@ -2,72 +2,20 @@ import requests
 import sqlite3
 import os
 import json
-import random
-from PIL import Image, ImageDraw, ImageFont
-from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-def generate_ayah_image(arabic_text, filename="ayah.png"):
-    width = 1200
-    height = 400
 
-    img = Image.new("RGB", (width, height), "white")
-    draw = ImageDraw.Draw(img)
-
-    try:
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 80)
-    except:
-        font = ImageFont.load_default()
-
-    bbox = draw.textbbox((0, 0), arabic_text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-
-    x = (width - text_width) / 2
-    y = (height - text_height) / 2
-
-    draw.text((x, y), arabic_text, fill="black", font=font)
-
-    img.save(filename)
-
-
-
-# ======================
-# TOKEN
-# ======================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
+
 current_letter = {}
 
 # ======================
-# DATABASE
-# ======================
-conn = sqlite3.connect("database.db")
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY,
-    progress INTEGER DEFAULT 0
-)
-""")
-
-conn.commit()
-
-# ======================
-# QURAN JSON yuklash
-# ======================
-with open("quran.json", "r", encoding="utf-8") as f:
-    quran = json.load(f)
-
-# ======================
-# DATA
+# ARABIC LETTERS DATA
 # ======================
 
 arabic_letters = [
-    
     {
         "letter": "ا",
         "name": "Алиф",
@@ -77,7 +25,7 @@ arabic_letters = [
         "middle": "ـا",
         "end": "ـا",
         "example": "اللّٰه",
-        "audio": "https://everyayah.com/data/Alafasy_128kbps/001001.mp3"
+        "audio": "letters_audio/alif.mp3"
     },
     {
         "letter": "ب",
@@ -88,109 +36,52 @@ arabic_letters = [
         "middle": "ـبـ",
         "end": "ـب",
         "example": "بسم",
-        "audio": "https://everyayah.com/data/Alafasy_128kbps/001002.mp3"
+        "audio": "letters_audio/ba.mp3"
     }
 ]
 
+# ======================
+# MAIN MENU
+# ======================
+
+main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+main_keyboard.add("📖 Бугунги оят")
+main_keyboard.add("📘 Араб алифбоси")
 
 # ======================
-# TAJWID QOIDALARI
+# LETTER KEYBOARD
 # ======================
-tajwid_rules = {
-    "نْ": "🟢 Нун сокин — ихфо / идғом / изҳор текширилади",
-    "مْ": "🔵 Мим сокин — ихфо шафавий ёки идғом",
-    "ر": "🟡 Ро — тафхим ёки тарқиқ",
-    "ل": "🟣 Лом — Аллоҳ калимасида тафхим бўлиши мумкин"
-}
-letter_audio = {
-    "ا": "letters_audio/alif.mp3",
-    "ب": "letters_audio/ba.mp3",
-    "ت": "letters_audio/ta.mp3",
-    "ث": "letters_audio/tha.mp3",
-    "ج": "letters_audio/jeem.mp3",
-    "ح": "letters_audio/ha.mp3",
-    "خ": "letters_audio/kha.mp3",
-    "د": "letters_audio/dal.mp3",
-    "ذ": "letters_audio/dhal.mp3",
-    "ر": "letters_audio/ra.mp3",
-    "ز": "letters_audio/zay.mp3",
-    "س": "letters_audio/seen.mp3",
-    "ش": "letters_audio/sheen.mp3",
-    "ص": "letters_audio/sad.mp3",
-    "ض": "letters_audio/dad.mp3",
-    "ط": "letters_audio/ta2.mp3",
-    "ظ": "letters_audio/za.mp3",
-    "ع": "letters_audio/ain.mp3",
-    "غ": "letters_audio/ghain.mp3",
-    "ف": "letters_audio/fa.mp3",
-    "ق": "letters_audio/qaf.mp3",
-    "ك": "letters_audio/kaf.mp3",
-    "ل": "letters_audio/lam.mp3",
-    "م": "letters_audio/meem.mp3",
-    "ن": "letters_audio/noon.mp3",
-    "ه": "letters_audio/ha2.mp3",
-    "و": "letters_audio/waw.mp3",
-    "ي": "letters_audio/ya.mp3"
-}
 
-
-
-# ======================
-# PROGRESS FUNCTIONS
-# ======================
-def get_progress(user_id):
-    cursor.execute("SELECT progress FROM users WHERE user_id=?", (user_id,))
-    result = cursor.fetchone()
-
-    if result:
-        return result[0]
-    else:
-        cursor.execute(
-            "INSERT INTO users (user_id, progress) VALUES (?, ?)",
-            (user_id, 0)
-        )
-        conn.commit()
-        return 0
-
-
-def save_progress(user_id, value):
-    cursor.execute(
-        "UPDATE users SET progress=? WHERE user_id=?",
-        (value, user_id)
-    )
-    conn.commit()
-
-
-# ======================
-# KEYBOARD
-# ======================
-keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-keyboard.add(KeyboardButton("📖 Бугунги оят"))
-keyboard.add(KeyboardButton("📘 Араб алифбоси"))
-keyboard.add(KeyboardButton("📚 Грамматика"))
-keyboard.add(KeyboardButton("🕌 Қуръон ўқиш"))
-keyboard.add(KeyboardButton("💎 Premium"))
+def letter_keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add("⬅ Олдинги ҳарф", "➡ Кейинги ҳарф")
+    kb.add("🔊 Талаффуз аудио")
+    kb.add("🏠 Уйга қайтиш")
+    return kb
 
 # ======================
 # START
 # ======================
+
 @dp.message_handler(commands=['start'])
 async def start_cmd(message: types.Message):
-    await message.answer(
-        "Ассалому алайкум!\nБугунги оятни олиш учун тугмани босинг.",
-        reply_markup=keyboard
-    )
+    await message.answer("Ассалому алайкум!", reply_markup=main_keyboard)
 
 # ======================
-# ARABIC ALPHABET
+# ARABIC ALPHABET START
 # ======================
-@dp.message_handler(lambda message: message.text == "📘 Араб алифбоси")
-async def arabic_lesson(message: types.Message):
 
-    index = 0
+@dp.message_handler(lambda m: m.text == "📘 Араб алифбоси")
+async def arabic_start(message: types.Message):
+    current_letter[message.from_user.id] = 0
+    await send_letter(message, 0)
+
+# ======================
+# SEND LETTER FUNCTION
+# ======================
+
+async def send_letter(message, index):
     letter = arabic_letters[index]
-
-    current_letter[message.from_user.id] = index
 
     text = f"""
 📘 Ҳарф: {letter['letter']}
@@ -206,72 +97,75 @@ async def arabic_lesson(message: types.Message):
 🕌 Қуръондан мисол: {letter['example']}
 """
 
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("➡ Кейинги ҳарф")
-    keyboard.add("🔊 Талаффуз аудио")
+    await message.answer(text, reply_markup=letter_keyboard())
 
-    await message.answer(text, reply_markup=keyboard)
-@dp.message_handler(lambda message: message.text == "➡ Кейинги ҳарф")
+# ======================
+# NEXT LETTER
+# ======================
+
+@dp.message_handler(lambda m: m.text == "➡ Кейинги ҳарф")
 async def next_letter(message: types.Message):
-
     user_id = message.from_user.id
-
     index = current_letter.get(user_id, 0) + 1
 
     if index >= len(arabic_letters):
-        await message.answer("🎉 Алифбо тугади!")
+        await message.answer("🎉 Алифбо тугади!", reply_markup=main_keyboard)
         return
 
     current_letter[user_id] = index
-    letter = arabic_letters[index]
+    await send_letter(message, index)
 
-    text = f"""
-📘 Ҳарф: {letter['letter']}
+# ======================
+# PREVIOUS LETTER
+# ======================
 
-🔤 Номи: {letter['name']}
-🗣 Талаффуз: {letter['pronunciation']}
-📖 Ўқилиши: {letter['reading']}
+@dp.message_handler(lambda m: m.text == "⬅ Олдинги ҳарф")
+async def prev_letter(message: types.Message):
+    user_id = message.from_user.id
+    index = current_letter.get(user_id, 0) - 1
 
-📌 Сўз бошида: {letter['begin']}
-📌 Сўз ўртасида: {letter['middle']}
-📌 Сўз охирида: {letter['end']}
+    if index < 0:
+        index = 0
 
-🕌 Қуръондан мисол: {letter['example']}
-"""
-@dp.message_handler(lambda message: message.text == "🔊 Талаффуз аудио")
-async def letter_audio_handler(message: types.Message):
+    current_letter[user_id] = index
+    await send_letter(message, index)
 
-    index = get_progress(message.from_user.id)
-    letter = arabic_letters[index]
-    symbol = letter.split(" — ")[0]
+# ======================
+# LETTER AUDIO
+# ======================
 
-    if symbol in letter_audio:
-        with open(letter_audio[symbol], "rb") as audio:
-            await message.answer_audio(audio)
-    else:
-        await message.answer("Аудио топилмади.")
-
-    await message.answer(text)
-@dp.message_handler(lambda message: message.text == "🔊 Талаффуз аудио")
+@dp.message_handler(lambda m: m.text == "🔊 Талаффуз аудио")
 async def letter_audio(message: types.Message):
-
     user_id = message.from_user.id
     index = current_letter.get(user_id, 0)
 
     letter = arabic_letters[index]
 
-    await message.answer_audio(letter["audio"])
-
+    if os.path.exists(letter["audio"]):
+        with open(letter["audio"], "rb") as audio:
+            await message.answer_audio(audio)
+    else:
+        await message.answer("Аудио файл топилмади.")
 
 # ======================
-# BUGUNGI 5 OYAT
+# HOME
 # ======================
-@dp.message_handler(lambda message: message.text == "📖 Бугунги оят")
+
+@dp.message_handler(lambda m: m.text == "🏠 Уйга қайтиш")
+async def go_home(message: types.Message):
+    await message.answer("Бош меню", reply_markup=main_keyboard)
+
+# ======================
+# TODAY AYAH
+# ======================
+
+@dp.message_handler(lambda m: m.text == "📖 Бугунги оят")
 async def today_ayah(message: types.Message):
 
-    for i in range(1, 6):  # 5 та оят
-
-        response = requests.get(f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.sodik")
+    for i in range(1, 6):
+        response = requests.get(
+            f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.sodik"
+        )
         data = response.json()
 
         arabic = data['data'][0]['text']
@@ -281,16 +175,9 @@ async def today_ayah(message: types.Message):
         await message.answer(arabic)
         await message.answer(uzbek)
 
-        sura = str(data['data'][0]['surah']['number']).zfill(3)
-        ayah_number = str(data['data'][0]['numberInSurah']).zfill(3)
-
-        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
-        await message.answer_audio(audio_url)
-
-
-
 # ======================
 # RUN
 # ======================
+
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
