@@ -1,5 +1,6 @@
 import requests
 import os
+import sqlite3
 from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardMarkup
@@ -8,41 +9,68 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
-current_letter = {}
+# ======================
+# DATABASE
+# ======================
+
+conn = sqlite3.connect("database.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY,
+    ayah_progress INTEGER DEFAULT 1,
+    premium INTEGER DEFAULT 0
+)
+""")
+conn.commit()
+
+def get_user(user_id):
+    cursor.execute("SELECT ayah_progress, premium FROM users WHERE user_id=?", (user_id,))
+    row = cursor.fetchone()
+    if not row:
+        cursor.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
+        conn.commit()
+        return 1, 0
+    return row
+
+def update_progress(user_id, value):
+    cursor.execute("UPDATE users SET ayah_progress=? WHERE user_id=?", (value, user_id))
+    conn.commit()
 
 # ======================
-# ARABIC LETTERS FULL DATA
+# ARABIC LETTERS
 # ======================
 
 arabic_letters = [
-{"letter":"ا","name":"Алиф","pronunciation":"А товуши","reading":"а","begin":"ا","middle":"ـا","end":"ـا","example":"اللّٰه","audio":"letters_audio/alif.mp3","youtube":"https://youtu.be/alif"},
-{"letter":"ب","name":"Ба","pronunciation":"Б товуши","reading":"б","begin":"بـ","middle":"ـبـ","end":"ـب","example":"بسم","audio":"letters_audio/ba.mp3","youtube":"https://youtu.be/ba"},
-{"letter":"ت","name":"Та","pronunciation":"Т товуши","reading":"т","begin":"تـ","middle":"ـتـ","end":"ـت","example":"توبة","audio":"letters_audio/ta.mp3","youtube":"https://youtu.be/ta"},
-{"letter":"ث","name":"Са","pronunciation":"С (th)","reading":"с","begin":"ثـ","middle":"ـثـ","end":"ـث","example":"ثواب","audio":"letters_audio/tha.mp3","youtube":"https://youtu.be/tha"},
-{"letter":"ج","name":"Жим","pronunciation":"Ж","reading":"ж","begin":"جـ","middle":"ـجـ","end":"ـج","example":"جنة","audio":"letters_audio/jeem.mp3","youtube":"https://youtu.be/jeem"},
-{"letter":"ح","name":"Ҳа","pronunciation":"Ҳ қаттиқ","reading":"ҳ","begin":"حـ","middle":"ـحـ","end":"ـح","example":"حق","audio":"letters_audio/ha.mp3","youtube":"https://youtu.be/ha"},
-{"letter":"خ","name":"Хо","pronunciation":"Х","reading":"х","begin":"خـ","middle":"ـخـ","end":"ـخ","example":"خلق","audio":"letters_audio/kha.mp3","youtube":"https://youtu.be/kha"},
-{"letter":"د","name":"Дал","pronunciation":"Д","reading":"д","begin":"د","middle":"ـد","end":"ـد","example":"دين","audio":"letters_audio/dal.mp3","youtube":"https://youtu.be/dal"},
-{"letter":"ذ","name":"Зал","pronunciation":"З (dh)","reading":"з","begin":"ذ","middle":"ـذ","end":"ـذ","example":"ذكر","audio":"letters_audio/dhal.mp3","youtube":"https://youtu.be/dhal"},
-{"letter":"ر","name":"Ро","pronunciation":"Р","reading":"р","begin":"ر","middle":"ـر","end":"ـر","example":"رحمن","audio":"letters_audio/ra.mp3","youtube":"https://youtu.be/ra"},
-{"letter":"ز","name":"Зай","pronunciation":"З","reading":"з","begin":"ز","middle":"ـز","end":"ـز","example":"زكاة","audio":"letters_audio/zay.mp3","youtube":"https://youtu.be/zay"},
-{"letter":"س","name":"Син","pronunciation":"С","reading":"с","begin":"سـ","middle":"ـسـ","end":"ـس","example":"سلام","audio":"letters_audio/seen.mp3","youtube":"https://youtu.be/seen"},
-{"letter":"ش","name":"Шин","pronunciation":"Ш","reading":"ш","begin":"شـ","middle":"ـشـ","end":"ـش","example":"شمس","audio":"letters_audio/sheen.mp3","youtube":"https://youtu.be/sheen"},
-{"letter":"ص","name":"Сод","pronunciation":"Қаттиқ С","reading":"с","begin":"صـ","middle":"ـصـ","end":"ـص","example":"صلاة","audio":"letters_audio/sad.mp3","youtube":"https://youtu.be/sad"},
-{"letter":"ض","name":"Дод","pronunciation":"Қаттиқ Д","reading":"д","begin":"ضـ","middle":"ـضـ","end":"ـض","example":"ضلال","audio":"letters_audio/dad.mp3","youtube":"https://youtu.be/dad"},
-{"letter":"ط","name":"То","pronunciation":"Қаттиқ Т","reading":"т","begin":"طـ","middle":"ـطـ","end":"ـط","example":"طاعة","audio":"letters_audio/ta2.mp3","youtube":"https://youtu.be/ta2"},
-{"letter":"ظ","name":"Зо","pronunciation":"Қаттиқ З","reading":"з","begin":"ظـ","middle":"ـظـ","end":"ـظ","example":"ظلم","audio":"letters_audio/za.mp3","youtube":"https://youtu.be/za"},
-{"letter":"ع","name":"Айн","pronunciation":"Томоқ товуш","reading":"ъ","begin":"عـ","middle":"ـعـ","end":"ـع","example":"علم","audio":"letters_audio/ain.mp3","youtube":"https://youtu.be/ain"},
-{"letter":"غ","name":"Ғайн","pronunciation":"Ғ","reading":"ғ","begin":"غـ","middle":"ـغـ","end":"ـغ","example":"غفور","audio":"letters_audio/ghain.mp3","youtube":"https://youtu.be/ghain"},
-{"letter":"ف","name":"Фа","pronunciation":"Ф","reading":"ф","begin":"فـ","middle":"ـفـ","end":"ـف","example":"فجر","audio":"letters_audio/fa.mp3","youtube":"https://youtu.be/fa"},
-{"letter":"ق","name":"Қоф","pronunciation":"Қ","reading":"қ","begin":"قـ","middle":"ـقـ","end":"ـق","example":"قرآن","audio":"letters_audio/qaf.mp3","youtube":"https://youtu.be/qaf"},
-{"letter":"ك","name":"Каф","pronunciation":"К","reading":"к","begin":"كـ","middle":"ـكـ","end":"ـك","example":"كتاب","audio":"letters_audio/kaf.mp3","youtube":"https://youtu.be/kaf"},
-{"letter":"ل","name":"Лам","pronunciation":"Л","reading":"л","begin":"لـ","middle":"ـلـ","end":"ـل","example":"الله","audio":"letters_audio/lam.mp3","youtube":"https://youtu.be/lam"},
-{"letter":"م","name":"Мим","pronunciation":"М","reading":"м","begin":"مـ","middle":"ـمـ","end":"ـم","example":"ملك","audio":"letters_audio/meem.mp3","youtube":"https://youtu.be/meem"},
-{"letter":"ن","name":"Нун","pronunciation":"Н","reading":"н","begin":"نـ","middle":"ـنـ","end":"ـن","example":"نور","audio":"letters_audio/noon.mp3","youtube":"https://youtu.be/noon"},
-{"letter":"ه","name":"Ҳа","pronunciation":"Ҳ енгил","reading":"ҳ","begin":"هـ","middle":"ـهـ","end":"ـه","example":"هدى","audio":"letters_audio/ha2.mp3","youtube":"https://youtu.be/ha2"},
-{"letter":"و","name":"Вов","pronunciation":"В/У","reading":"в","begin":"و","middle":"ـو","end":"ـو","example":"وعد","audio":"letters_audio/waw.mp3","youtube":"https://youtu.be/waw"},
-{"letter":"ي","name":"Йа","pronunciation":"Й","reading":"й","begin":"يـ","middle":"ـيـ","end":"ـي","example":"يوم","audio":"letters_audio/ya.mp3","youtube":"https://youtu.be/ya"}
+{"letter":"ا","name":"Алиф","reading":"а"},
+{"letter":"ب","name":"Ба","reading":"б"},
+{"letter":"ت","name":"Та","reading":"т"},
+{"letter":"ث","name":"Са","reading":"с"},
+{"letter":"ج","name":"Жим","reading":"ж"},
+{"letter":"ح","name":"Ҳа","reading":"ҳ"},
+{"letter":"خ","name":"Хо","reading":"х"},
+{"letter":"د","name":"Дал","reading":"д"},
+{"letter":"ذ","name":"Зал","reading":"з"},
+{"letter":"ر","name":"Ро","reading":"р"},
+{"letter":"ز","name":"Зай","reading":"з"},
+{"letter":"س","name":"Син","reading":"с"},
+{"letter":"ش","name":"Шин","reading":"ш"},
+{"letter":"ص","name":"Сод","reading":"с"},
+{"letter":"ض","name":"Дод","reading":"д"},
+{"letter":"ط","name":"То","reading":"т"},
+{"letter":"ظ","name":"Зо","reading":"з"},
+{"letter":"ع","name":"Айн","reading":"ъ"},
+{"letter":"غ","name":"Ғайн","reading":"ғ"},
+{"letter":"ف","name":"Фа","reading":"ф"},
+{"letter":"ق","name":"Қоф","reading":"қ"},
+{"letter":"ك","name":"Каф","reading":"к"},
+{"letter":"ل","name":"Лам","reading":"л"},
+{"letter":"م","name":"Мим","reading":"м"},
+{"letter":"ن","name":"Нун","reading":"н"},
+{"letter":"ه","name":"Ҳа","reading":"ҳ"},
+{"letter":"و","name":"Вов","reading":"в"},
+{"letter":"ي","name":"Йа","reading":"й"}
 ]
 
 # ======================
@@ -55,11 +83,10 @@ main_keyboard.add("📘 Араб алифбоси")
 main_keyboard.add("📚 Грамматика")
 main_keyboard.add("💎 Premium")
 
-def letter_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add("⬅ Олдинги ҳарф", "➡ Кейинги ҳарф")
-    kb.add("🔊 Талаффуз аудио")
-    kb.add("🎥 Видео дарс")
+def alphabet_table():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=7)
+    letters = [l["letter"] for l in arabic_letters]
+    kb.add(*letters)
     kb.add("🏠 Уйга қайтиш")
     return kb
 
@@ -72,83 +99,38 @@ async def start_cmd(message: types.Message):
     await message.answer("Ассалому алайкум!", reply_markup=main_keyboard)
 
 # ======================
-# ALPHABET
+# ALPHABET TABLE
 # ======================
 
 @dp.message_handler(lambda m: m.text == "📘 Араб алифбоси")
-async def arabic_start(message: types.Message):
-    current_letter[message.from_user.id] = 0
-    await send_letter(message, 0)
+async def alphabet_menu(message: types.Message):
+    await message.answer("Ҳарфни танланг:", reply_markup=alphabet_table())
 
-async def send_letter(message, index):
-    letter = arabic_letters[index]
-    text = f"""
+@dp.message_handler(lambda m: m.text in [l["letter"] for l in arabic_letters])
+async def letter_info(message: types.Message):
+    letter = next(l for l in arabic_letters if l["letter"] == message.text)
+    await message.answer(f"""
 📘 Ҳарф: {letter['letter']}
 
 🔤 Номи: {letter['name']}
-🗣 Талаффуз: {letter['pronunciation']}
 📖 Ўқилиши: {letter['reading']}
-
-📌 Бошида: {letter['begin']}
-📌 Ўртасида: {letter['middle']}
-📌 Охирида: {letter['end']}
-
-🕌 Мисол: {letter['example']}
-"""
-    await message.answer(text, reply_markup=letter_keyboard())
-
-@dp.message_handler(lambda m: m.text == "➡ Кейинги ҳарф")
-async def next_letter(message: types.Message):
-    user_id = message.from_user.id
-    index = current_letter.get(user_id, 0) + 1
-    if index >= len(arabic_letters):
-        await message.answer("🎉 Алифбо тугади!", reply_markup=main_keyboard)
-        return
-    current_letter[user_id] = index
-    await send_letter(message, index)
-
-@dp.message_handler(lambda m: m.text == "⬅ Олдинги ҳарф")
-async def prev_letter(message: types.Message):
-    user_id = message.from_user.id
-    index = max(current_letter.get(user_id, 0) - 1, 0)
-    current_letter[user_id] = index
-    await send_letter(message, index)
-
-@dp.message_handler(lambda m: m.text == "🔊 Талаффуз аудио")
-async def letter_audio(message: types.Message):
-    user_id = message.from_user.id
-    index = current_letter.get(user_id, 0)
-    letter = arabic_letters[index]
-    if os.path.exists(letter["audio"]):
-        with open(letter["audio"], "rb") as audio:
-            await message.answer_audio(audio)
-
-@dp.message_handler(lambda m: m.text == "🎥 Видео дарс")
-async def video_lesson(message: types.Message):
-    user_id = message.from_user.id
-    index = current_letter.get(user_id, 0)
-    letter = arabic_letters[index]
-    await message.answer(letter["youtube"])
-
-@dp.message_handler(lambda m: m.text == "🏠 Уйга қайтиш")
-async def go_home(message: types.Message):
-    await message.answer("Бош меню", reply_markup=main_keyboard)
+""")
 
 # ======================
-# TODAY AYAH (5 daily auto)
+# TODAY AYAH (PROGRESS SYSTEM)
 # ======================
 
 @dp.message_handler(lambda m: m.text == "📖 Бугунги оят")
 async def today_ayah(message: types.Message):
 
-    today = datetime.now().date()
-    start_date = datetime(2026, 1, 1).date()
+    user_id = message.from_user.id
+    ayah_index, premium = get_user(user_id)
 
-    days_passed = (today - start_date).days
-    start_index = days_passed * 5 + 1
-    end_index = start_index + 5
+    limit = 5
+    if premium == 1:
+        limit = 20
 
-    for i in range(start_index, end_index):
+    for i in range(ayah_index, ayah_index + limit):
 
         response = requests.get(
             f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.sodik"
@@ -158,8 +140,9 @@ async def today_ayah(message: types.Message):
 
         arabic = data['data'][0]['text']
         uzbek = data['data'][1]['text']
+        surah_name = data['data'][0]['surah']['englishName']
 
-        await message.answer(f"{i}-оят")
+        await message.answer(f"{surah_name} сураси {data['data'][0]['numberInSurah']}-оят")
         await message.answer(arabic)
         await message.answer(uzbek)
 
@@ -169,6 +152,8 @@ async def today_ayah(message: types.Message):
         audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
 
         await message.answer_audio(audio_url)
+
+    update_progress(user_id, ayah_index + limit)
 
 # ======================
 # GRAMMAR
@@ -191,14 +176,18 @@ async def grammar(message: types.Message):
 
 @dp.message_handler(lambda m: m.text == "💎 Premium")
 async def premium(message: types.Message):
-    await message.answer("""
-💎 Premium имкониятлар:
+    user_id = message.from_user.id
+    cursor.execute("UPDATE users SET premium=1 WHERE user_id=?", (user_id,))
+    conn.commit()
+    await message.answer("Premium фаоллаштирилди! 🚀")
 
-✔ Чексиз тест
-✔ Чуқур тажвид таҳлил
-✔ Сертификат
-✔ Прогресс статистика
-""")
+# ======================
+# HOME
+# ======================
+
+@dp.message_handler(lambda m: m.text == "🏠 Уйга қайтиш")
+async def go_home(message: types.Message):
+    await message.answer("Бош меню", reply_markup=main_keyboard)
 
 # ======================
 # RUN
