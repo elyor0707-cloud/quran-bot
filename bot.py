@@ -65,7 +65,9 @@ with open("quran.json", "r", encoding="utf-8") as f:
 # ======================
 # DATA
 # ======================
+
 arabic_letters = [
+    
     {
         "letter": "ا",
         "name": "Алиф",
@@ -100,6 +102,37 @@ tajwid_rules = {
     "ر": "🟡 Ро — тафхим ёки тарқиқ",
     "ل": "🟣 Лом — Аллоҳ калимасида тафхим бўлиши мумкин"
 }
+letter_audio = {
+    "ا": "letters_audio/alif.mp3",
+    "ب": "letters_audio/ba.mp3",
+    "ت": "letters_audio/ta.mp3",
+    "ث": "letters_audio/tha.mp3",
+    "ج": "letters_audio/jeem.mp3",
+    "ح": "letters_audio/ha.mp3",
+    "خ": "letters_audio/kha.mp3",
+    "د": "letters_audio/dal.mp3",
+    "ذ": "letters_audio/dhal.mp3",
+    "ر": "letters_audio/ra.mp3",
+    "ز": "letters_audio/zay.mp3",
+    "س": "letters_audio/seen.mp3",
+    "ش": "letters_audio/sheen.mp3",
+    "ص": "letters_audio/sad.mp3",
+    "ض": "letters_audio/dad.mp3",
+    "ط": "letters_audio/ta2.mp3",
+    "ظ": "letters_audio/za.mp3",
+    "ع": "letters_audio/ain.mp3",
+    "غ": "letters_audio/ghain.mp3",
+    "ف": "letters_audio/fa.mp3",
+    "ق": "letters_audio/qaf.mp3",
+    "ك": "letters_audio/kaf.mp3",
+    "ل": "letters_audio/lam.mp3",
+    "م": "letters_audio/meem.mp3",
+    "ن": "letters_audio/noon.mp3",
+    "ه": "letters_audio/ha2.mp3",
+    "و": "letters_audio/waw.mp3",
+    "ي": "letters_audio/ya.mp3"
+}
+
 
 
 # ======================
@@ -205,6 +238,18 @@ async def next_letter(message: types.Message):
 
 🕌 Қуръондан мисол: {letter['example']}
 """
+@dp.message_handler(lambda message: message.text == "🔊 Талаффуз аудио")
+async def letter_audio_handler(message: types.Message):
+
+    index = get_progress(message.from_user.id)
+    letter = arabic_letters[index]
+    symbol = letter.split(" — ")[0]
+
+    if symbol in letter_audio:
+        with open(letter_audio[symbol], "rb") as audio:
+            await message.answer_audio(audio)
+    else:
+        await message.answer("Аудио топилмади.")
 
     await message.answer(text)
 @dp.message_handler(lambda message: message.text == "🔊 Талаффуз аудио")
