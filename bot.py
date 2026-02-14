@@ -173,20 +173,11 @@ async def arabic_lesson(message: types.Message):
 🕌 Қуръондан мисол: {letter['example']}
 """
 
-    alphabet_keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-    alphabet_keyboard.add(KeyboardButton("➡ Кейинги ҳарф"))
-    alphabet_keyboard.add(KeyboardButton("🔊 Талаффуз аудио"))
-    alphabet_keyboard.add(KeyboardButton("🏠 Дамой"))
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add("➡ Кейинги ҳарф")
+    keyboard.add("🔊 Талаффуз аудио")
 
-
-    await message.answer(text, reply_markup=alphabet_keyboard)
-    @dp.message_handler(lambda message: message.text == "🏠 Дамой")
-    async def back_home(message: types.Message):
-    await message.answer(
-        "Бош менюга қайтдингиз.",
-        reply_markup=keyboard
-    )
-
+    await message.answer(text, reply_markup=keyboard)
 @dp.message_handler(lambda message: message.text == "➡ Кейинги ҳарф")
 async def next_letter(message: types.Message):
 
