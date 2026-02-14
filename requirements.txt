@@ -1,3 +1,5 @@
 requests
 aiogram==2.25.1
 Pillow
+reportlab
+stripe
