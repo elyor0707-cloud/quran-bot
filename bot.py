@@ -62,100 +62,23 @@ async def start_cmd(message: types.Message):
 
 @dp.message_handler(lambda m: m.text=="🏠 Бош меню")
 async def home(message: types.Message):
-    if message.from_user.id in tests:
-        del tests[message.from_user.id]
     await message.answer("🏠 Бош меню",reply_markup=main_keyboard)
 
 # ======================
-# BUGUNGI OYAT (AUDIO + NAVIGATION)
-# ======================
-
-def ayah_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
-    kb.add("⬅️ Олдинги оят","➡️ Кейинги оят")
-    kb.add("🏠 Бош меню")
-    return kb
-
-async def send_ayah(message, ayah_number):
-    response = requests.get(
-        f"https://api.alquran.cloud/v1/ayah/{ayah_number}/editions/quran-uthmani,uz.sodik"
-    )
-    data = response.json()
-
-    arabic = data['data'][0]['text']
-    uzbek = data['data'][1]['text']
-    surah = data['data'][0]['surah']['englishName']
-    ayah_no = data['data'][0]['numberInSurah']
-
-    await message.answer(f"{surah} сураси {ayah_no}-оят",reply_markup=ayah_keyboard())
-    await message.answer(arabic)
-    await message.answer(uzbek)
-
-    sura = str(data['data'][0]['surah']['number']).zfill(3)
-    ayah_num = str(ayah_no).zfill(3)
-    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
-    await message.answer_audio(audio_url)
-
-@dp.message_handler(lambda m: m.text=="📖 Бугунги оят")
-async def today_ayah(message: types.Message):
-    user_id = message.from_user.id
-    ayah_index,_,_ = get_user(user_id)
-    await send_ayah(message,ayah_index)
-
-@dp.message_handler(lambda m: m.text=="➡️ Кейинги оят")
-async def next_ayah(message: types.Message):
-    user_id = message.from_user.id
-    ayah_index,_,_ = get_user(user_id)
-    ayah_index+=1
-    update_progress(user_id,ayah_index)
-    await send_ayah(message,ayah_index)
-
-@dp.message_handler(lambda m: m.text=="⬅️ Олдинги оят")
-async def prev_ayah(message: types.Message):
-    user_id = message.from_user.id
-    ayah_index,_,_ = get_user(user_id)
-    if ayah_index>1:
-        ayah_index-=1
-        update_progress(user_id,ayah_index)
-    await send_ayah(message,ayah_index)
-
-# ======================
-# ARABIC ALPHABET (FULL INFO)
+# ARABIC ALPHABET (FULL EXTENDED)
 # ======================
 
 arabic_letters = [
-("ا","Алиф","а","ا","ـا","ـا","اللّٰه"),
-("ب","Ба","б","بـ","ـبـ","ـب","بسم"),
-("ت","Та","т","تـ","ـتـ","ـت","توبة"),
-("ث","Са","с","ثـ","ـثـ","ـث","ثواب"),
-("ج","Жим","ж","جـ","ـجـ","ـج","جنة"),
-("ح","Ҳа","ҳ","حـ","ـحـ","ـح","حق"),
-("خ","Хо","х","خـ","ـخـ","ـخ","خلق"),
-("د","Дал","д","د","ـد","ـد","دين"),
-("ذ","Зал","з","ذ","ـذ","ـذ","ذكر"),
-("ر","Ро","р","ر","ـر","ـر","رحمن"),
-("ز","Зай","з","ز","ـز","ـز","زكاة"),
-("س","Син","с","سـ","ـسـ","ـس","سلام"),
-("ش","Шин","ш","شـ","ـشـ","ـش","شمس"),
-("ص","Сод","с","صـ","ـصـ","ـص","صلاة"),
-("ض","Дод","д","ضـ","ـضـ","ـض","ضلال"),
-("ط","То","т","طـ","ـطـ","ـط","طاعة"),
-("ظ","Зо","з","ظـ","ـظـ","ـظ","ظلم"),
-("ع","Айн","ъ","عـ","ـعـ","ـع","علم"),
-("غ","Ғайн","ғ","غـ","ـغـ","ـغ","غفور"),
-("ف","Фа","ф","فـ","ـفـ","ـف","فجر"),
-("ق","Қоф","қ","قـ","ـقـ","ـق","قرآن"),
-("ك","Каф","к","كـ","ـكـ","ـك","كتاب"),
-("ل","Лам","л","لـ","ـلـ","ـل","الله"),
-("م","Мим","м","مـ","ـمـ","ـم","ملك"),
-("ن","Нун","н","نـ","ـنـ","ـن","نور"),
-("ه","Ҳа","ҳ","هـ","ـهـ","ـه","هدى"),
-("و","Вов","в","و","ـو","ـو","وعد"),
-("ي","Йа","й","يـ","ـيـ","ـي","يوم"),
+("ب","Ба","б","بـ","ـبـ","ـب",
+ "بسم","كتاب","حب"),
+("ت","Та","т","تـ","ـتـ","ـت",
+ "توبة","كتاب","بيت"),
+("ج","Жим","ж","جـ","ـجـ","ـج",
+ "جنة","مجلس","حج"),
 ]
 
 def alphabet_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=7)
+    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=6)
     kb.add(*[l[0] for l in arabic_letters])
     kb.add("🏠 Бош меню")
     return kb
@@ -167,109 +90,170 @@ async def alphabet_menu(message: types.Message):
 @dp.message_handler(lambda m: m.text in [l[0] for l in arabic_letters])
 async def letter_info(message: types.Message):
     letter = next(l for l in arabic_letters if l[0]==message.text)
+
     await message.answer(f"""
 📘 Ҳарф: {letter[0]}
 
 🔤 Номи: {letter[1]}
 📖 Ўқилиши: {letter[2]}
 
-📌 Бошида: {letter[3]}
-📌 Ўртасида: {letter[4]}
-📌 Охирида: {letter[5]}
-
-🕌 Мисол: {letter[6]}
+📌 Сўз бошида: {letter[3]}  → {letter[6]}
+📌 Сўз ўртасида: {letter[4]}  → {letter[7]}
+📌 Сўз охирида: {letter[5]}  → {letter[8]}
 """,reply_markup=alphabet_keyboard())
 
 # ======================
-# STATISTICS
+# FULL GRAMMAR SYSTEM
 # ======================
 
-@dp.message_handler(lambda m: m.text=="📊 Статистика")
-async def stats(message: types.Message):
-    ayah,premium,score = get_user(message.from_user.id)
-    await message.answer(f"""
-📊 СТАТИСТИКА
-
-📖 Оят индекси: {ayah}
-⭐ Балл: {score}
-💎 Premium: {"Ҳа" if premium==1 else "Йўқ"}
-""",reply_markup=main_keyboard)
-
-# ======================
-# TEST (WITH STOP + SAFE)
-# ======================
-
-tests = {}
-
-def test_keyboard():
+def grammar_keyboard():
     kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
-    kb.add("❌ Тестни тугатиш","🏠 Бош меню")
+    kb.add(
+        "1️⃣ Ҳаракатлар",
+        "2️⃣ Танвин",
+        "3️⃣ Сукун ва Шадда",
+        "4️⃣ Исм",
+        "5️⃣ Феъл",
+        "6️⃣ Ҳарф",
+        "7️⃣ Жумла турлари",
+        "8️⃣ Иъроб",
+        "📝 Машқ режими",
+        "🏠 Бош меню"
+    )
     return kb
 
-@dp.message_handler(lambda m: m.text=="🧠 Тест режими")
-async def start_test(message: types.Message):
-    tests[message.from_user.id]={"score":0,"count":0}
-    await ask_question(message)
+@dp.message_handler(lambda m: m.text=="📚 Грамматика")
+async def grammar_menu(message: types.Message):
+    await message.answer("📚 Грамматика бўлими:",reply_markup=grammar_keyboard())
 
-async def ask_question(message):
-    q=random.choice(arabic_letters)
-    tests[message.from_user.id]["correct"]=q[2]
-    tests[message.from_user.id]["count"]+=1
-    await message.answer(
-        f"{tests[message.from_user.id]['count']}/10\n\n{q[0]}",
-        reply_markup=test_keyboard()
-    )
+@dp.message_handler(lambda m: m.text=="1️⃣ Ҳаракатлар")
+async def harakatlar(message: types.Message):
+    await message.answer("""
+📚 Ҳаракатлар
 
-@dp.message_handler(lambda m: m.text=="❌ Тестни тугатиш")
-async def stop_test(message: types.Message):
-    if message.from_user.id in tests:
-        del tests[message.from_user.id]
-    await message.answer("Тест тўхтатилди",reply_markup=main_keyboard)
+َ Фатҳа — а
+ِ Касра — и
+ُ Дамма — у
 
-@dp.message_handler(lambda m: m.from_user.id in tests and m.text not in ["❌ Тестни тугатиш","🏠 Бош меню"])
-async def check_answer(message: types.Message):
-    user_test=tests[message.from_user.id]
-    if message.text.lower()==user_test["correct"]:
-        user_test["score"]+=1
+كَتَبَ
+كُتِبَ
+كِتَاب
+""",reply_markup=grammar_keyboard())
+
+@dp.message_handler(lambda m: m.text=="2️⃣ Танвин")
+async def tanvin(message: types.Message):
+    await message.answer("""
+📚 Танвин
+
+ً  ٍ  ٌ
+
+كتابٌ
+كتابًا
+كتابٍ
+""",reply_markup=grammar_keyboard())
+
+@dp.message_handler(lambda m: m.text=="3️⃣ Сукун ва Шадда")
+async def sukun(message: types.Message):
+    await message.answer("""
+📚 Сукун — ْ
+📚 Шадда — ّ
+
+مَدّ
+""",reply_markup=grammar_keyboard())
+
+@dp.message_handler(lambda m: m.text=="4️⃣ Исм")
+async def ism(message: types.Message):
+    await message.answer("""
+📚 Исм
+
+كتاب
+مدرسة
+
+Муфрад / Мусанно / Жамъ
+""",reply_markup=grammar_keyboard())
+
+@dp.message_handler(lambda m: m.text=="5️⃣ Феъл")
+async def feel(message: types.Message):
+    await message.answer("""
+📚 Феъл
+
+ماضي — كتب
+مضارع — يكتب
+أمر — اكتب
+""",reply_markup=grammar_keyboard())
+
+@dp.message_handler(lambda m: m.text=="6️⃣ Ҳарф")
+async def harf_section(message: types.Message):
+    await message.answer("""
+📚 Ҳарф
+
+في
+من
+إلى
+""",reply_markup=grammar_keyboard())
+
+@dp.message_handler(lambda m: m.text=="7️⃣ Жумла турлари")
+async def sentence_types(message: types.Message):
+    await message.answer("""
+📚 Жумла турлари
+
+جملة اسمية
+الكتاب جديد
+
+جملة فعلية
+كتب الطالب
+""",reply_markup=grammar_keyboard())
+
+@dp.message_handler(lambda m: m.text=="8️⃣ Иъроб")
+async def irob(message: types.Message):
+    await message.answer("""
+📚 Иъроб
+
+مرفوع — ُ
+منصوب — َ
+مجرور — ِ
+مجزوم — ْ
+""",reply_markup=grammar_keyboard())
+
+# ======================
+# GRAMMAR QUIZ
+# ======================
+
+grammar_tests = {}
+
+@dp.message_handler(lambda m: m.text=="📝 Машқ режими")
+async def grammar_test_start(message: types.Message):
+    grammar_tests[message.from_user.id]={"score":0,"count":0}
+    await grammar_question(message)
+
+async def grammar_question(message):
+    questions=[
+        ("Феъл нима?", "ҳаракат"),
+        ("جمع нима?", "кўплик"),
+        ("ماضي қайси замон?", "ўтган")
+    ]
+    q=random.choice(questions)
+    grammar_tests[message.from_user.id]["correct"]=q[1]
+    grammar_tests[message.from_user.id]["count"]+=1
+    await message.answer(q[0])
+
+@dp.message_handler(lambda m: m.from_user.id in grammar_tests)
+async def grammar_answer(message: types.Message):
+    user=grammar_tests[message.from_user.id]
+    if user["correct"] in message.text.lower():
+        user["score"]+=1
         await message.answer("✅ Тўғри")
     else:
-        await message.answer(f"❌ Нотўғри. Жавоб: {user_test['correct']}")
-    if user_test["count"]<10:
-        await ask_question(message)
+        await message.answer("❌ Нотўғри")
+    if user["count"]<3:
+        await grammar_question(message)
     else:
-        add_score(message.from_user.id,user_test["score"]*10)
-        await message.answer("🏁 Тест тугади!",reply_markup=main_keyboard)
-        del tests[message.from_user.id]
+        await message.answer(f"🏁 Натижа: {user['score']}/3",reply_markup=grammar_keyboard())
+        del grammar_tests[message.from_user.id]
 
 # ======================
-# LEADERBOARD SAFE
+# RUN
 # ======================
-
-@dp.message_handler(lambda m: m.text=="🏆 Leaderboard")
-async def leaderboard(message: types.Message):
-    if message.from_user.id in tests:
-        del tests[message.from_user.id]
-    cursor.execute("SELECT user_id,score FROM users ORDER BY score DESC LIMIT 10")
-    rows=cursor.fetchall()
-    text="🏆 ТОП 10\n\n"
-    for i,row in enumerate(rows,1):
-        text+=f"{i}. {row[0]} — {row[1]} XP\n"
-    await message.answer(text,reply_markup=main_keyboard)
-
-# ======================
-# PREMIUM
-# ======================
-
-@dp.message_handler(lambda m: m.text=="💎 Premium")
-async def premium(message: types.Message):
-    await message.answer("""
-💎 Premium:
-
-✔ 20 та оят/кун
-✔ XP ×2
-✔ Кенгайтирилган тест
-✔ Сертификат
-""",reply_markup=main_keyboard)
 
 if __name__=="__main__":
     executor.start_polling(dp,skip_updates=True)
