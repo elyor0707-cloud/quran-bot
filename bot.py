@@ -363,6 +363,230 @@ async def premium(message: types.Message):
 ✔ Кенгайтирилган тест
 ✔ Сертификат
 """)
+# ======================
+# PROFESSIONAL ACADEMIC GRAMMAR SYSTEM
+# ======================
+
+grammar_tests = {}
+
+def grammar_keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    kb.add(
+        "1️⃣ Ҳаракатлар (الحركات)",
+        "2️⃣ Танвин (التنوين)",
+        "3️⃣ Сукун ва Шадда",
+        "4️⃣ Исм (الاسم)",
+        "5️⃣ Феъл (الفعل)",
+        "6️⃣ Ҳарф (الحرف)",
+        "7️⃣ Жумла турлари",
+        "8️⃣ Иъроб (الإعراب)",
+        "📝 Машқ режими",
+        "🏠 Бош меню"
+    )
+    return kb
+
+
+@dp.message_handler(lambda m: m.text=="📘 Академик грамматика")
+async def academic_grammar(message: types.Message):
+    await message.answer("📚 Академик грамматика бўлими:", reply_markup=grammar_keyboard())
+
+
+# ======================
+# FULL THEORY SECTIONS
+# ======================
+
+@dp.message_handler(lambda m: m.text.startswith("1️⃣"))
+async def harakatlar(message: types.Message):
+    await message.answer("""
+📚 الحركات — Ҳаракатлар
+
+Араб тилида 3 асосий ҳаракат бор:
+
+َ Фатҳа — "а"
+ِ Касра — "и"
+ُ Дамма — "у"
+
+Мисол:
+كَتَبَ — ёзди
+كُتِبَ — ёзилди
+كِتَاب — китоб
+
+Ҳаракат маънони ўзгартиради.
+""", reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("2️⃣"))
+async def tanvin(message: types.Message):
+    await message.answer("""
+📚 التنوين — Танвин
+
+ً  — ан
+ٍ  — ин
+ٌ  — ун
+
+Танвин ноаниқлик беради.
+
+كتابٌ — бир китоб
+""", reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("3️⃣"))
+async def sukun(message: types.Message):
+    await message.answer("""
+📚 السكون و الشدة
+
+ْ — Сукун (товуш тўхтайди)
+ّ — Шадда (икки марта айтилган)
+
+مَدّ — мадд
+""", reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("4️⃣"))
+async def ism(message: types.Message):
+    await message.answer("""
+📚 الاسم — Исм
+
+Предмет ёки шахсни билдиради.
+Замонга боғлиқ эмас.
+
+كتاب — китоб
+مدرسة — мактаб
+
+Турлари:
+مفرد — якка
+مثنى — иккилик
+جمع — кўплик
+""", reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("5️⃣"))
+async def feel(message: types.Message):
+    await message.answer("""
+📚 الفعل — Феъл
+
+Ҳаракатни билдиради.
+
+ماضي — ўтган
+مضارع — ҳозирги
+أمر — буйруқ
+
+كتب — ёзди
+يكتب — ёзмоқда
+اكتب — ёз!
+""", reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("6️⃣"))
+async def harf_section(message: types.Message):
+    await message.answer("""
+📚 الحرف — Ҳарф
+
+Маънони боғлайди.
+
+في — да
+من — дан
+إلى — га
+
+Ўзи мустақил маънога эга эмас.
+""", reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("7️⃣"))
+async def sentence_types(message: types.Message):
+    await message.answer("""
+📚 أنواع الجملة
+
+جملة اسمية — исмдан бошланади
+الكتاب جديد
+
+جملة فعلية — феълдан бошланади
+كتب الطالب
+""", reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("8️⃣"))
+async def irob(message: types.Message):
+    await message.answer("""
+📚 الإعراب — Иъроб
+
+Сўз охиридаги ҳаракат орқали ҳолат:
+
+مرفوع — дамма
+منصوب — фатҳа
+مجرور — касра
+مجزوم — сукун
+
+Бу араб тилининг асоси.
+""", reply_markup=grammar_keyboard())
+
+
+# ======================
+# PROFESSIONAL QUIZ SYSTEM (10 QUESTIONS)
+# ======================
+
+@dp.message_handler(lambda m: m.text=="📝 Машқ режими")
+async def grammar_test_start(message: types.Message):
+    grammar_tests[message.from_user.id] = {"score":0,"count":0}
+    await grammar_question(message)
+
+
+async def grammar_question(message):
+    questions = [
+        ("Феъл нима англатади?", "ҳаракат"),
+        ("جمع нима?", "кўплик"),
+        ("ماضي қайси замон?", "ўтган"),
+        ("Мرفوع қандай ҳаракат?", "дамма"),
+        ("Танвин неча хил?", "3"),
+        ("Исм замон билдирадими?", "йўқ"),
+        ("سكون белгиси қайси?", "ْ"),
+        ("Шадда белгиси қайси?", "ّ"),
+        ("جملة فعلية нимадан бошланади?", "феъл"),
+        ("منصوب қандай ҳаракат?", "фатҳа")
+    ]
+
+    q = random.choice(questions)
+    grammar_tests[message.from_user.id]["correct"] = q[1]
+    grammar_tests[message.from_user.id]["count"] += 1
+
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add("❌ Машқни тугатиш")
+
+    await message.answer(
+        f"{grammar_tests[message.from_user.id]['count']}/10\n\n{q[0]}",
+        reply_markup=kb
+    )
+
+
+@dp.message_handler(lambda m: m.text=="❌ Машқни тугатиш")
+async def stop_grammar_test(message: types.Message):
+    if message.from_user.id in grammar_tests:
+        del grammar_tests[message.from_user.id]
+    await message.answer("Машқ тўхтатилди.", reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.from_user.id in grammar_tests and m.text!="❌ Машқни тугатиш")
+async def grammar_answer(message: types.Message):
+
+    user = grammar_tests[message.from_user.id]
+
+    if user["correct"] in message.text.lower():
+        user["score"] += 1
+        await message.answer("✅ Тўғри")
+    else:
+        await message.answer(f"❌ Нотўғри. Жавоб: {user['correct']}")
+
+    if user["count"] < 10:
+        await grammar_question(message)
+    else:
+        add_score(message.from_user.id, user["score"] * 5)
+
+        await message.answer(
+            f"🏁 Машқ тугади!\n\nНатижа: {user['score']}/10\nXP қўшилди!",
+            reply_markup=grammar_keyboard()
+        )
+
+        del grammar_tests[message.from_user.id]
 
 # ======================
 # RUN
