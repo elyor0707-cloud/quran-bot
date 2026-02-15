@@ -2,24 +2,14 @@ import requests
 import os
 import sqlite3
 import random
-import openai
 from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardMarkup
 
-# ======================
-# CONFIG
-# ======================
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-openai.api_key = OPENAI_API_KEY
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
-
-translator_users = {}
 
 # ======================
 # DATABASE
@@ -33,19 +23,18 @@ CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY,
     ayah_progress INTEGER DEFAULT 1,
     premium INTEGER DEFAULT 0,
-    score INTEGER DEFAULT 0,
-    translator_used INTEGER DEFAULT 0
+    score INTEGER DEFAULT 0
 )
 """)
 conn.commit()
 
 def get_user(user_id):
-    cursor.execute("SELECT ayah_progress,premium,score,translator_used FROM users WHERE user_id=?", (user_id,))
+    cursor.execute("SELECT ayah_progress,premium,score FROM users WHERE user_id=?", (user_id,))
     row = cursor.fetchone()
     if not row:
         cursor.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
         conn.commit()
-        return 1,0,0,0
+        return 1,0,0
     return row
 
 def update_progress(user_id, value):
@@ -56,24 +45,19 @@ def add_score(user_id, points):
     cursor.execute("UPDATE users SET score=score+? WHERE user_id=?", (points,user_id))
     conn.commit()
 
-def activate_premium(user_id):
-    cursor.execute("UPDATE users SET premium=1 WHERE user_id=?", (user_id,))
-    conn.commit()
-
-def add_translator_use(user_id):
-    cursor.execute("UPDATE users SET translator_used = translator_used + 1 WHERE user_id=?", (user_id,))
-    conn.commit()
-
 # ======================
-# MENU (GRID)
+# MENUS (ЁНМА-ЁН)
 # ======================
 
 main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-
-main_keyboard.add("📖 Бугунги оят","📘 Араб алифбоси")
-main_keyboard.add("🧠 Тест режими","📊 Статистика")
-main_keyboard.add("📚 Грамматика","💎 Premium")
-main_keyboard.add("🌍 AI Таржимон")
+main_keyboard.add(
+    "📖 Бугунги оят",
+    "📘 Араб алифбоси",
+    "📊 Статистика",
+    "📚 Грамматика",
+    "🧠 Тест режими",
+    "💎 Premium"
+)
 
 # ======================
 # START
@@ -84,143 +68,190 @@ async def start_cmd(message: types.Message):
     await message.answer("Ассалому алайкум!", reply_markup=main_keyboard)
 
 # ======================
-# AI TRANSLATOR
+# BUGUNGI OYAT
 # ======================
 
-@dp.message_handler(lambda m: m.text=="🌍 AI Таржимон")
-async def translator_mode(message: types.Message):
-    translator_users[message.from_user.id] = True
-    await message.answer("🎙 Овоз хабар юборинг. Мен таржима қилиб бераман.")
-
-@dp.message_handler(content_types=types.ContentType.VOICE)
-async def voice_handler(message: types.Message):
-
-    if message.from_user.id not in translator_users:
-        return
+@dp.message_handler(lambda m: m.text == "📖 Бугунги оят")
+async def today_ayah(message: types.Message):
 
     user_id = message.from_user.id
-    ayah_index,premium,score,used = get_user(user_id)
+    ayah_index,premium,score = get_user(user_id)
 
-    if premium==0 and used>=5:
-        await message.answer("Free лимит тугади. Premium олинг.")
-        return
+    limit = 5 if premium==0 else 20
 
-    file = await bot.get_file(message.voice.file_id)
-    file_path = file.file_path
-    downloaded = await bot.download_file(file_path)
+    for i in range(ayah_index, ayah_index+limit):
+        response = requests.get(
+            f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.sodik"
+        )
+        data = response.json()
 
-    with open("voice.ogg","wb") as f:
-        f.write(downloaded.read())
+        arabic = data['data'][0]['text']
+        uzbek = data['data'][1]['text']
+        surah = data['data'][0]['surah']['englishName']
+        ayah_no = data['data'][0]['numberInSurah']
 
-    # Speech to text
-    with open("voice.ogg","rb") as audio:
-        transcript = openai.Audio.transcribe("whisper-1",audio)
+        await message.answer(f"{surah} сураси {ayah_no}-оят")
+        await message.answer(arabic)
+        await message.answer(uzbek)
 
-    text = transcript["text"]
+        sura = str(data['data'][0]['surah']['number']).zfill(3)
+        ayah_number = str(ayah_no).zfill(3)
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
 
-    # Translate to English (ўзгартириш мумкин)
-    response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role":"system","content":"Translate to English"},
-            {"role":"user","content":text}
-        ]
-    )
+        await message.answer_audio(audio_url)
 
-    translated = response["choices"][0]["message"]["content"]
-
-    # Text to speech
-    speech = openai.audio.speech.create(
-        model="gpt-4o-mini-tts",
-        voice="alloy",
-        input=translated
-    )
-
-    with open("translated.mp3","wb") as f:
-        f.write(speech.content)
-
-    await message.answer_audio(open("translated.mp3","rb"))
-
-    add_translator_use(user_id)
+    update_progress(user_id, ayah_index+limit)
 
 # ======================
-# TEST SYSTEM (10)
+# ARAB ALIFBOSI
 # ======================
 
-arabic_letters = [l[0] for l in [
-("ا","Алиф","а"),
-("ب","Ба","б"),
-("ت","Та","т"),
-("ث","Са","с"),
-("ج","Жим","ж"),
-("ح","Ҳа","ҳ"),
-("خ","Хо","х"),
-("د","Дал","д"),
-("ر","Ро","р"),
-("م","Мим","м"),
-("ي","Йа","й"),
-]]
+arabic_letters = [
+("ا","Алиф","а","ا","ـا","ـا","اللّٰه"),
+("ب","Ба","б","بـ","ـبـ","ـب","بسم"),
+("ت","Та","т","تـ","ـتـ","ـت","توبة"),
+("ث","Са","с","ثـ","ـثـ","ـث","ثواب"),
+("ج","Жим","ж","جـ","ـجـ","ـج","جنة"),
+("ح","Ҳа","ҳ","حـ","ـحـ","ـح","حق"),
+("خ","Хо","х","خـ","ـخـ","ـخ","خلق"),
+("د","Дал","д","د","ـد","ـد","دين"),
+("ذ","Зал","з","ذ","ـذ","ـذ","ذكر"),
+("ر","Ро","р","ر","ـر","ـر","رحمن"),
+("ز","Зай","з","ز","ـز","ـз","زكاة"),
+("س","Син","с","سـ","ـسـ","ـس","سلام"),
+("ش","Шин","ш","شـ","ـشـ","ـش","شمس"),
+("ص","Сод","с","صـ","ـصـ","ـص","صلاة"),
+("ض","Дод","д","ضـ","ـضـ","ـض","ضلال"),
+("ط","То","т","طـ","ـطـ","ـط","طاعة"),
+("ظ","Зо","з","ظـ","ـظـ","ـظ","ظلم"),
+("ع","Айн","ъ","عـ","ـعـ","ـع","علم"),
+("غ","Ғайн","ғ","غـ","ـغـ","ـغ","غفور"),
+("ف","Фа","ф","فـ","ـفـ","ـف","فجر"),
+("ق","Қоф","қ","قـ","ـقـ","ـق","قرآن"),
+("ك","Каф","к","كـ","ـكـ","ـك","كتاب"),
+("ل","Лам","л","لـ","ـلـ","ـل","الله"),
+("م","Мим","м","مـ","ـمـ","ـم","ملك"),
+("ن","Нун","н","نـ","ـنـ","ـن","نور"),
+("ه","Ҳа","ҳ","هـ","ـهـ","ـه","هدى"),
+("و","Вов","в","و","ـو","ـو","وعد"),
+("ي","Йа","й","يـ","ـيـ","ـي","يوم"),
+]
+
+def alphabet_keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=7)
+    kb.add(*[l[0] for l in arabic_letters])
+    kb.add("🏠 Бош меню")
+    return kb
+
+@dp.message_handler(lambda m: m.text == "📘 Араб алифбоси")
+async def alphabet_menu(message: types.Message):
+    await message.answer("Ҳарфни танланг:", reply_markup=alphabet_keyboard())
+
+@dp.message_handler(lambda m: m.text in [l[0] for l in arabic_letters])
+async def letter_info(message: types.Message):
+    letter = next(l for l in arabic_letters if l[0]==message.text)
+
+    await message.answer(f"""
+📘 Ҳарф: {letter[0]}
+
+🔤 Номи: {letter[1]}
+📖 Ўқилиши: {letter[2]}
+
+📌 Бошида: {letter[3]}
+📌 Ўртасида: {letter[4]}
+📌 Охирида: {letter[5]}
+
+🕌 Мисол: {letter[6]}
+""")
+
+# ======================
+# STATISTICS
+# ======================
+
+@dp.message_handler(lambda m: m.text == "📊 Статистика")
+async def stats(message: types.Message):
+    ayah,premium,score = get_user(message.from_user.id)
+
+    await message.answer(f"""
+📊 Сизнинг статистикангиз:
+
+📖 Оят индекси: {ayah}
+⭐ Балл: {score}
+💎 Premium: {"Ҳа" if premium==1 else "Йўқ"}
+""")
+
+# ======================
+# GRAMMAR
+# ======================
+
+@dp.message_handler(lambda m: m.text == "📚 Грамматика")
+async def grammar(message: types.Message):
+    await message.answer("""
+📚 Араб грамматикаси:
+
+1️⃣ Ҳаракатлар — фатҳа َ , касра ِ , дамма ُ  
+2️⃣ Танвин — ан, ин, ун  
+3️⃣ Сукун — ْ  
+4️⃣ Шадда — ّ  
+5️⃣ Исм ва феъл фарқи  
+6️⃣ Жумла тузилиши асослари  
+""")
+
+# ======================
+# TEST
+# ======================
 
 tests = {}
 
-@dp.message_handler(lambda m: m.text=="🧠 Тест режими")
+@dp.message_handler(lambda m: m.text == "🧠 Тест режими")
 async def start_test(message: types.Message):
     tests[message.from_user.id] = {"score":0,"count":0}
     await ask_question(message)
 
 async def ask_question(message):
     q = random.choice(arabic_letters)
-    tests[message.from_user.id]["correct"] = q
+    tests[message.from_user.id]["correct"] = q[2]
     tests[message.from_user.id]["count"] += 1
-    await message.answer(f"{tests[message.from_user.id]['count']}/10\nБу қайси ҳарф?\n\n{q}")
+    await message.answer(f"{tests[message.from_user.id]['count']}/10\nБу қайси ҳарф?\n\n{q[0]}")
 
 @dp.message_handler(lambda m: m.from_user.id in tests)
 async def check_answer(message: types.Message):
     user_test = tests[message.from_user.id]
-    if message.text.strip()==user_test["correct"]:
-        user_test["score"] +=1
+
+    if message.text.lower() == user_test["correct"]:
+        user_test["score"] += 1
         await message.answer("✅ Тўғри")
     else:
         await message.answer(f"❌ Нотўғри. Жавоб: {user_test['correct']}")
 
-    if user_test["count"]<10:
+    if user_test["count"] < 10:
         await ask_question(message)
     else:
-        final_score=user_test["score"]
+        final_score = user_test["score"]
         add_score(message.from_user.id, final_score*10)
 
-        kb = ReplyKeyboardMarkup(resize_keyboard=True)
-        kb.add("🏠 Бош меню")
+        await message.answer(f"""
+🏁 Тест тугади!
 
-        await message.answer(
-            f"🏁 Тест тугади!\n\nНатижа: {final_score}/10\nБалл: {final_score*10}",
-            reply_markup=kb
-        )
+Натижа: {final_score}/10
+Балл: {final_score*10}
+""", reply_markup=main_keyboard)
 
         del tests[message.from_user.id]
-
-@dp.message_handler(lambda m: m.text=="🏠 Бош меню")
-async def home(message: types.Message):
-    translator_users.pop(message.from_user.id,None)
-    await message.answer("Бош меню",reply_markup=main_keyboard)
 
 # ======================
 # PREMIUM
 # ======================
 
-@dp.message_handler(lambda m: m.text=="💎 Premium")
-async def premium_info(message: types.Message):
+@dp.message_handler(lambda m: m.text == "💎 Premium")
+async def premium(message: types.Message):
     await message.answer("""
 💎 Premium:
 
-✔ 20 та оят
-✔ Чексиз AI таржимон
+✔ 20 та оят/кун
+✔ Чуқур тест
 ✔ Сертификат
-✔ Статистика
-
-Нархи: 30 USD
 """)
-    activate_premium(message.from_user.id)
 
 # ======================
 # RUN
