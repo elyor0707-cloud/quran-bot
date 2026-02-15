@@ -67,44 +67,104 @@ async def start_cmd(message: types.Message):
 async def home(message: types.Message):
     await message.answer("🏠 Бош меню",reply_markup=main_keyboard)
 
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 # ======================
-# SURAH SYSTEM (114)
+# SURAH SYSTEM 114 + PAGINATION
 # ======================
 
-surah_names = [
-"Al-Faatiha","Al-Baqara","Aal-Imran","An-Nisa","Al-Ma'idah",
-"Al-An'am","Al-A'raf","Al-Anfal","At-Tawbah","Yunus"
-]
+def get_all_surahs():
+    r = requests.get("https://api.alquran.cloud/v1/surah").json()
+    return r["data"]
 
-def surah_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
-    for i,name in enumerate(surah_names,1):
-        kb.insert(f"{i}. {name}")
-    kb.add("🏠 Бош меню")
+all_surahs = get_all_surahs()
+
+
+def surah_inline_keyboard(page=0):
+    kb = InlineKeyboardMarkup(row_width=2)
+    start = page * 10
+    end = start + 10
+
+    for surah in all_surahs[start:end]:
+        kb.insert(
+            InlineKeyboardButton(
+                f"{surah['number']}. {surah['englishName']}",
+                callback_data=f"surah_{surah['number']}"
+            )
+        )
+
+    nav = []
+    if page > 0:
+        nav.append(
+            InlineKeyboardButton("⬅️", callback_data=f"page_{page-1}")
+        )
+    if end < len(all_surahs):
+        nav.append(
+            InlineKeyboardButton("➡️", callback_data=f"page_{page+1}")
+        )
+
+    if nav:
+        kb.row(*nav)
+
     return kb
 
-@dp.message_handler(lambda m: m.text=="📖 Бугунги оят")
-async def surah_select(message: types.Message):
-    await message.answer("📖 Сурани танланг:",reply_markup=surah_keyboard())
 
-@dp.message_handler(lambda m: m.text.split(".")[0].isdigit())
-async def surah_selected(message: types.Message):
-    surah_number = int(message.text.split(".")[0])
-    user_id = message.from_user.id
+@dp.message_handler(lambda m: m.text=="📖 Бугунги оят")
+async def show_surah_list(message: types.Message):
+    await message.answer(
+        "📖 Сурани танланг:",
+        reply_markup=surah_inline_keyboard(0)
+    )
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("page_"))
+async def change_page(callback: types.CallbackQuery):
+    page = int(callback.data.split("_")[1])
+    await callback.message.edit_reply_markup(
+        reply_markup=surah_inline_keyboard(page)
+    )
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
+async def send_surah(callback: types.CallbackQuery):
+
+    surah_number = int(callback.data.split("_")[1])
+    user_id = callback.from_user.id
     ayah_index,premium,score = get_user(user_id)
 
     limit = 20 if premium==1 else 5
 
-    for i in range(1,limit+1):
+    for i in range(1, limit+1):
+
         r = requests.get(
             f"https://api.alquran.cloud/v1/ayah/{surah_number}:{i}/editions/quran-uthmani,uz.sodik"
         ).json()
 
         arabic = r['data'][0]['text']
         uzbek = r['data'][1]['text']
-        surah = r['data'][0]['surah']['englishName']
+        surah_name = r['data'][0]['surah']['englishName']
 
-        await message.answer(f"{surah} сураси {i}-оят\n\n{arabic}\n\n{uzbek}")
+        # 📌 ТАФСИР СТИЛЬ ФОРМАТ
+        text = f"""
+{surah_name} сураси {i}-оят
+
+{arabic}
+
+{uzbek}
+
+(Қисқача тафсир: Бу оят Аллоҳнинг раҳмати ва ҳикматини англатади.)
+"""
+
+        await callback.message.answer(text)
+
+        # 🎧 AUDIO
+        sura = str(surah_number).zfill(3)
+        ayah_num = str(i).zfill(3)
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+        await callback.message.answer_audio(audio_url)
+
+    await callback.answer()
 
 # ======================
 # ARABIC ALPHABET (FULL)
