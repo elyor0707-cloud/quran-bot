@@ -131,27 +131,33 @@ arabic_letters = [
 ]
 
 def alphabet_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=7)
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=7)
     kb.add(*[l[0] for l in arabic_letters])
-    kb.add("🏠 Бош меню")
+    kb.add("🔊 Аудио", "🏠 Бош меню")
     return kb
 
-@dp.message_handler(lambda m: m.text=="📘 Араб алифбоси")
+@dp.message_handler(lambda m: m.text == "📘 Араб алифбоси")
 async def alphabet_menu(message: types.Message):
-    await message.answer("Ҳарфни танланг:",reply_markup=alphabet_keyboard())
+    await message.answer("Ҳарфни танланг:", reply_markup=alphabet_keyboard())
 
-@dp.message_handler(lambda m: m.text=="🏠 Бош меню")
+@dp.message_handler(lambda m: m.text == "🏠 Бош меню")
 async def home(message: types.Message):
-    await message.answer("Бош меню",reply_markup=main_keyboard)
+
+    if message.from_user.id in current_letter:
+        del current_letter[message.from_user.id]
+
+    await message.answer("🏠 Бош меню", reply_markup=main_keyboard)
+
+current_letter = {}
 
 @dp.message_handler(lambda m: m.text in [l[0] for l in arabic_letters])
 async def letter_info(message: types.Message):
-    letter = next(l for l in arabic_letters if l[0]==message.text)
 
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add("🔊 Ўқилиш аудио","🏠 Бош меню")
+    letter = next(l for l in arabic_letters if l[0] == message.text)
+    current_letter[message.from_user.id] = letter
 
-    await message.answer(f"""
+    await message.answer(
+        f"""
 📘 Ҳарф: {letter[0]}
 
 🔤 Номи: {letter[1]}
@@ -162,11 +168,22 @@ async def letter_info(message: types.Message):
 📌 Охирида: {letter[5]}
 
 🕌 Мисол: {letter[6]}
-""",reply_markup=kb)
+""",
+        reply_markup=alphabet_keyboard()  # ← ЭНГ МУҲИМИ ШУ
+    )
 
-@dp.message_handler(lambda m: m.text=="🔊 Ўқилиш аудио")
+
+@dp.message_handler(lambda m: m.text == "🔊 Аудио")
 async def letter_audio(message: types.Message):
-    await message.answer("🔊 Ҳарф аудиоси (MP3 файл қўшиш керак)")
+
+    if message.from_user.id not in current_letter:
+        await message.answer("Аввал ҳарф танланг.", reply_markup=alphabet_keyboard())
+        return
+
+    letter = current_letter[message.from_user.id]
+
+    await message.answer(f"🔊 Талаффуз: {letter[2]}", reply_markup=alphabet_keyboard())
+
 
 # ======================
 # GRAMMAR (FULL MODULE)
