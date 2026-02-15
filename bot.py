@@ -58,8 +58,7 @@ main_keyboard.add(
     "🔎 Оят қидириш",
     "📘 Араб алифбоси", "📊 Статистика",
     "📚 Грамматика", "🧠 Тест режими",
-    "🏆 Leaderboard", "💎 Premium"
-)
+    "🏆 Leaderboard", "💎 Premium")
 
 
 @dp.message_handler(commands=['start'])
