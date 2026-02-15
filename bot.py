@@ -53,13 +53,10 @@ def add_score(user_id, points):
 
 main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
 main_keyboard.add(
-    main_keyboard.add(
-    "📖 Бугунги оят","📖 Бугунги оят (нав)",
-    "🔎 Оят қидириш",
+    "📖 Бугунги оят","🔎 Оят қидириш",
     "📘 Араб алифбоси", "📊 Статистика",
     "📚 Грамматика", "🧠 Тест режими",
-    "🏆 Leaderboard", "💎 Premium")
-
+    "🏆 Leaderboard", "💎 Premium" )
 
 @dp.message_handler(commands=['start'])
 async def start_cmd(message: types.Message):
@@ -233,7 +230,7 @@ async def search_ayah(message: types.Message):
     del search_mode[user_id]
 
 # ======================
-# ARABIC ALPHABET (FIXED FULL VERSION)
+# ARABIC ALPHABET (FULL 28 LETTERS WITH FORMS)
 # ======================
 
 arabic_letters = [
@@ -268,15 +265,10 @@ arabic_letters = [
 ]
 
 def alphabet_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=7)
+    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=7)
     kb.add(*[l[0] for l in arabic_letters])
     kb.add("🏠 Бош меню")
     return kb
-
-@dp.message_handler(lambda m: m.text=="📘 Араб алифбоси")
-async def alphabet_menu(message: types.Message):
-    await message.answer("📘 Ҳарфни танланг:", reply_markup=alphabet_keyboard())
-
 
 @dp.message_handler(lambda m: m.text in [l[0] for l in arabic_letters])
 async def letter_info(message: types.Message):
@@ -293,7 +285,7 @@ async def letter_info(message: types.Message):
 📌 Сўз охирида: {letter[5]}
 
 🕌 Мисол: {letter[6]}
-""", reply_markup=alphabet_keyboard())
+""",reply_markup=alphabet_keyboard())
 
 
 # ======================
@@ -436,71 +428,6 @@ async def block_d(message: types.Message):
 الكتاب جديد
 كتب الطالب
 """,reply_markup=grammar_keyboard())
-
-# ======================
-# BUGUNGI OYAT (NAVIGATION MODE)
-# ======================
-
-def ayah_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
-    kb.add("⬅️ Олдинги оят","➡️ Кейинги оят")
-    kb.add("🏠 Бош меню")
-    return kb
-
-
-async def send_ayah(message, ayah_number):
-
-    response = requests.get(
-        f"https://api.alquran.cloud/v1/ayah/{ayah_number}/editions/quran-uthmani,uz.sodik"
-    )
-
-    data = response.json()
-
-    arabic = data['data'][0]['text']
-    uzbek = data['data'][1]['text']
-    surah = data['data'][0]['surah']['englishName']
-    ayah_no = data['data'][0]['numberInSurah']
-
-    sura = str(data['data'][0]['surah']['number']).zfill(3)
-    ayah_num = str(ayah_no).zfill(3)
-    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
-
-    await message.answer(
-        f"{surah} сураси {ayah_no}-оят\n\n{arabic}\n\n{uzbek}",
-        reply_markup=ayah_keyboard()
-    )
-
-    await message.answer_audio(audio_url)
-
-
-@dp.message_handler(lambda m: m.text=="📖 Бугунги оят (нав)")
-async def today_ayah_nav(message: types.Message):
-    user_id = message.from_user.id
-    ayah_index,premium,score = get_user(user_id)
-    await send_ayah(message, ayah_index)
-
-
-@dp.message_handler(lambda m: m.text=="➡️ Кейинги оят")
-async def next_ayah(message: types.Message):
-    user_id = message.from_user.id
-    ayah_index,premium,score = get_user(user_id)
-
-    ayah_index += 1
-    update_progress(user_id, ayah_index)
-
-    await send_ayah(message, ayah_index)
-
-
-@dp.message_handler(lambda m: m.text=="⬅️ Олдинги оят")
-async def prev_ayah(message: types.Message):
-    user_id = message.from_user.id
-    ayah_index,premium,score = get_user(user_id)
-
-    if ayah_index > 1:
-        ayah_index -= 1
-        update_progress(user_id, ayah_index)
-
-    await send_ayah(message, ayah_index)
 
 
 # ======================
