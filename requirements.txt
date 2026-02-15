@@ -4,6 +4,4 @@ Pillow
 reportlab
 stripe
 openai
-aiogram
-requests
 gTTS
