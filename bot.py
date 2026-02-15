@@ -1,7 +1,9 @@
+import openai
 import requests
 import os
 import sqlite3
 import random
+from gtts import gTTS
 from datetime import datetime
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardMarkup
@@ -10,6 +12,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
 
 # ======================
 # DATABASE
@@ -42,6 +46,11 @@ def update_progress(user_id, value):
     conn.commit()
 
 def add_score(user_id, points):
+    ayah,premium,score = get_user(user_id)
+
+    if premium == 1:
+        points = points * 2
+
     cursor.execute("UPDATE users SET score=score+? WHERE user_id=?", (points,user_id))
     conn.commit()
 
@@ -54,7 +63,8 @@ main_keyboard.add(
     "📖 Бугунги оят","📘 Араб алифбоси",
     "📊 Статистика","📚 Грамматика",
     "🧠 Тест режими","🏆 Leaderboard",
-    "💎 Premium"
+    "🌍 AI Translator","📘 Академик грамматика",
+"💎 Premium"
 )
 
 @dp.message_handler(commands=['start'])
@@ -173,7 +183,7 @@ async def letter_info(message: types.Message):
     )
 
 
-@dp.message_handler(lambda m: m.text == "🔊 Аудио")
+@dp.message_handler(lambda m: m.text=="🔊 Аудио")
 async def letter_audio(message: types.Message):
 
     if message.from_user.id not in current_letter:
@@ -182,7 +192,14 @@ async def letter_audio(message: types.Message):
 
     letter = current_letter[message.from_user.id]
 
-    await message.answer(f"🔊 Талаффуз: {letter[2]}", reply_markup=alphabet_keyboard())
+    tts = gTTS(letter[2], lang='ar')
+    filename = f"letter_{message.from_user.id}.mp3"
+    tts.save(filename)
+
+    with open(filename,"rb") as audio:
+        await message.answer_audio(audio)
+
+    os.remove(filename)
 
 
 # ======================
