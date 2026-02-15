@@ -65,35 +65,73 @@ async def start_cmd(message: types.Message):
 # BUGUNGI OYAT
 # ======================
 
-@dp.message_handler(lambda m: m.text=="📖 Бугунги оят")
+# ======================
+# BUGUNGI OYAT (NAVIGATION SYSTEM)
+# ======================
+
+def ayah_keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    kb.add("⬅️ Олдинги оят", "➡️ Кейинги оят")
+    kb.add("🏠 Бош меню")
+    return kb
+
+
+async def send_ayah(message, ayah_number):
+
+    response = requests.get(
+        f"https://api.alquran.cloud/v1/ayah/{ayah_number}/editions/quran-uthmani,uz.sodik"
+    )
+
+    data = response.json()
+
+    arabic = data['data'][0]['text']
+    uzbek = data['data'][1]['text']
+    surah = data['data'][0]['surah']['englishName']
+    ayah_no = data['data'][0]['numberInSurah']
+
+    await message.answer(f"{surah} сураси {ayah_no}-оят", reply_markup=ayah_keyboard())
+    await message.answer(arabic)
+    await message.answer(uzbek)
+
+    sura = str(data['data'][0]['surah']['number']).zfill(3)
+    ayah_num = str(ayah_no).zfill(3)
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+    await message.answer_audio(audio_url)
+
+
+@dp.message_handler(lambda m: m.text == "📖 Бугунги оят")
 async def today_ayah(message: types.Message):
+
     user_id = message.from_user.id
-    ayah_index,premium,score = get_user(user_id)
+    ayah_index, premium, score = get_user(user_id)
 
-    limit = 5 if premium==0 else 20
+    await send_ayah(message, ayah_index)
 
-    for i in range(ayah_index,ayah_index+limit):
-        response = requests.get(
-            f"https://api.alquran.cloud/v1/ayah/{i}/editions/quran-uthmani,uz.sodik"
-        )
-        data = response.json()
 
-        arabic = data['data'][0]['text']
-        uzbek = data['data'][1]['text']
-        surah = data['data'][0]['surah']['englishName']
-        ayah_no = data['data'][0]['numberInSurah']
+@dp.message_handler(lambda m: m.text == "➡️ Кейинги оят")
+async def next_ayah(message: types.Message):
 
-        await message.answer(f"{surah} сураси {ayah_no}-оят")
-        await message.answer(arabic)
-        await message.answer(uzbek)
+    user_id = message.from_user.id
+    ayah_index, premium, score = get_user(user_id)
 
-        sura = str(data['data'][0]['surah']['number']).zfill(3)
-        ayah_number = str(ayah_no).zfill(3)
-        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_number}.mp3"
+    ayah_index += 1
+    update_progress(user_id, ayah_index)
 
-        await message.answer_audio(audio_url)
+    await send_ayah(message, ayah_index)
 
-    update_progress(user_id,ayah_index+limit)
+
+@dp.message_handler(lambda m: m.text == "⬅️ Олдинги оят")
+async def prev_ayah(message: types.Message):
+
+    user_id = message.from_user.id
+    ayah_index, premium, score = get_user(user_id)
+
+    if ayah_index > 1:
+        ayah_index -= 1
+        update_progress(user_id, ayah_index)
+
+    await send_ayah(message, ayah_index)
 
 # ======================
 # ARABIC ALPHABET
