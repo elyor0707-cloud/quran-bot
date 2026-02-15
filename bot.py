@@ -230,7 +230,7 @@ async def search_ayah(message: types.Message):
     del search_mode[user_id]
 
 # ======================
-# ARABIC ALPHABET (FULL 28 LETTERS WITH FORMS)
+# ARABIC ALPHABET (FIXED FULL VERSION)
 # ======================
 
 arabic_letters = [
@@ -265,10 +265,15 @@ arabic_letters = [
 ]
 
 def alphabet_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=7)
+    kb = ReplyKeyboardMarkup(resize_keyboard=True, row_width=7)
     kb.add(*[l[0] for l in arabic_letters])
     kb.add("🏠 Бош меню")
     return kb
+
+@dp.message_handler(lambda m: m.text=="📘 Араб алифбоси")
+async def alphabet_menu(message: types.Message):
+    await message.answer("📘 Ҳарфни танланг:", reply_markup=alphabet_keyboard())
+
 
 @dp.message_handler(lambda m: m.text in [l[0] for l in arabic_letters])
 async def letter_info(message: types.Message):
@@ -285,7 +290,7 @@ async def letter_info(message: types.Message):
 📌 Сўз охирида: {letter[5]}
 
 🕌 Мисол: {letter[6]}
-""",reply_markup=alphabet_keyboard())
+""", reply_markup=alphabet_keyboard())
 
 
 # ======================
