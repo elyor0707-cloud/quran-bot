@@ -68,6 +68,53 @@ async def home(message: types.Message):
     await message.answer("🏠 Бош меню",reply_markup=main_keyboard)
 
 # ======================
+# SURAH SELECT SYSTEM
+# ======================
+
+surah_names = [
+"Al-Fatiha","Al-Baqara","Aal-E-Imran","An-Nisa","Al-Ma'idah",
+"Al-An'am","Al-A'raf","Al-Anfal","At-Tawbah","Yunus"
+]
+
+def surah_keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+    for i,name in enumerate(surah_names,1):
+        kb.insert(f"{i}. {name}")
+    kb.add("🏠 Бош меню")
+    return kb
+
+
+@dp.message_handler(lambda m: m.text=="📖 Бугунги оят")
+async def surah_select(message: types.Message):
+    await message.answer("Сурани танланг:",reply_markup=surah_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.split(".")[0].isdigit())
+async def surah_selected(message: types.Message):
+
+    surah_number=int(message.text.split(".")[0])
+    user_id=message.from_user.id
+    ayah_index,premium,score=get_user(user_id)
+
+    limit = 20 if premium==1 else 5
+
+    for i in range(1,limit+1):
+
+        response = requests.get(
+            f"https://api.alquran.cloud/v1/ayah/{surah_number}:{i}/editions/quran-uthmani,uz.sodik"
+        )
+
+        data=response.json()
+
+        arabic=data['data'][0]['text']
+        uzbek=data['data'][1]['text']
+
+        await message.answer(arabic)
+        await message.answer(uzbek)
+
+    update_progress(user_id,1)
+
+# ======================
 # BUGUNGI OYAT (NAVIGATION + AUDIO)
 # ======================
 
@@ -216,6 +263,137 @@ async def leaderboard(message: types.Message):
     for i,row in enumerate(rows,1):
         text+=f"{i}. {row[0]} — {row[1]} XP\n"
     await message.answer(text)
+
+# ======================
+# GRAMMAR SYSTEM (FIXED)
+# ======================
+
+def grammar_keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+    kb.add(
+        "1️⃣ Ҳаракатлар",
+        "2️⃣ Танвин",
+        "3️⃣ Сукун ва Шадда",
+        "4️⃣ Исм",
+        "5️⃣ Феъл",
+        "6️⃣ Ҳарф",
+        "7️⃣ Жумла турлари",
+        "8️⃣ Иъроб",
+        "🏠 Бош меню"
+    )
+    return kb
+
+
+@dp.message_handler(lambda m: m.text=="📚 Грамматика")
+async def grammar_menu(message: types.Message):
+    await message.answer("📚 Грамматика бўлими:",reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("1️⃣"))
+async def harakatlar(message: types.Message):
+    await message.answer("""
+📚 ҲАРАКАТЛАР
+
+َ Фатҳа — а
+ِ Касра — и
+ُ Дамма — у
+
+Мисол:
+كَتَبَ
+كُتِبَ
+كِتَاب
+""",reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("2️⃣"))
+async def tanvin(message: types.Message):
+    await message.answer("""
+📚 ТАНВИН
+
+ً  — ан
+ٍ  — ин
+ٌ  — ун
+
+كتابٌ — бир китоб
+""",reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("3️⃣"))
+async def sukun(message: types.Message):
+    await message.answer("""
+📚 СУКУН ВА ШАДДА
+
+ْ — сукун
+ّ — шадда
+
+مَدّ
+""",reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("4️⃣"))
+async def ism_section(message: types.Message):
+    await message.answer("""
+📚 ИСМ
+
+Предмет ёки шахсни билдиради.
+Замонга боғлиқ эмас.
+
+كتاب
+مدرسة
+
+Муфрад / Мусанно / Жамъ
+""",reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("5️⃣"))
+async def feel_section(message: types.Message):
+    await message.answer("""
+📚 ФЕЪЛ
+
+Мади — ўтган
+Музореъ — ҳозирги
+Амр — буйруқ
+
+كتب
+يكتب
+اكتب
+""",reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("6️⃣"))
+async def harf_section(message: types.Message):
+    await message.answer("""
+📚 ҲАРФ
+
+في — да
+من — дан
+إلى — га
+""",reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("7️⃣"))
+async def jumla_section(message: types.Message):
+    await message.answer("""
+📚 ЖУМЛА ТУРЛАРИ
+
+جملة اسمية
+الكتاب جديد
+
+جملة فعلية
+كتب الطالب
+""",reply_markup=grammar_keyboard())
+
+
+@dp.message_handler(lambda m: m.text.startswith("8️⃣"))
+async def irob_section(message: types.Message):
+    await message.answer("""
+📚 ИЪРОБ
+
+مرفوع — дамма
+منصوب — фатҳа
+مجرور — касра
+مجزوم — сукун
+""",reply_markup=grammar_keyboard())
 
 # ======================
 # PREMIUM
