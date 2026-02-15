@@ -53,11 +53,10 @@ def add_score(user_id, points):
 
 main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
 main_keyboard.add(
-    "📖 Бугунги оят","📘 Араб алифбоси",
-    "📊 Статистика","📚 Грамматика",
-    "🧠 Тест режими","🏆 Leaderboard",
-    "💎 Premium"
-)
+    "📖 Бугунги оят","🔎 Оят қидириш",
+    "📘 Араб алифбоси", "📊 Статистика",
+    "📚 Грамматика", "🧠 Тест режими",
+    "🏆 Leaderboard", "💎 Premium" )
 
 @dp.message_handler(commands=['start'])
 async def start_cmd(message: types.Message):
@@ -165,6 +164,70 @@ async def send_surah(callback: types.CallbackQuery):
         await callback.message.answer_audio(audio_url)
 
     await callback.answer()
+
+# ======================
+# AYAH SEARCH SYSTEM
+# ======================
+
+search_mode = {}
+
+@dp.message_handler(lambda m: m.text=="🔎 Оят қидириш")
+async def search_start(message: types.Message):
+    search_mode[message.from_user.id] = True
+    await message.answer("🔎 Қидириш учун калит сўз киритинг:")
+
+
+@dp.message_handler(lambda m: m.from_user.id in search_mode)
+async def search_ayah(message: types.Message):
+
+    user_id = message.from_user.id
+    keyword = message.text
+
+    ayah_index,premium,score = get_user(user_id)
+
+    limit = 10 if premium==1 else 3
+
+    response = requests.get(
+        f"https://api.alquran.cloud/v1/search/{keyword}/all/uz.sodik"
+    ).json()
+
+    if response["data"]["count"] == 0:
+        await message.answer("❌ Натижа топилмади.")
+        del search_mode[user_id]
+        return
+
+    results = response["data"]["matches"][:limit]
+
+    for ayah in results:
+
+        surah_name = ayah["surah"]["englishName"]
+        ayah_number = ayah["numberInSurah"]
+
+        arabic_resp = requests.get(
+            f"https://api.alquran.cloud/v1/ayah/{ayah['number']}/quran-uthmani"
+        ).json()
+
+        arabic_text = arabic_resp["data"]["text"]
+        uzbek_text = ayah["text"]
+
+        text = f"""
+{surah_name} сураси {ayah_number}-оят
+
+{arabic_text}
+
+{uzbek_text}
+"""
+
+        await message.answer(text)
+
+        # 🎧 AUDIO
+        sura = str(ayah["surah"]["number"]).zfill(3)
+        ayah_num = str(ayah_number).zfill(3)
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+        await message.answer_audio(audio_url)
+
+    del search_mode[user_id]
 
 # ======================
 # ARABIC ALPHABET (FULL)
