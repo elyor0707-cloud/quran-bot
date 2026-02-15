@@ -2,7 +2,7 @@ import requests
 import os
 import sqlite3
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardMarkup
 
@@ -23,18 +23,22 @@ CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY,
     ayah_progress INTEGER DEFAULT 1,
     premium INTEGER DEFAULT 0,
-    score INTEGER DEFAULT 0
+    score INTEGER DEFAULT 0,
+    level INTEGER DEFAULT 1,
+    streak INTEGER DEFAULT 0,
+    last_active TEXT
 )
 """)
 conn.commit()
 
 def get_user(user_id):
-    cursor.execute("SELECT ayah_progress,premium,score FROM users WHERE user_id=?", (user_id,))
+    cursor.execute("SELECT ayah_progress,premium,score,level,streak,last_active FROM users WHERE user_id=?", (user_id,))
     row = cursor.fetchone()
     if not row:
-        cursor.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
+        cursor.execute("INSERT INTO users (user_id,last_active) VALUES (?,?)",
+                       (user_id,str(datetime.now().date())))
         conn.commit()
-        return 1,0,0
+        return 1,0,0,1,0,str(datetime.now().date())
     return row
 
 def update_progress(user_id, value):
@@ -44,9 +48,27 @@ def update_progress(user_id, value):
 def add_score(user_id, points):
     cursor.execute("UPDATE users SET score=score+? WHERE user_id=?", (points,user_id))
     conn.commit()
+    update_level(user_id)
+
+def update_level(user_id):
+    cursor.execute("SELECT score FROM users WHERE user_id=?", (user_id,))
+    score = cursor.fetchone()[0]
+    level = score // 100 + 1
+    cursor.execute("UPDATE users SET level=? WHERE user_id=?", (level,user_id))
+    conn.commit()
+
+def update_streak(user_id):
+    today = str(datetime.now().date())
+    cursor.execute("SELECT last_active,streak FROM users WHERE user_id=?", (user_id,))
+    last, streak = cursor.fetchone()
+    if last != today:
+        streak += 1
+        cursor.execute("UPDATE users SET streak=?,last_active=? WHERE user_id=?",
+                       (streak,today,user_id))
+        conn.commit()
 
 # ======================
-# MENUS (ЁНМА-ЁН)
+# MAIN MENU (ЁНМА-ЁН)
 # ======================
 
 main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -56,6 +78,8 @@ main_keyboard.add(
     "📊 Статистика",
     "📚 Грамматика",
     "🧠 Тест режими",
+    "🏆 Leaderboard",
+    "🎯 Daily Challenge",
     "💎 Premium"
 )
 
@@ -75,7 +99,9 @@ async def start_cmd(message: types.Message):
 async def today_ayah(message: types.Message):
 
     user_id = message.from_user.id
-    ayah_index,premium,score = get_user(user_id)
+    ayah_index,premium,score,level,streak,last = get_user(user_id)
+
+    update_streak(user_id)
 
     limit = 5 if premium==0 else 20
 
@@ -103,7 +129,7 @@ async def today_ayah(message: types.Message):
     update_progress(user_id, ayah_index+limit)
 
 # ======================
-# ARAB ALIFBOSI
+# ARABIC ALPHABET
 # ======================
 
 arabic_letters = [
@@ -130,7 +156,7 @@ arabic_letters = [
 ("ق","Қоф","қ","قـ","ـقـ","ـق","قرآن"),
 ("ك","Каф","к","كـ","ـكـ","ـك","كتاب"),
 ("ل","Лам","л","لـ","ـلـ","ـل","الله"),
-("م","Мим","м","مـ","ـمـ","ـم","ملك"),
+("م","Мим","м","مـ","ـмـ","ـм","ملك"),
 ("ن","Нун","н","نـ","ـنـ","ـن","نور"),
 ("ه","Ҳа","ҳ","هـ","ـهـ","ـه","هدى"),
 ("و","Вов","в","و","ـو","ـو","وعد"),
@@ -147,10 +173,13 @@ def alphabet_keyboard():
 async def alphabet_menu(message: types.Message):
     await message.answer("Ҳарфни танланг:", reply_markup=alphabet_keyboard())
 
+@dp.message_handler(lambda m: m.text == "🏠 Бош меню")
+async def home(message: types.Message):
+    await message.answer("Бош меню", reply_markup=main_keyboard)
+
 @dp.message_handler(lambda m: m.text in [l[0] for l in arabic_letters])
 async def letter_info(message: types.Message):
     letter = next(l for l in arabic_letters if l[0]==message.text)
-
     await message.answer(f"""
 📘 Ҳарф: {letter[0]}
 
@@ -165,40 +194,7 @@ async def letter_info(message: types.Message):
 """)
 
 # ======================
-# STATISTICS
-# ======================
-
-@dp.message_handler(lambda m: m.text == "📊 Статистика")
-async def stats(message: types.Message):
-    ayah,premium,score = get_user(message.from_user.id)
-
-    await message.answer(f"""
-📊 Сизнинг статистикангиз:
-
-📖 Оят индекси: {ayah}
-⭐ Балл: {score}
-💎 Premium: {"Ҳа" if premium==1 else "Йўқ"}
-""")
-
-# ======================
-# GRAMMAR
-# ======================
-
-@dp.message_handler(lambda m: m.text == "📚 Грамматика")
-async def grammar(message: types.Message):
-    await message.answer("""
-📚 Араб грамматикаси:
-
-1️⃣ Ҳаракатлар — фатҳа َ , касра ِ , дамма ُ  
-2️⃣ Танвин — ан, ин, ун  
-3️⃣ Сукун — ْ  
-4️⃣ Шадда — ّ  
-5️⃣ Исм ва феъл фарқи  
-6️⃣ Жумла тузилиши асослари  
-""")
-
-# ======================
-# TEST
+# TEST SYSTEM
 # ======================
 
 tests = {}
@@ -212,9 +208,22 @@ async def ask_question(message):
     q = random.choice(arabic_letters)
     tests[message.from_user.id]["correct"] = q[2]
     tests[message.from_user.id]["count"] += 1
-    await message.answer(f"{tests[message.from_user.id]['count']}/10\nБу қайси ҳарф?\n\n{q[0]}")
 
-@dp.message_handler(lambda m: m.from_user.id in tests)
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add("❌ Тестни тугатиш","🏠 Бош меню")
+
+    await message.answer(
+        f"{tests[message.from_user.id]['count']}/10\nБу қайси ҳарф?\n\n{q[0]}",
+        reply_markup=kb
+    )
+
+@dp.message_handler(lambda m: m.text == "❌ Тестни тугатиш")
+async def stop_test(message: types.Message):
+    if message.from_user.id in tests:
+        del tests[message.from_user.id]
+    await message.answer("Тест тўхтатилди.", reply_markup=main_keyboard)
+
+@dp.message_handler(lambda m: m.from_user.id in tests and m.text not in ["❌ Тестни тугатиш","🏠 Бош меню"])
 async def check_answer(message: types.Message):
     user_test = tests[message.from_user.id]
 
@@ -230,14 +239,36 @@ async def check_answer(message: types.Message):
         final_score = user_test["score"]
         add_score(message.from_user.id, final_score*10)
 
-        await message.answer(f"""
-🏁 Тест тугади!
-
-Натижа: {final_score}/10
-Балл: {final_score*10}
-""", reply_markup=main_keyboard)
+        await message.answer(
+            f"🏁 Тест тугади!\n\nНатижа: {final_score}/10\nБалл: {final_score*10}",
+            reply_markup=main_keyboard
+        )
 
         del tests[message.from_user.id]
+
+# ======================
+# DAILY CHALLENGE
+# ======================
+
+@dp.message_handler(lambda m: m.text == "🎯 Daily Challenge")
+async def daily_challenge(message: types.Message):
+    q = random.choice(arabic_letters)
+    await message.answer(f"🎯 Бугунги савол:\nБу қайси ҳарф?\n\n{q[0]}")
+
+# ======================
+# LEADERBOARD
+# ======================
+
+@dp.message_handler(lambda m: m.text == "🏆 Leaderboard")
+async def leaderboard(message: types.Message):
+    cursor.execute("SELECT user_id,score FROM users ORDER BY score DESC LIMIT 10")
+    rows = cursor.fetchall()
+
+    text="🏆 ТОП 10\n\n"
+    for i,row in enumerate(rows,1):
+        text+=f"{i}. {row[0]} — {row[1]} XP\n"
+
+    await message.answer(text)
 
 # ======================
 # PREMIUM
@@ -249,7 +280,8 @@ async def premium(message: types.Message):
 💎 Premium:
 
 ✔ 20 та оят/кун
-✔ Чуқур тест
+✔ Кенгайтирилган тест
+✔ XP ×2
 ✔ Сертификат
 """)
 
