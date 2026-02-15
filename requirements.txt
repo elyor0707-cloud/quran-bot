@@ -5,3 +5,4 @@ reportlab
 stripe
 openai
 gTTS
+aiohttp==3.8.6
