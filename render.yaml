@@ -3,9 +3,6 @@ services:
     name: quran-bot
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python bot.py
-    envVars:
-      - key: BOT_TOKEN
-        sync: false
-    runtime: python3.11
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python bot.py"
+    runtime: python-3.11.9
