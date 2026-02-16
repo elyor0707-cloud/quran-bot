@@ -4,6 +4,94 @@ import sqlite3
 import random
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ReplyKeyboardMarkup
+from openai import OpenAI
+import difflib
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+ai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+recitation_mode = {}
+
+# ======================
+# QIROAT MODE START
+# ======================
+
+@dp.message_handler(lambda m: m.text=="🎙 Қироат текшириш")
+async def start_recitation(message: types.Message):
+    recitation_mode[message.from_user.id] = True
+    await message.answer("🎙 Илтимос, ўқимоқчи бўлган оятингизни овоз орқали юборинг.")
+
+
+# ======================
+# VOICE HANDLER
+# ======================
+
+@dp.message_handler(content_types=types.ContentType.VOICE)
+async def handle_voice(message: types.Message):
+
+    if message.from_user.id not in recitation_mode:
+        return
+
+    file = await bot.get_file(message.voice.file_id)
+    file_path = file.file_path
+    downloaded = await bot.download_file(file_path)
+
+    with open("voice.ogg","wb") as f:
+        f.write(downloaded.read())
+
+    # Whisper STT
+    audio_file = open("voice.ogg","rb")
+
+    transcript = ai_client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio_file,
+        language="ar"
+    )
+
+    spoken_text = transcript.text.strip()
+
+    # Текшириш учун охирги кўрилган оят
+    ayah_index,_ = get_user(message.from_user.id)
+
+    r = requests.get(
+        f"https://api.alquran.cloud/v1/ayah/{ayah_index}/quran-uthmani"
+    ).json()
+
+    correct_text = r['data']['text']
+
+    # Similarity
+    similarity = difflib.SequenceMatcher(
+        None,
+        spoken_text,
+        correct_text
+    ).ratio()
+
+    percent = round(similarity * 100)
+
+    if percent >= 90:
+        result = "🟢 Аъло қироат!"
+        add_score(message.from_user.id,20)
+    elif percent >= 70:
+        result = "🟡 Яхши, аммо хато бор."
+        add_score(message.from_user.id,10)
+    else:
+        result = "🔴 Қайта ўқиш керак."
+
+    await message.answer(f"""
+📊 Қироат таҳлили:
+
+Сизнинг ўқишингиз:
+{spoken_text}
+
+Тўғри оят:
+{correct_text}
+
+Мослик: {percent}%
+
+{result}
+""")
+
+    del recitation_mode[message.from_user.id]
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -49,8 +137,9 @@ def add_score(user_id, points):
 
 main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
 main_keyboard.add(
-    "📖 Бугунги оят","🔎 Оят қидириш",
-    "📘 Араб алифбоси","🧠 Тест режими"
+    "📖 Бугунги оят", "🎙 Қироат текшириш",
+    "📘 Араб алифбоси","🧠 Тест режими",
+    "🔎 Оят қидириш"
 )
 
 @dp.message_handler(commands=['start'])
@@ -150,9 +239,34 @@ async def search(message: types.Message):
 # ======================
 
 arabic_letters = [
+("ا","Алиф","а","ا","ـا","ـا","الله"),
 ("ب","Ба","б","بـ","ـبـ","ـب","بسم / كتاب / حب"),
 ("ت","Та","т","تـ","ـتـ","ـت","توبة / بيت / بنت"),
-("ث","Са","с","ثـ","ـثـ","ـث","ثواب / مثلث / حرث")
+("ث","Са","с","ثـ","ـثـ","ـث","ثواب / مثلث / حرث"),
+("ج","Жим","ж","جـ","ـجـ","ـج","جنة / رجل / خروج"),
+("ح","Ҳа","ҳ","حـ","ـحـ","ـح","حق / محمد / فلاح"),
+("خ","Хо","х","خـ","ـخـ","ـخ","خلق / بخيل / شيخ"),
+("د","Дал","д","د","ـد","ـد","دين / عدد"),
+("ذ","Зал","з","ذ","ـذ","ـذ","ذكر / هذا"),
+("ر","Ро","р","ر","ـر","ـر","رحمن / بر"),
+("ز","Зай","з","ز","ـز","ـز","زكاة / ميزان"),
+("س","Син","с","سـ","ـسـ","ـس","سلام / مسجد / درس"),
+("ش","Шин","ш","شـ","ـشـ","ـش","شمس / بشر / عرش"),
+("ص","Сод","с","صـ","ـصـ","ـص","صلاة / بصير / نقص"),
+("ض","Дод","д","ضـ","ـضـ","ـض","ضوء / غضب / أرض"),
+("ط","То","т","طـ","ـطـ","ـط","طاعة / مطر / خط"),
+("ظ","Зо","з","ظـ","ـظـ","ـظ","ظلم / منظر / حفظ"),
+("ع","Айн","ъ","عـ","ـعـ","ـع","علم / بعير / سمع"),
+("غ","Ғайн","ғ","غـ","ـغـ","ـغ","غفور / مغرب / بلاغ"),
+("ف","Фа","ф","فـ","ـفـ","ـف","فجر / سفر / عف"),
+("ق","Қоф","қ","قـ","ـقـ","ـق","قرآن / بقي / حق"),
+("ك","Каф","к","كـ","ـكـ","ـك","كتاب / مكتب / ملك"),
+("ل","Лам","л","لـ","ـلـ","ـل","الله / علم / أهل"),
+("م","Мим","м","مـ","ـمـ","ـم","ملك / محمد / علم"),
+("ن","Нун","н","نـ","ـنـ","ـن","نور / بني / سن"),
+("ه","Ҳа","ҳ","هـ","ـهـ","ـه","هدى / ذهب / وجه"),
+("و","Вов","в","و","ـو","ـو","وعد / نور"),
+("ي","Йа","й","يـ","ـيـ","ـي","يوم / بيت / علي"),
 ]
 
 def alphabet_keyboard():
