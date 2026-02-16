@@ -1,3 +1,4 @@
+import asyncio
 import requests
 import os
 import sqlite3
@@ -14,7 +15,7 @@ dp = Dispatcher(bot)
 # DATABASE
 # ======================
 
-conn = sqlite3.connect("database.db")
+conn = sqlite3.connect("database.db", check_same_thread=False)
 cursor = conn.cursor()
 
 cursor.execute("""
@@ -494,10 +495,16 @@ async def check_answer(message: types.Message):
 
     del test_state[user_id]
     await message.answer("🏠 Бош меню",reply_markup=main_keyboard)
+@dp.errors_handler()
+async def global_error_handler(update, exception):
+    print(f"Xatolik: {exception}")
+    return True
+
 
 # ======================
 # RUN
 # ======================
 
-if __name__=="__main__":
-    executor.start_polling(dp,skip_updates=True)
+if __name__ == "__main__":
+    executor.start_polling(dp, skip_updates=True)
+
