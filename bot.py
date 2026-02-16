@@ -74,10 +74,12 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 # ======================
 
 def get_all_surahs():
-    r = requests.get("https://api.alquran.cloud/v1/surah, timeout=10").json()
-    return r["data"]
+    try:
+        r = requests.get("https://api.alquran.cloud/v1/surah", timeout=10)
+        return r.json()["data"]
+    except:
+        return []
 
-all_surahs = get_all_surahs()
 
 
 def surah_inline_keyboard(page=0):
