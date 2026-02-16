@@ -108,14 +108,6 @@ def surah_inline_keyboard(page=0):
     return kb
 
 
-@dp.message_handler(lambda m: m.text=="📖 Бугунги оят")
-async def show_surah_list(message: types.Message):
-    await message.answer(
-        "📖 Сурани танланг:",
-        reply_markup=surah_inline_keyboard(0)
-    )
-
-
 @dp.callback_query_handler(lambda c: c.data.startswith("page_"))
 async def change_page(callback: types.CallbackQuery):
     page = int(callback.data.split("_")[1])
@@ -372,6 +364,81 @@ async def g7(message: types.Message):
 @dp.message_handler(lambda m: m.text.startswith("8️⃣"))
 async def g8(message: types.Message):
     await message.answer("Иъроб",reply_markup=grammar_keyboard())
+
+# ======================
+# BUGUNGI OYAT NAVIGATION SYSTEM
+# ======================
+
+def ayah_keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+    kb.add("⬅️ Олдинги оят","➡️ Кейинги оят")
+    kb.add("🏠 Бош меню")
+    return kb
+
+
+async def send_ayah(message, ayah_number):
+
+    try:
+        response = requests.get(
+            f"https://api.alquran.cloud/v1/ayah/{ayah_number}/editions/quran-uthmani,uz.sodik"
+        )
+
+        data = response.json()
+
+        arabic = data['data'][0]['text']
+        uzbek = data['data'][1]['text']
+        surah = data['data'][0]['surah']['englishName']
+        ayah_no = data['data'][0]['numberInSurah']
+
+        sura = str(data['data'][0]['surah']['number']).zfill(3)
+        ayah_num = str(ayah_no).zfill(3)
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+        await message.answer(
+            f"{surah} сураси {ayah_no}-оят\n\n{arabic}\n\n{uzbek}",
+            reply_markup=ayah_keyboard()
+        )
+
+        await message.answer_audio(audio_url)
+
+    except:
+        await message.answer("⚠️ Оят топилмади ёки API хатолик.")
+
+
+@dp.message_handler(lambda m: m.text=="📖 Бугунги оят")
+async def today_ayah(message: types.Message):
+    user_id = message.from_user.id
+    ayah_index,premium,score = get_user(user_id)
+    await send_ayah(message,ayah_index)
+
+
+@dp.message_handler(lambda m: m.text=="➡️ Кейинги оят")
+async def next_ayah(message: types.Message):
+    user_id = message.from_user.id
+    ayah_index,premium,score = get_user(user_id)
+
+    ayah_index += 1
+    if ayah_index > 6236:
+        ayah_index = 1
+
+    update_progress(user_id,ayah_index)
+
+    await send_ayah(message,ayah_index)
+
+
+@dp.message_handler(lambda m: m.text=="⬅️ Олдинги оят")
+async def prev_ayah(message: types.Message):
+    user_id = message.from_user.id
+    ayah_index,premium,score = get_user(user_id)
+
+    if ayah_index > 1:
+        ayah_index -= 1
+    else:
+        ayah_index = 6236
+
+    update_progress(user_id,ayah_index)
+
+    await send_ayah(message,ayah_index)
 
 # ======================
 # RUN
