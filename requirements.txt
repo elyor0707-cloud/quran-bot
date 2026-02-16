@@ -6,3 +6,4 @@ stripe
 openai
 gTTS
 aiohttp==3.8.6
+aiohttp==3.9.5
