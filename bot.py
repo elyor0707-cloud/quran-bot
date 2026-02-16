@@ -440,6 +440,61 @@ async def prev_ayah(message: types.Message):
 
     await send_ayah(message,ayah_index)
 
+
+# ======================
+# TEST MODE SYSTEM
+# ======================
+
+test_questions = [
+    {
+        "question": "Фатҳа қандай белги?",
+        "options": ["َ", "ُ", "ِ"],
+        "correct": "َ"
+    },
+    {
+        "question": "Танвин нима?",
+        "options": ["Икки ҳаракат", "Сукун", "Шадда"],
+        "correct": "Икки ҳаракат"
+    }
+]
+
+test_state = {}
+
+
+def test_keyboard(options):
+    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+    kb.add(*options)
+    kb.add("🏠 Бош меню")
+    return kb
+
+
+@dp.message_handler(lambda m: m.text=="🧠 Тест режими")
+async def start_test(message: types.Message):
+    user_id = message.from_user.id
+    q = random.choice(test_questions)
+
+    test_state[user_id] = q
+
+    await message.answer(
+        f"🧠 Савол:\n\n{q['question']}",
+        reply_markup=test_keyboard(q["options"])
+    )
+
+
+@dp.message_handler(lambda m: m.from_user.id in test_state)
+async def check_answer(message: types.Message):
+    user_id = message.from_user.id
+    q = test_state[user_id]
+
+    if message.text == q["correct"]:
+        add_score(user_id,10)
+        await message.answer("✅ Тўғри! +10 балл")
+    else:
+        await message.answer(f"❌ Нотўғри.\nТўғри жавоб: {q['correct']}")
+
+    del test_state[user_id]
+    await message.answer("🏠 Бош меню",reply_markup=main_keyboard)
+
 # ======================
 # RUN
 # ======================
