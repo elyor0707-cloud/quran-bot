@@ -1,4 +1,3 @@
-import asyncio
 import requests
 import os
 import sqlite3
@@ -15,7 +14,7 @@ dp = Dispatcher(bot)
 # DATABASE
 # ======================
 
-conn = sqlite3.connect("database.db", check_same_thread=False)
+conn = sqlite3.connect("database.db")
 cursor = conn.cursor()
 
 cursor.execute("""
@@ -74,12 +73,10 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 # ======================
 
 def get_all_surahs():
-    try:
-        r = requests.get("https://api.alquran.cloud/v1/surah", timeout=10)
-        return r.json()["data"]
-    except:
-        return []
+    r = requests.get("https://api.alquran.cloud/v1/surah").json()
+    return r["data"]
 
+all_surahs = get_all_surahs()
 
 
 def surah_inline_keyboard(page=0):
@@ -131,7 +128,7 @@ async def send_surah(callback: types.CallbackQuery):
     for i in range(1, limit+1):
 
         r = requests.get(
-            f"https://api.alquran.cloud/v1/ayah/{surah_number}:{i}/editions/quran-uthmani,uz.sodik, timeout=10"
+            f"https://api.alquran.cloud/v1/ayah/{surah_number}:{i}/editions/quran-uthmani,uz.sodik"
         ).json()
 
         arabic = r['data'][0]['text']
@@ -183,7 +180,7 @@ async def search_ayah(message: types.Message):
     limit = 10 if premium==1 else 3
 
     response = requests.get(
-        f"https://api.alquran.cloud/v1/search/{keyword}/all/uz.sodik, timeout=10"
+        f"https://api.alquran.cloud/v1/search/{keyword}/all/uz.sodik"
     ).json()
 
     if response["data"]["count"] == 0:
@@ -199,7 +196,7 @@ async def search_ayah(message: types.Message):
         ayah_number = ayah["numberInSurah"]
 
         arabic_resp = requests.get(
-            f"https://api.alquran.cloud/v1/ayah/{ayah['number']}/quran-uthmani, timeout=10"
+            f"https://api.alquran.cloud/v1/ayah/{ayah['number']}/quran-uthmani"
         ).json()
 
         arabic_text = arabic_resp["data"]["text"]
@@ -383,7 +380,7 @@ async def send_ayah(message, ayah_number):
 
     try:
         response = requests.get(
-            f"https://api.alquran.cloud/v1/ayah/{ayah_number}/editions/quran-uthmani,uz.sodik, timeout=10"
+            f"https://api.alquran.cloud/v1/ayah/{ayah_number}/editions/quran-uthmani,uz.sodik"
         )
 
         data = response.json()
@@ -443,70 +440,9 @@ async def prev_ayah(message: types.Message):
 
     await send_ayah(message,ayah_index)
 
-
-# ======================
-# TEST MODE SYSTEM
-# ======================
-
-test_questions = [
-    {
-        "question": "Фатҳа қандай белги?",
-        "options": ["َ", "ُ", "ِ"],
-        "correct": "َ"
-    },
-    {
-        "question": "Танвин нима?",
-        "options": ["Икки ҳаракат", "Сукун", "Шадда"],
-        "correct": "Икки ҳаракат"
-    }
-]
-
-test_state = {}
-
-
-def test_keyboard(options):
-    kb = ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
-    kb.add(*options)
-    kb.add("🏠 Бош меню")
-    return kb
-
-
-@dp.message_handler(lambda m: m.text=="🧠 Тест режими")
-async def start_test(message: types.Message):
-    user_id = message.from_user.id
-    q = random.choice(test_questions)
-
-    test_state[user_id] = q
-
-    await message.answer(
-        f"🧠 Савол:\n\n{q['question']}",
-        reply_markup=test_keyboard(q["options"])
-    )
-
-
-@dp.message_handler(lambda m: m.from_user.id in test_state)
-async def check_answer(message: types.Message):
-    user_id = message.from_user.id
-    q = test_state[user_id]
-
-    if message.text == q["correct"]:
-        add_score(user_id,10)
-        await message.answer("✅ Тўғри! +10 балл")
-    else:
-        await message.answer(f"❌ Нотўғри.\nТўғри жавоб: {q['correct']}")
-
-    del test_state[user_id]
-    await message.answer("🏠 Бош меню",reply_markup=main_keyboard)
-@dp.errors_handler()
-async def global_error_handler(update, exception):
-    print(f"Xatolik: {exception}")
-    return True
-
-
 # ======================
 # RUN
 # ======================
 
-if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
-
+if __name__=="__main__":
+    executor.start_polling(dp,skip_updates=True)
