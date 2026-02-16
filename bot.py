@@ -74,7 +74,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 # ======================
 
 def get_all_surahs():
-    r = requests.get("https://api.alquran.cloud/v1/surah").json()
+    r = requests.get("https://api.alquran.cloud/v1/surah, timeout=10").json()
     return r["data"]
 
 all_surahs = get_all_surahs()
@@ -129,7 +129,7 @@ async def send_surah(callback: types.CallbackQuery):
     for i in range(1, limit+1):
 
         r = requests.get(
-            f"https://api.alquran.cloud/v1/ayah/{surah_number}:{i}/editions/quran-uthmani,uz.sodik"
+            f"https://api.alquran.cloud/v1/ayah/{surah_number}:{i}/editions/quran-uthmani,uz.sodik, timeout=10"
         ).json()
 
         arabic = r['data'][0]['text']
@@ -181,7 +181,7 @@ async def search_ayah(message: types.Message):
     limit = 10 if premium==1 else 3
 
     response = requests.get(
-        f"https://api.alquran.cloud/v1/search/{keyword}/all/uz.sodik"
+        f"https://api.alquran.cloud/v1/search/{keyword}/all/uz.sodik, timeout=10"
     ).json()
 
     if response["data"]["count"] == 0:
@@ -197,7 +197,7 @@ async def search_ayah(message: types.Message):
         ayah_number = ayah["numberInSurah"]
 
         arabic_resp = requests.get(
-            f"https://api.alquran.cloud/v1/ayah/{ayah['number']}/quran-uthmani"
+            f"https://api.alquran.cloud/v1/ayah/{ayah['number']}/quran-uthmani, timeout=10"
         ).json()
 
         arabic_text = arabic_resp["data"]["text"]
@@ -381,7 +381,7 @@ async def send_ayah(message, ayah_number):
 
     try:
         response = requests.get(
-            f"https://api.alquran.cloud/v1/ayah/{ayah_number}/editions/quran-uthmani,uz.sodik"
+            f"https://api.alquran.cloud/v1/ayah/{ayah_number}/editions/quran-uthmani,uz.sodik, timeout=10"
         )
 
         data = response.json()
