@@ -47,7 +47,7 @@ def create_ayah_image(arabic_text, filename="ayah.png"):
     draw = ImageDraw.Draw(img)
 
     font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
-    font = ImageFont.truetype(font_path, 180)   # 🔥 katta qildik
+    font = ImageFont.truetype(font_path, 150)   # 🔥 katta qildik
 
     bbox = draw.textbbox((0, 0), arabic_text, font=font)
     text_width = bbox[2] - bbox[0]
