@@ -142,10 +142,22 @@ async def select_surah(callback: types.CallbackQuery):
     update_user(callback.from_user.id, "current_ayah", 1)
 
     await send_ayah(callback.from_user.id, callback.message)
-    await callback.answer()
+    await callback.answer()@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
+async def select_surah(callback: types.CallbackQuery):
+
+    await callback.answer()   # ⚡ Биринчи шу
+
+    surah_number = int(callback.data.split("_")[1])
+    update_user(callback.from_user.id, "current_surah", surah_number)
+    update_user(callback.from_user.id, "current_ayah", 1)
+
+    await send_ayah(callback.from_user.id, callback.message)
+
 
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
+
+    await callback.answer()   # ⚡ Биринчи жавоб
 
     user_id = callback.from_user.id
     user = get_user(user_id)
@@ -160,12 +172,14 @@ async def navigation(callback: types.CallbackQuery):
         update_user(user_id, "current_ayah", ayah - 1)
 
     elif callback.data == "menu":
-        await callback.message.answer("📖 Сурани танланг:", reply_markup=surah_keyboard())
-        await callback.answer()
+        await callback.message.answer(
+            "📖 Сурани танланг:",
+            reply_markup=surah_keyboard()
+        )
         return
 
     await send_ayah(user_id, callback.message)
-    await callback.answer()
+
 
 # ======================
 
