@@ -21,8 +21,6 @@ if not BOT_TOKEN:
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
-import re
-
 TAJWEED_COLORS = {
     "ghunnah": "#2ecc71",
     "idgham": "#3498db",
