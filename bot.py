@@ -57,7 +57,7 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
     return y
 
 
-def create_card_image(arabic, uzbek, surah_name, ayah):
+def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
     width = 1200
     height = 900
@@ -83,15 +83,30 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
     # ===== ARABIC =====
-    reshaped = arabic_reshaper.reshape(arabic)
-    bidi_text = get_display(reshaped)
+    segments = parse_tajweed_segments(arabic)
 
-    y_text = 150
-    max_ar_width = width - 300
+y_text = 150
+x_cursor = 150
+max_width = width - 150
 
-    y_text = draw_multiline_text(
-        draw, bidi_text, arabic_font, max_ar_width, y_text, width, line_spacing=20
-    )
+for rule, part in segments:
+
+    reshaped = arabic_reshaper.reshape(part)
+    bidi_part = get_display(reshaped)
+
+    color = TAJWEED_COLORS.get(rule, "white")
+
+    bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
+    w = bbox[2] - bbox[0]
+    h = bbox[3] - bbox[1]
+
+    if x_cursor + w > max_width:
+        y_text += h + 25
+        x_cursor = 150
+
+    draw.text((x_cursor, y_text), bidi_part, fill=color, font=arabic_font)
+    x_cursor += w
+
 
     # LINE
     draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
