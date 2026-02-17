@@ -326,14 +326,6 @@ async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
     await message.answer("📖 Surani tanlang:", reply_markup=surah_keyboard())
     
-@dp.callback_query_handler(lambda c: c.data.startswith("surahpage_"))
-async def surah_page(callback: types.CallbackQuery):
-    page = int(callback.data.split("_")[1])
-    await callback.message.edit_text(
-        "📖 Surani tanlang:",
-        reply_markup=surah_keyboard(page)
-    )
-    await callback.answer()
 
 async def show_ayah_page(callback, surah_number, page, total_ayahs):
 
@@ -386,15 +378,6 @@ async def select_surah(callback: types.CallbackQuery):
 
     await show_ayah_page(callback, surah_number, 1, total_ayahs)
 
-
-@dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
-async def select_ayah(callback: types.CallbackQuery):
-
-    ayah = int(callback.data.split("_")[1])
-    update_user(callback.from_user.id, "current_ayah", ayah)
-
-    await send_ayah(callback.from_user.id, callback.message)
-
 @dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
 async def ayah_page(callback: types.CallbackQuery):
 
@@ -410,6 +393,17 @@ async def ayah_page(callback: types.CallbackQuery):
     total_ayahs = r['data']['numberOfAyahs']
 
     await show_ayah_page(callback, surah_number, page, total_ayahs)
+
+@dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
+async def select_ayah(callback: types.CallbackQuery):
+
+    ayah = int(callback.data.split("_")[1])
+    update_user(callback.from_user.id, "current_ayah", ayah)
+
+    await send_ayah(callback.from_user.id, callback.message)
+    
+
+
 
 
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
