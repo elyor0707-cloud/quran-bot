@@ -38,11 +38,13 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
+    arabic_font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
+    uzbek_font_path = os.path.join(os.getcwd(), "DejaVuSans.ttf")
 
-    arabic_font = ImageFont.truetype(font_path, 80)
-    uzbek_font = ImageFont.truetype(font_path, 40)
-    title_font = ImageFont.truetype(font_path, 45)
+    arabic_font = ImageFont.truetype(arabic_font_path, 80)
+    uzbek_font = ImageFont.truetype(uzbek_font_path, 40)
+    title_font = ImageFont.truetype(uzbek_font_path, 45)
+
 
     # Title
     title = "Qur’oniy oyat"
