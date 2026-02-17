@@ -8,6 +8,7 @@ from database import get_surahs, get_user, update_user
 from PIL import Image, ImageDraw, ImageFont
 import arabic_reshaper
 from bidi.algorithm import get_display
+import re
 
 # ======================
 # BOT INIT
