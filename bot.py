@@ -117,10 +117,19 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     tw = bbox[2] - bbox[0]
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
+    # ================= FOOTER (FIXED) =================
+    footer = f"{surah_name} surasi, {ayah}-oyat"
+    bbox = draw.textbbox((0, 0), footer, font=title_font)
+    fw = bbox[2] - bbox[0]
+    fh = bbox[3] - bbox[1]
+
+    footer_y = height - fh - 40
+    draw.text(((width - fw)/2, footer_y), footer, fill="#d4af37", font=title_font)
+
     # ================= ARABIC =================
     segments = parse_tajweed_segments(arabic_html)
 
-    y_text = 120   # <<< ARABIC YUQORIROQ
+    y_text = 120
     x_cursor = width - 150
     max_left = 150
     max_line_height = 0
@@ -129,7 +138,6 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
         reshaped = arabic_reshaper.reshape(part)
         bidi_part = get_display(reshaped)
-
         color = TAJWEED_COLORS.get(rule, "white")
 
         bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
@@ -152,34 +160,45 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     line_y = arabic_bottom + 20
     draw.line((200, line_y, width-200, line_y), fill="#d4af37", width=3)
 
-    # ================= UZBEK =================
-    translation_y = line_y + 40   # <<< TARJIMA PASTROQ
+    # ================= TRANSLATION AREA =================
+    translation_top = line_y + 30
+    translation_bottom_limit = footer_y - 30
 
-    translation_bottom = draw_multiline_text(
-        draw,
-        uzbek,
-        uzbek_font,
-        width - 300,
-        translation_y,
-        width,
-        line_spacing=8
-    )
+    y_current = translation_top
 
-    # ================= FOOTER =================
-    footer = f"{surah_name} surasi, {ayah}-oyat"
-    bbox = draw.textbbox((0, 0), footer, font=title_font)
-    fw = bbox[2] - bbox[0]
-    fh = bbox[3] - bbox[1]
+    words = uzbek.split()
+    line = ""
 
-    footer_y = translation_bottom + 30
+    for word in words:
+        test_line = line + " " + word if line else word
+        bbox = draw.textbbox((0, 0), test_line, font=uzbek_font)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
 
-    # Agar juda pastga tushsa, balandlikni cheklaymiz
-    if footer_y + fh > height - 40:
-        footer_y = height - fh - 40
+        if w <= width - 300:
+            line = test_line
+        else:
+            if y_current + h > translation_bottom_limit:
+                break
 
-    draw.text(((width - fw)/2, footer_y), footer, fill="#d4af37", font=title_font)
+            bbox = draw.textbbox((0, 0), line, font=uzbek_font)
+            lw = bbox[2] - bbox[0]
+            draw.text(((width - lw)/2, y_current), line, fill="white", font=uzbek_font)
+
+            y_current += h + 8
+            line = word
+
+    # Oxirgi qatordan
+    if line:
+        bbox = draw.textbbox((0, 0), line, font=uzbek_font)
+        lw = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+
+        if y_current + h <= translation_bottom_limit:
+            draw.text(((width - lw)/2, y_current), line, fill="white", font=uzbek_font)
 
     img.save("card.png")
+
 
 
 
