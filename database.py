@@ -7,22 +7,24 @@ def get_surahs():
 
 def get_user(user_id):
     if user_id not in users:
-        users[user_id] = [user_id, 1, 1]
+        users[user_id] = {
+            "current_surah": 1,
+            "current_ayah": 1
+        }
     return users[user_id]
 
 def update_user(user_id, field, value):
     if user_id not in users:
-        users[user_id] = [user_id, 1, 1]
+        get_user(user_id)
 
-    if field == "current_surah":
-        users[user_id][1] = value
-    elif field == "current_ayah":
-        users[user_id][2] = value
+    users[user_id][field] = value
+
 
 def get_ayah(surah, ayah):
+    # TEST VERSION (кейин API'га улаймиз)
     return {
         "surah_name": f"{surah}-сура",
-        "arabic": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
-        "uzbek": "Бисмиллаҳир роҳманир роҳим",
+        "arabic": f"Оят {ayah} арабча матн",
+        "uzbek": f"Оят {ayah} ўзбекча таржима",
         "total_ayahs": 7
     }
