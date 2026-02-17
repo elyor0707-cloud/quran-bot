@@ -8,8 +8,9 @@ def get_surahs():
 
 def get_ayah(surah, ayah):
     r = requests.get(
-        f"{BASE_URL}/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik"
-    ).json()
+    f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik",
+    timeout=10
+).json()
 
     arabic = r['data'][0]['text']
     uzbek = r['data'][1]['text']
