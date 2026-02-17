@@ -108,7 +108,10 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font = ImageFont.truetype("KFGQPC-Uthmanic-Script-Regular.ttf", 70)
+    arabic_font = ImageFont.truetype(
+    os.path.join(os.getcwd(), "KFGQPC-Uthmanic-Script-Regular.ttf"),
+    70
+)
     uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 34)
     title_font = ImageFont.truetype("DejaVuSans.ttf", 45)
 
