@@ -34,6 +34,8 @@ def surah_keyboard():
 # SEND AYAH (AUDIO WITH REAL API)
 # ======================
 
+import os
+
 def create_ayah_image(arabic_text, filename="ayah.png"):
     width = 1200
     height = 400
@@ -41,7 +43,8 @@ def create_ayah_image(arabic_text, filename="ayah.png"):
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
-    font = ImageFont.truetype("Amiri-Regular.ttf", 70)
+    font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
+    font = ImageFont.truetype(font_path, 70)
 
     w, h = draw.textsize(arabic_text, font=font)
     x = (width - w) / 2
