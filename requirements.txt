@@ -1,10 +1,5 @@
-requests
 aiogram==2.25.1
+aiohttp
 Pillow
-reportlab
-stripe
-openai
-gTTS
 arabic-reshaper
 python-bidi
-aiohttp
