@@ -63,19 +63,19 @@ async def send_ayah(user_id, message):
     r = requests.get(
         f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik"
     ).json()
-    arabic = r['data'][0]['text']
-    create_ayah_image(arabic)
-    await message.answer_photo(InputFile("ayah.png"))
 
+    arabic = r['data'][0]['text']
     uzbek = r['data'][1]['text']
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
+    # 🖼 PNG яратиш
+    create_ayah_image(arabic)
+    await message.answer_photo(InputFile("ayah.png"))
+
     text = f"""
 📖 {surah_name} сураси
 Оят: {ayah}
-
-{arabic}
 
 {uzbek}
 """
@@ -92,23 +92,23 @@ async def send_ayah(user_id, message):
 
     await message.answer(text, reply_markup=kb)
 
-   # 🔊 AUDIO (download + send)
-sura = str(surah).zfill(3)
-ayah_num = str(ayah).zfill(3)
-audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+    # 🔊 AUDIO
+    sura = str(surah).zfill(3)
+    ayah_num = str(ayah).zfill(3)
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
 
-try:
-    audio_file = requests.get(audio_url, timeout=10)
-    if audio_file.status_code == 200:
-        filename = f"{sura}{ayah_num}.mp3"
-        with open(filename, "wb") as f:
-            f.write(audio_file.content)
+    try:
+        audio_file = requests.get(audio_url, timeout=10)
+        if audio_file.status_code == 200:
+            filename = f"{sura}{ayah_num}.mp3"
+            with open(filename, "wb") as f:
+                f.write(audio_file.content)
 
-        await message.answer_audio(InputFile(filename))
-    else:
-        await message.answer("🔊 Аудио топилмади.")
-except Exception as e:
-    await message.answer("🔊 Аудио юклашда хато.")
+            await message.answer_audio(InputFile(filename))
+        else:
+            await message.answer("🔊 Аудио топилмади.")
+    except:
+        await message.answer("🔊 Аудио юклашда хато.")
 
 
 # ======================
