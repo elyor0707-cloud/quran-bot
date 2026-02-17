@@ -158,8 +158,10 @@ async def send_ayah(user_id, message):
                     f.write(await audio_resp.read())
 
                 await message.answer_audio(InputFile(filename))
+            else:
+                await message.answer("🔊 Аудио топилмади.")
 
-    # NAV BUTTONS
+    # NAVIGATION BUTTONS
     kb = InlineKeyboardMarkup()
 
     if ayah > 1:
@@ -171,6 +173,7 @@ async def send_ayah(user_id, message):
     kb.add(InlineKeyboardButton("🏠 Бош меню", callback_data="menu"))
 
     await message.answer("👇 Навигация:", reply_markup=kb)
+
 
     async def send_ayah(user_id, message):
 
