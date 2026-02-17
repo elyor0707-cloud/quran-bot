@@ -21,6 +21,38 @@ if not BOT_TOKEN:
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
+import re
+
+TAJWEED_COLORS = {
+    "ghunnah": "#2ecc71",
+    "idgham": "#3498db",
+    "ikhfa": "#9b59b6",
+    "qalqalah": "#e74c3c",
+    "iqlab": "#f39c12",
+}
+
+def parse_tajweed_segments(text):
+    segments = []
+    pattern = r'<tajweed class="(.*?)">(.*?)</tajweed>'
+
+    pos = 0
+    for match in re.finditer(pattern, text):
+        start, end = match.span()
+
+        if start > pos:
+            segments.append(("normal", text[pos:start]))
+
+        rule = match.group(1)
+        content = match.group(2)
+        segments.append((rule, content))
+
+        pos = end
+
+    if pos < len(text):
+        segments.append(("normal", text[pos:]))
+
+    return segments
+
 # ======================
 # IMAGE CARD GENERATOR
 # ======================
@@ -83,13 +115,15 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
     # ===== ARABIC =====
-    segments = parse_tajweed_segments(arabic)
+    # ===== ARABIC =====
+    segments = parse_tajweed_segments(arabic_html)
 
-y_text = 150
-x_cursor = 150
-max_width = width - 150
+    y_text = 150
+    x_cursor = width - 150
+    line_height = 0
+    max_left = 150
 
-for rule, part in segments:
+    for rule, part in segments:
 
     reshaped = arabic_reshaper.reshape(part)
     bidi_part = get_display(reshaped)
@@ -100,12 +134,17 @@ for rule, part in segments:
     w = bbox[2] - bbox[0]
     h = bbox[3] - bbox[1]
 
-    if x_cursor + w > max_width:
-        y_text += h + 25
-        x_cursor = 150
+    if x_cursor - w < max_left:
+        y_text += line_height + 20
+        x_cursor = width - 150
+        line_height = 0
 
-    draw.text((x_cursor, y_text), bidi_part, fill=color, font=arabic_font)
-    x_cursor += w
+    draw.text((x_cursor - w, y_text), bidi_part, fill=color, font=arabic_font)
+
+    x_cursor -= w
+    line_height = max(line_height, h)
+
+
 
 
     # LINE
@@ -170,38 +209,9 @@ async def send_ayah(user_id, message):
         total_ayahs = r['data'][0]['surah']['numberOfAyahs']
         import re
 
-TAJWEED_COLORS = {
-    "ghunnah": "#2ecc71",
-    "idgham": "#3498db",
-    "ikhfa": "#9b59b6",
-    "qalqalah": "#e74c3c",
-    "iqlab": "#f39c12",
-}
-
-def parse_tajweed_segments(text):
-    segments = []
-    pattern = r'<tajweed class="(.*?)">(.*?)</tajweed>'
-
-    pos = 0
-    for match in re.finditer(pattern, text):
-        start, end = match.span()
-
-        if start > pos:
-            segments.append(("normal", text[pos:start]))
-
-        rule = match.group(1)
-        content = match.group(2)
-        segments.append((rule, content))
-
-        pos = end
-
-    if pos < len(text):
-        segments.append(("normal", text[pos:]))
-
-    return segments
         
         # IMAGE
-        create_card_image(arabic, uzbek, surah_name, ayah)
+        create_card_image(arabic_html, uzbek, surah_name, ayah)
         await message.answer_photo(InputFile("card.png"))
 
         # AUDIO
