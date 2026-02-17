@@ -421,14 +421,52 @@ async def navigation(callback: types.CallbackQuery):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
+    # Сура ҳақида маълумот оламиз
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
+            r = await resp.json()
+
+    total_ayahs = r['data']['numberOfAyahs']
+
     if callback.data == "next":
-        update_user(user_id, "current_ayah", ayah + 1)
+
+        if ayah < total_ayahs:
+            update_user(user_id, "current_ayah", ayah + 1)
+        else:
+            # Кейинги сурага ўтиш
+            if surah < 114:
+                update_user(user_id, "current_surah", surah + 1)
+                update_user(user_id, "current_ayah", 1)
+            else:
+                await callback.answer("Охирги сура!", show_alert=True)
+                return
 
     elif callback.data == "prev":
-        update_user(user_id, "current_ayah", ayah - 1)
+
+        if ayah > 1:
+            update_user(user_id, "current_ayah", ayah - 1)
+        else:
+            # Олдинги сурага ўтиш
+            if surah > 1:
+                new_surah = surah - 1
+
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"https://api.alquran.cloud/v1/surah/{new_surah}") as resp:
+                        r = await resp.json()
+
+                last_ayah = r['data']['numberOfAyahs']
+
+                update_user(user_id, "current_surah", new_surah)
+                update_user(user_id, "current_ayah", last_ayah)
+            else:
+                await callback.answer("Биринчи сура!", show_alert=True)
+                return
 
     elif callback.data == "menu":
-        await callback.message.answer("📖 Surani tanlang:", reply_markup=surah_keyboard())
+        await callback.message.answer(
+            "📖 Surani tanlang:",
+            reply_markup=surah_keyboard()
+        )
         await callback.answer()
         return
 
