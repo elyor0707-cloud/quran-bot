@@ -298,65 +298,82 @@ async def send_ayah(user_id, message):
 # HANDLERS
 # ======================
 
-@dp.message_handler(commands=['start'])
-async def start_cmd(message: types.Message):
-    get_user(message.from_user.id)
-    await message.answer("📖 Surani tanlang:", reply_markup=surah_keyboard())
-
+@dp.callback_query_handler(lambda c: c.data == "menu")
+async def back_to_menu(callback: types.CallbackQuery):
+    await callback.message.answer(
+        "📖 Surani tanlang:",
+        reply_markup=surah_keyboard()
+    )
+    await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
 
-    surah_number = int(callback.data.split("_")[1])
+    parts = callback.data.split("_")
+    surah_number = int(parts[1])
+
+    # pagination offset
+    if len(parts) == 3:
+        offset = int(parts[2])
+    else:
+        offset = 0
 
     update_user(callback.from_user.id, "current_surah", surah_number)
 
-    # оятлар сонини оламиз
+    # Оятлар сонини оламиз
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
+        async with session.get(
+            f"https://api.alquran.cloud/v1/surah/{surah_number}"
+        ) as resp:
             r = await resp.json()
 
     total_ayahs = r['data']['numberOfAyahs']
 
+    start = offset + 1
+    end = min(offset + 50, total_ayahs)
+
     kb = InlineKeyboardMarkup(row_width=6)
 
-    for i in range(1, total_ayahs+1):
+    # ===== OYATLAR =====
+    for i in range(start, end + 1):
         kb.insert(
-            InlineKeyboardButton(str(i), callback_data=f"ayah_{i}")
+            InlineKeyboardButton(
+                str(i),
+                callback_data=f"ayah_{i}"
+            )
         )
 
-    await callback.message.answer("Оятни танланг:", reply_markup=kb)
+    # ===== PAGINATION =====
+    nav_buttons = []
 
-@dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
-async def select_ayah(callback: types.CallbackQuery):
+    if offset > 0:
+        nav_buttons.append(
+            InlineKeyboardButton(
+                "⬅ Oldingi 50",
+                callback_data=f"surah_{surah_number}_{max(0, offset-50)}"
+            )
+        )
 
-    ayah = int(callback.data.split("_")[1])
-    update_user(callback.from_user.id, "current_ayah", ayah)
+    if end < total_ayahs:
+        nav_buttons.append(
+            InlineKeyboardButton(
+                "➡ Keyingi 50",
+                callback_data=f"surah_{surah_number}_{offset+50}"
+            )
+        )
 
-    await send_ayah(callback.from_user.id, callback.message)
+    if nav_buttons:
+        kb.row(*nav_buttons)
 
+    kb.add(
+        InlineKeyboardButton("🏠 Bosh menu", callback_data="menu")
+    )
 
-@dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
-async def navigation(callback: types.CallbackQuery):
+    await callback.message.answer(
+        f"{surah_number}-sura | {start}-{end} оятлар",
+        reply_markup=kb
+    )
 
-    user_id = callback.from_user.id
-    user = get_user(user_id)
-
-    surah = user["current_surah"]
-    ayah = user["current_ayah"]
-
-    if callback.data == "next":
-        update_user(user_id, "current_ayah", ayah + 1)
-
-    elif callback.data == "prev":
-        update_user(user_id, "current_ayah", ayah - 1)
-
-    elif callback.data == "menu":
-        await callback.message.answer("📖 Surani tanlang:", reply_markup=surah_keyboard())
-        await callback.answer()
-        return
-
-    await send_ayah(user_id, callback.message)
     await callback.answer()
 
 
