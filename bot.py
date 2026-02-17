@@ -5,7 +5,6 @@ import requests
 from database import get_surahs, get_user, update_user
 from aiogram.types import InputFile
 from PIL import Image, ImageDraw, ImageFont
-from aiogram.types import InputFile
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
