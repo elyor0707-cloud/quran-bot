@@ -14,8 +14,8 @@ def get_surahs():
         {"number": 8, "name": "Anfal"},
         {"number": 9, "name": "Tawba"},
         {"number": 10, "name": "Yunus"},
-        # Ҳозирча 10 та қўйдик тест учун
     ]
+
 
 
 def get_user(user_id):
