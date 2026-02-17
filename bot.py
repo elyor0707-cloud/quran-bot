@@ -81,11 +81,23 @@ def surah_keyboard():
 # SEND AYAH
 # ======================
 
+import requests
+
 async def send_ayah(user_id, message):
 
-    await message.answer("ICHIGA KIRDI")
+    await message.answer("1️⃣ API BOSHLANDI")
+
+    try:
+        r = requests.get(
+            "https://api.alquran.cloud/v1/ayah/1:1/editions/quran-uthmani,uz.sodik",
+            timeout=5
+        )
+        await message.answer("2️⃣ API JAVOB KELDI")
+    except:
+        await message.answer("❌ API ISHLAMADI")
 
     return
+
 
 
 # ======================
