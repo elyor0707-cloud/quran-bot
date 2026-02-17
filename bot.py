@@ -1,6 +1,8 @@
 import os
 import asyncio
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from database import get_surahs, get_user, update_user, get_ayah
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
