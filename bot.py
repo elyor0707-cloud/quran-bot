@@ -170,16 +170,43 @@ async def send_ayah(user_id, message):
     kb.add(InlineKeyboardButton("🏠 Бош меню", callback_data="menu"))
 
     await message.answer("👇 Навигация:", reply_markup=kb)
+    async def send_ayah(user_id, message):
 
+    user = get_user(user_id)
+    surah = user["current_surah"]
+    ayah = user["current_ayah"]
 
+    async with aiohttp.ClientSession() as session:
 
-    text = f"""
-📖 {surah_name} сураси
-Оят: {ayah}
+        async with session.get(
+            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik"
+        ) as resp:
 
-{uzbek}
-"""
+            r = await resp.json()
 
+        arabic = r['data'][0]['text']
+        uzbek = r['data'][1]['text']
+        surah_name = r['data'][0]['surah']['englishName']
+        total_ayahs = r['data'][0]['surah']['numberOfAyahs']
+
+        # IMAGE
+        create_card_image(arabic, uzbek, surah_name, ayah)
+        await message.answer_photo(InputFile("card.png"))
+
+        # AUDIO
+        sura = str(surah).zfill(3)
+        ayah_num = str(ayah).zfill(3)
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+        async with session.get(audio_url) as audio_resp:
+            if audio_resp.status == 200:
+                filename = f"{sura}{ayah_num}.mp3"
+                with open(filename, "wb") as f:
+                    f.write(await audio_resp.read())
+
+                await message.answer_audio(InputFile(filename))
+
+    # NAV BUTTONS
     kb = InlineKeyboardMarkup()
 
     if ayah > 1:
@@ -190,14 +217,11 @@ async def send_ayah(user_id, message):
 
     kb.add(InlineKeyboardButton("🏠 Бош меню", callback_data="menu"))
 
-   
-    # 🔊 AUDIO
-    sura = str(surah).zfill(3)
-    ayah_num = str(ayah).zfill(3)
-    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+    await message.answer("👇 Навигация:", reply_markup=kb)
 
-    try:
-        audio_file = requests.get(audio_url, timeout=10)
+
+
+
         if audio_file.status_code == 200:
             filename = f"{sura}{ayah_num}.mp3"
             with open(filename, "wb") as f:
