@@ -14,17 +14,26 @@ dp = Dispatcher(bot)
 # ======================
 
 def surah_keyboard():
-    kb = InlineKeyboardMarkup(row_width=4)
+    kb = InlineKeyboardMarkup(row_width=3)
     surahs = get_surahs()
 
+    row = []
     for surah in surahs:
-        kb.insert(
-            InlineKeyboardButton(
-                str(surah["number"]),
-                callback_data=f"surah_{surah['number']}"
-            )
+        button = InlineKeyboardButton(
+            f"{surah['number']}. Сура {surah['number']}",
+            callback_data=f"surah_{surah['number']}"
         )
+        row.append(button)
+
+        if len(row) == 3:
+            kb.row(*row)
+            row = []
+
+    if row:
+        kb.row(*row)
+
     return kb
+
 
 # ======================
 # START
