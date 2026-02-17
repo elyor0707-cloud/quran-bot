@@ -12,7 +12,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
 # ======================
-# IMAGE GENERATION
+# CARD IMAGE
 # ======================
 
 def create_card_image(arabic, uzbek, surah_name, ayah):
@@ -27,7 +27,7 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 80)
+    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 90)
     uzbek_font = ImageFont.truetype("Amiri-Regular.ttf", 40)
     title_font = ImageFont.truetype("Amiri-Regular.ttf", 45)
 
@@ -36,22 +36,22 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
     wrapped_ar = textwrap.fill(arabic, width=25)
-    y_text = 200
+    y = 200
 
     for line in wrapped_ar.split("\n"):
         w, h = draw.textsize(line, font=arabic_font)
-        draw.text(((width - w)/2, y_text), line, fill="white", font=arabic_font)
-        y_text += h + 25
+        draw.text(((width - w)/2, y), line, fill="white", font=arabic_font)
+        y += h + 25
 
-    draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
+    draw.line((200, y+20, width-200, y+20), fill="#d4af37", width=3)
 
     wrapped_uz = textwrap.fill(uzbek, width=60)
-    y_text += 70
+    y += 70
 
     for line in wrapped_uz.split("\n"):
         w, h = draw.textsize(line, font=uzbek_font)
-        draw.text(((width - w)/2, y_text), line, fill="white", font=uzbek_font)
-        y_text += h + 15
+        draw.text(((width - w)/2, y), line, fill="white", font=uzbek_font)
+        y += h + 15
 
     footer = f"{surah_name} сураси, {ayah}-оят"
     fw, fh = draw.textsize(footer, font=title_font)
@@ -59,9 +59,8 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
 
     img.save("card.png")
 
-
 # ======================
-# SURAH KEYBOARD
+# KEYBOARD
 # ======================
 
 def surah_keyboard():
@@ -75,8 +74,8 @@ def surah_keyboard():
                 callback_data=f"surah_{surah['number']}"
             )
         )
-    return kb
 
+    return kb
 
 # ======================
 # SEND AYAH
@@ -93,7 +92,6 @@ async def send_ayah(user_id, message):
         async with session.get(
             f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik"
         ) as resp:
-
             r = await resp.json()
 
         arabic = r['data'][0]['text']
@@ -113,7 +111,6 @@ async def send_ayah(user_id, message):
                 filename = f"{sura}{ayah_num}.mp3"
                 with open(filename, "wb") as f:
                     f.write(await audio_resp.read())
-
                 await message.answer_audio(InputFile(filename))
 
     kb = InlineKeyboardMarkup()
@@ -128,9 +125,8 @@ async def send_ayah(user_id, message):
 
     await message.answer("👇 Навигация:", reply_markup=kb)
 
-
 # ======================
-# START
+# HANDLERS
 # ======================
 
 @dp.message_handler(commands=['start'])
@@ -138,26 +134,15 @@ async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
     await message.answer("📖 Сурани танланг:", reply_markup=surah_keyboard())
 
-
-# ======================
-# SURAH SELECT
-# ======================
-
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
 
     surah_number = int(callback.data.split("_")[1])
-
     update_user(callback.from_user.id, "current_surah", surah_number)
     update_user(callback.from_user.id, "current_ayah", 1)
 
     await send_ayah(callback.from_user.id, callback.message)
     await callback.answer()
-
-
-# ======================
-# NAVIGATION
-# ======================
 
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
@@ -175,16 +160,14 @@ async def navigation(callback: types.CallbackQuery):
         update_user(user_id, "current_ayah", ayah - 1)
 
     elif callback.data == "menu":
-        await callback.message.answer(
-            "📖 Сурани танланг:",
-            reply_markup=surah_keyboard()
-        )
+        await callback.message.answer("📖 Сурани танланг:", reply_markup=surah_keyboard())
         await callback.answer()
         return
 
     await send_ayah(user_id, callback.message)
     await callback.answer()
 
+# ======================
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
