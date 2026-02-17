@@ -68,14 +68,14 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
     draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
 
     wrapped_uz = textwrap.fill(uzbek, width=60)
-    y_text += 70
 
     for line in wrapped_uz.split("\n"):
-        bbox = draw.textbbox((0, 0), line, font=uzbek_font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
-        draw.text(((width - w)/2, y_text), line, fill="white", font=uzbek_font)
-        y_text += h + 15
+    bbox = draw.textbbox((0, 0), line, font=uzbek_font)
+    w = bbox[2] - bbox[0]
+    h = bbox[3] - bbox[1]
+    draw.text(((width - w)/2, y_text), line, fill="white", font=uzbek_font)
+    y_text += h + 15
+
 
     footer = f"{surah_name} surasi, {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
