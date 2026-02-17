@@ -143,7 +143,7 @@ async def select_surah(callback: types.CallbackQuery):
 
     await send_ayah(callback.from_user.id, callback.message)
     await callback.answer()@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
-async def select_surah(callback: types.CallbackQuery):
+    async def select_surah(callback: types.CallbackQuery):
 
     await callback.answer()   # ⚡ Биринчи шу
 
