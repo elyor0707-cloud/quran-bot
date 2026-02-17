@@ -1,19 +1,14 @@
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import os
-
-from database import init_db, get_user, update_user
-from quran_api import get_surahs, get_ayah
-from aiogram import Bot
 import asyncio
+from aiogram import Bot, Dispatcher, executor, types
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 async def remove_webhook():
     bot = Bot(token=BOT_TOKEN)
     await bot.delete_webhook(drop_pending_updates=True)
 
 asyncio.get_event_loop().run_until_complete(remove_webhook())
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
