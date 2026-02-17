@@ -7,3 +7,4 @@ openai
 gTTS
 arabic-reshaper
 python-bidi
+aiohttp
