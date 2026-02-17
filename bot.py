@@ -13,8 +13,6 @@ asyncio.get_event_loop().run_until_complete(remove_webhook())
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
-init_db()
-
 # ======================
 # SURAH LIST
 # ======================
