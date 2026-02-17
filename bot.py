@@ -38,13 +38,11 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
-    uzbek_font_path = os.path.join(os.getcwd(), "DejaVuSans.ttf")
+    font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
 
-    arabic_font = ImageFont.truetype(arabic_font_path, 80)
-    uzbek_font = ImageFont.truetype(uzbek_font_path, 40)
-    title_font = ImageFont.truetype(uzbek_font_path, 45)
-
+    arabic_font = ImageFont.truetype(font_path, 80)
+    uzbek_font = ImageFont.truetype(font_path, 40)
+    title_font = ImageFont.truetype(font_path, 45)
 
     # Title
     title = "Qur’oniy oyat"
@@ -68,14 +66,14 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
     draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
 
     wrapped_uz = textwrap.fill(uzbek, width=60)
+    y_text += 70
 
     for line in wrapped_uz.split("\n"):
-    bbox = draw.textbbox((0, 0), line, font=uzbek_font)
-    w = bbox[2] - bbox[0]
-    h = bbox[3] - bbox[1]
-    draw.text(((width - w)/2, y_text), line, fill="white", font=uzbek_font)
-    y_text += h + 15
-
+        bbox = draw.textbbox((0, 0), line, font=uzbek_font)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        draw.text(((width - w)/2, y_text), line, fill="white", font=uzbek_font)
+        y_text += h + 15
 
     footer = f"{surah_name} surasi, {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
@@ -116,33 +114,21 @@ async def send_ayah(user_id, message):
 
     async with aiohttp.ClientSession() as session:
 
-        # ===== ARABIC =====
         async with session.get(
-            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/quran-uthmani"
+            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik"
         ) as resp:
-            arabic_data = await resp.json()
+            r = await resp.json()
 
-        arabic = arabic_data['data']['text']
-        surah_name = arabic_data['data']['surah']['englishName']
-        total_ayahs = arabic_data['data']['surah']['numberOfAyahs']
+        arabic = r['data'][0]['text']
+        uzbek = r['data'][1]['text']
+        surah_name = r['data'][0]['surah']['englishName']
+        total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-        # ===== UZBEK (Shayx Muhammad Sodiq) =====
-        try:
-            async with session.get(
-                f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/uz.sodik"
-            ) as resp:
-                uzbek_data = await resp.json()
-
-            uzbek = uzbek_data['data']['text']
-
-        except:
-            uzbek = "⚠️ Tarjima topilmadi."
-
-        # ===== IMAGE =====
+        # IMAGE
         create_card_image(arabic, uzbek, surah_name, ayah)
         await message.answer_photo(InputFile("card.png"))
 
-        # ===== AUDIO =====
+        # AUDIO
         sura = str(surah).zfill(3)
         ayah_num = str(ayah).zfill(3)
         audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
@@ -158,7 +144,7 @@ async def send_ayah(user_id, message):
             else:
                 await message.answer("🔊 Audio topilmadi.")
 
-    # ===== NAVIGATION =====
+    # NAVIGATION
     kb = InlineKeyboardMarkup()
 
     if ayah > 1:
@@ -170,6 +156,7 @@ async def send_ayah(user_id, message):
     kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
 
     await message.answer("👇 Navigatsiya:", reply_markup=kb)
+
 
 # ======================
 # HANDLERS
