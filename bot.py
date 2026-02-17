@@ -25,7 +25,7 @@ dp = Dispatcher(bot)
 # IMAGE CARD GENERATOR
 # ======================
 
-def draw_multiline_text(draw, text, font, max_width, start_y, width):
+def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacing=10):
 
     words = text.split()
     lines = []
@@ -52,7 +52,7 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width):
         h = bbox[3] - bbox[1]
 
         draw.text(((width - w)/2, y), line, fill="white", font=font)
-        y += h + 9
+        y += h + line_spacing
 
     return y
 
@@ -72,47 +72,47 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
     arabic_font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
     uzbek_font_path = os.path.join(os.getcwd(), "DejaVuSans.ttf")
 
-    arabic_font = ImageFont.truetype(arabic_font_path, 80)
-    uzbek_font = ImageFont.truetype(uzbek_font_path, 34)
+    arabic_font = ImageFont.truetype(arabic_font_path, 75)
+    uzbek_font = ImageFont.truetype(uzbek_font_path, 32)
     title_font = ImageFont.truetype(uzbek_font_path, 45)
 
-    # Title
+    # TITLE
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
     tw = bbox[2] - bbox[0]
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
-    # Arabic reshaping
-    reshaped_text = arabic_reshaper.reshape(arabic)
-    bidi_text = get_display(reshaped_text)
+    # ===== ARABIC =====
+    reshaped = arabic_reshaper.reshape(arabic)
+    bidi_text = get_display(reshaped)
 
-    y_text = 160
+    y_text = 150
     max_ar_width = width - 300
 
-    y_text = draw_multiline_text(draw, bidi_text, arabic_font, max_ar_width, y_text, width)
+    y_text = draw_multiline_text(
+        draw, bidi_text, arabic_font, max_ar_width, y_text, width, line_spacing=20
+    )
 
-        bbox = draw.textbbox((0, 0), line, font=arabic_font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
-        draw.text(((width - w)/2, y_text), line, fill="white", font=arabic_font)
-        y_text += h + 25
-
+    # LINE
     draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
 
-    # ====== 🔥 YANGI RAMKA HIMOYASI ======
-    y_text += 70
+    # ===== UZBEK =====
+    y_text += 60
     max_text_width = width - 300
 
-    y_text = draw_multiline_text(draw, uzbek, uzbek_font, max_text_width, y_text, width)
-    # =====================================
+    y_text = draw_multiline_text(
+        draw, uzbek, uzbek_font, max_text_width, y_text, width, line_spacing=8
+    )
 
+    # FOOTER
     footer = f"{surah_name} surasi, {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
     fw = bbox[2] - bbox[0]
 
-    draw.text(((width - fw)/2, height-100), footer, fill="#d4af37", font=title_font)
+    draw.text(((width - fw)/2, height-90), footer, fill="#d4af37", font=title_font)
 
     img.save("card.png")
+
 
 # ======================
 # SURAH KEYBOARD
