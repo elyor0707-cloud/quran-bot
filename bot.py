@@ -2,6 +2,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputFile
 import os
 import aiohttp
+import asyncio
 from database import get_surahs, get_user, update_user
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
@@ -12,7 +13,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
 # ======================
-# CARD IMAGE
+# CARD IMAGE (THREAD SAFE)
 # ======================
 
 def create_card_image(arabic, uzbek, surah_name, ayah):
@@ -59,6 +60,7 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
 
     img.save("card.png")
 
+
 # ======================
 # KEYBOARD
 # ======================
@@ -77,27 +79,66 @@ def surah_keyboard():
 
     return kb
 
-# ======================
-# SEND AYAH
-# ======================
 
-import requests
+# ======================
+# SEND AYAH (NON BLOCKING)
+# ======================
 
 async def send_ayah(user_id, message):
 
-    await message.answer("1️⃣ API BOSHLANDI")
+    user = get_user(user_id)
+    surah = user["current_surah"]
+    ayah = user["current_ayah"]
 
-    try:
-        r = requests.get(
-            "https://api.alquran.cloud/v1/ayah/1:1/editions/quran-uthmani,uz.sodik",
-            timeout=5
+    async with aiohttp.ClientSession() as session:
+
+        async with session.get(
+            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik"
+        ) as resp:
+
+            r = await resp.json()
+
+        arabic = r['data'][0]['text']
+        uzbek = r['data'][1]['text']
+        surah_name = r['data'][0]['surah']['englishName']
+        total_ayahs = r['data'][0]['surah']['numberOfAyahs']
+
+        # IMAGE THREAD
+        await asyncio.to_thread(
+            create_card_image,
+            arabic,
+            uzbek,
+            surah_name,
+            ayah
         )
-        await message.answer("2️⃣ API JAVOB KELDI")
-    except:
-        await message.answer("❌ API ISHLAMADI")
 
-    return
+        await message.answer_photo(InputFile("card.png"))
 
+        # AUDIO
+        sura = str(surah).zfill(3)
+        ayah_num = str(ayah).zfill(3)
+        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+        async with session.get(audio_url) as audio_resp:
+            if audio_resp.status == 200:
+                filename = f"{sura}{ayah_num}.mp3"
+                with open(filename, "wb") as f:
+                    f.write(await audio_resp.read())
+
+                await message.answer_audio(InputFile(filename))
+
+    # NAV BUTTONS
+    kb = InlineKeyboardMarkup()
+
+    if ayah > 1:
+        kb.insert(InlineKeyboardButton("⬅ Олдинги", callback_data="prev"))
+
+    if ayah < total_ayahs:
+        kb.insert(InlineKeyboardButton("➡ Кейинги", callback_data="next"))
+
+    kb.add(InlineKeyboardButton("🏠 Бош меню", callback_data="menu"))
+
+    await message.answer("👇 Навигация:", reply_markup=kb)
 
 
 # ======================
@@ -109,10 +150,11 @@ async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
     await message.answer("📖 Сурани танланг:", reply_markup=surah_keyboard())
 
+
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
 
-    await callback.answer("⏳ Юкланмоқда...")   # ⚡ Биринчи шу
+    await callback.answer("⏳ Юкланмоқда...")
 
     surah_number = int(callback.data.split("_")[1])
 
@@ -122,11 +164,10 @@ async def select_surah(callback: types.CallbackQuery):
     await send_ayah(callback.from_user.id, callback.message)
 
 
-
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
 
-    await callback.answer()   # ⚡ Биринчи жавоб
+    await callback.answer()
 
     user_id = callback.from_user.id
     user = get_user(user_id)
