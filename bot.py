@@ -25,10 +25,6 @@ dp = Dispatcher(bot)
 # IMAGE CARD GENERATOR
 # ======================
 
-# ======================
-# IMAGE CARD GENERATOR
-# ======================
-
 def draw_multiline_text(draw, text, font, max_width, start_y, width):
 
     words = text.split()
@@ -77,7 +73,7 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
     uzbek_font_path = os.path.join(os.getcwd(), "DejaVuSans.ttf")
 
     arabic_font = ImageFont.truetype(arabic_font_path, 80)
-    uzbek_font = ImageFont.truetype(uzbek_font_path, 40)
+    uzbek_font = ImageFont.truetype(uzbek_font_path, 34)
     title_font = ImageFont.truetype(uzbek_font_path, 45)
 
     # Title
@@ -91,7 +87,7 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
     bidi_text = get_display(reshaped_text)
 
     wrapped_ar = textwrap.fill(bidi_text, width=25)
-    y_text = 200
+    y_text = 160
 
     for line in wrapped_ar.split("\n"):
         bbox = draw.textbbox((0, 0), line, font=arabic_font)
