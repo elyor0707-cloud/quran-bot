@@ -153,7 +153,38 @@ async def send_ayah(user_id, message):
         uzbek = r['data'][1]['text']
         surah_name = r['data'][0]['surah']['englishName']
         total_ayahs = r['data'][0]['surah']['numberOfAyahs']
+        import re
 
+TAJWEED_COLORS = {
+    "ghunnah": "#2ecc71",
+    "idgham": "#3498db",
+    "ikhfa": "#9b59b6",
+    "qalqalah": "#e74c3c",
+    "iqlab": "#f39c12",
+}
+
+def parse_tajweed_segments(text):
+    segments = []
+    pattern = r'<tajweed class="(.*?)">(.*?)</tajweed>'
+
+    pos = 0
+    for match in re.finditer(pattern, text):
+        start, end = match.span()
+
+        if start > pos:
+            segments.append(("normal", text[pos:start]))
+
+        rule = match.group(1)
+        content = match.group(2)
+        segments.append((rule, content))
+
+        pos = end
+
+    if pos < len(text):
+        segments.append(("normal", text[pos:]))
+
+    return segments
+        
         # IMAGE
         create_card_image(arabic, uzbek, surah_name, ayah)
         await message.answer_photo(InputFile("card.png"))
