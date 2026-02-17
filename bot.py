@@ -222,18 +222,41 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
 # SURAH KEYBOARD
 # ======================
 
-def surah_keyboard():
+def surah_keyboard(page=1):
     kb = InlineKeyboardMarkup(row_width=4)
-    surahs = get_surahs()
 
-    for surah in surahs:
+    surahs = get_surahs()
+    per_page = 20
+
+    total_pages = (len(surahs) + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+
+    for surah in surahs[start:end]:
         kb.insert(
             InlineKeyboardButton(
                 f"{surah['number']}. {surah['name']}",
                 callback_data=f"surah_{surah['number']}"
             )
         )
+
+    nav = []
+
+    if page > 1:
+        nav.append(
+            InlineKeyboardButton("⬅ Oldingi", callback_data=f"surahpage_{page-1}")
+        )
+
+    if page < total_pages:
+        nav.append(
+            InlineKeyboardButton("➡ Keyingi", callback_data=f"surahpage_{page+1}")
+        )
+
+    if nav:
+        kb.row(*nav)
+
     return kb
+
 
 
 # ======================
@@ -302,30 +325,31 @@ async def send_ayah(user_id, message):
 async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
     await message.answer("📖 Surani tanlang:", reply_markup=surah_keyboard())
+    
+@dp.callback_query_handler(lambda c: c.data.startswith("surahpage_"))
+async def surah_page(callback: types.CallbackQuery):
+    page = int(callback.data.split("_")[1])
+    await callback.message.edit_text(
+        "📖 Surani tanlang:",
+        reply_markup=surah_keyboard(page)
+    )
+    await callback.answer()
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
 
     surah_number = int(callback.data.split("_")[1])
-
     update_user(callback.from_user.id, "current_surah", surah_number)
 
-    # оятлар сонини оламиз
     async with aiohttp.ClientSession() as session:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
             r = await resp.json()
 
     total_ayahs = r['data']['numberOfAyahs']
 
-    kb = InlineKeyboardMarkup(row_width=6)
+    await show_ayah_page(callback, surah_number, 1, total_ayahs)
 
-    for i in range(1, total_ayahs+1):
-        kb.insert(
-            InlineKeyboardButton(str(i), callback_data=f"ayah_{i}")
-        )
-
-    await callback.message.answer("Оятни танланг:", reply_markup=kb)
 
 @dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
 async def select_ayah(callback: types.CallbackQuery):
