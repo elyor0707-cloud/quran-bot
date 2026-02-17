@@ -42,43 +42,46 @@ import textwrap
 
 def create_ayah_image(arabic_text, filename="ayah.png"):
     width = 1600
-    height = 900
-    margin = 100
+    height = 1000
+    margin = 150
+    line_spacing = 60   # 🔥 qator oralig‘i oshdi
 
-    img = Image.new("RGB", (width, height), "white")
+    # 🔹 Yumshoq fon
+    img = Image.new("RGB", (width, height), "#f5f1e6")
     draw = ImageDraw.Draw(img)
 
     font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
-    font = ImageFont.truetype(font_path, 150)
+    font = ImageFont.truetype(font_path, 170)
 
-    # 🔥 Matnni qatorlarga bo‘lamiz
-    wrapped_text = textwrap.fill(arabic_text, width=25)
+    # 🔹 Qatorlarga bo‘lish
+    wrapped_text = textwrap.fill(arabic_text, width=22)
     lines = wrapped_text.split("\n")
 
+    # 🔹 Umumiy balandlikni hisoblash
     total_height = 0
-    line_heights = []
+    line_sizes = []
 
     for line in lines:
         bbox = draw.textbbox((0, 0), line, font=font)
+        w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
-        total_height += h + 20
-        line_heights.append(h)
+        total_height += h + line_spacing
+        line_sizes.append((w, h))
+
+    total_height -= line_spacing
 
     y = (height - total_height) / 2
 
     for i, line in enumerate(lines):
-        bbox = draw.textbbox((0, 0), line, font=font)
-        w = bbox[2] - bbox[0]
+        w, h = line_sizes[i]
 
-        x = width - w - margin   # 🔥 RTL joylashuv
-        draw.text((x, y), line, fill="black", font=font)
+        # 🔥 HAQIQIY markazlashtirish
+        x = (width - w) / 2
 
-        y += line_heights[i] + 20
+        draw.text((x, y), line, fill="#222222", font=font)
+        y += h + line_spacing
 
     img.save(filename)
-
-
-
 
 async def send_ayah(user_id, message):
 
