@@ -319,6 +319,14 @@ async def select_surah(callback: types.CallbackQuery):
         offset = 0
 
     update_user(callback.from_user.id, "current_surah", surah_number)
+@dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
+async def select_ayah(callback: types.CallbackQuery):
+
+    ayah = int(callback.data.split("_")[1])
+    update_user(callback.from_user.id, "current_ayah", ayah)
+
+    await send_ayah(callback.from_user.id, callback.message)
+    await callback.answer()
 
     # Оятлар сонини оламиз
     async with aiohttp.ClientSession() as session:
