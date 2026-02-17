@@ -4,7 +4,6 @@ import os
 from database import get_surahs, get_user, update_user
 from aiogram.types import InputFile
 from PIL import Image, ImageDraw, ImageFont
-from PIL import Image, ImageDraw, ImageFont
 import textwrap
 
 def create_card_image(arabic, uzbek, surah_name, ayah):
