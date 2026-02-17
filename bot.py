@@ -1,7 +1,5 @@
 import os
 import aiohttp
-import asyncio
-import textwrap
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputFile
 from database import get_surahs, get_user, update_user
@@ -10,96 +8,31 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 import re
 
-# ======================
-# BOT INIT
-# ======================
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN topilmadi!")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
-TAJWEED_COLORS = {
-    "ghunnah": "#2ecc71",
-    "idgham": "#3498db",
-    "ikhfa": "#9b59b6",
-    "qalqalah": "#e74c3c",
-    "iqlab": "#f39c12",
-}
+# =======================
+# TAJWEED CLEAN
+# =======================
 
 def clean_tajweed_text(text):
-    # Remove internal markers like [h:1], [n], etc.
+    text = re.sub(r'<.*?>', '', text)
     text = re.sub(r'\[.*?\]', '', text)
     return text
 
+# =======================
+# IMAGE GENERATOR
+# =======================
 
-def parse_tajweed_segments(text):
-    text = clean_tajweed_text(text)
-
-    segments = []
-    pattern = r'<tajweed class="(.*?)">(.*?)</tajweed>'
-
-    pos = 0
-    for match in re.finditer(pattern, text):
-        start, end = match.span()
-
-        if start > pos:
-            segments.append(("normal", text[pos:start]))
-
-        rule = match.group(1)
-        content = match.group(2)
-        segments.append((rule, content))
-
-        pos = end
-
-    if pos < len(text):
-        segments.append(("normal", text[pos:]))
-
-    return segments
-
-# ======================
-# IMAGE CARD GENERATOR
-# ======================
-
-def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacing=10):
-
-    words = text.split()
-    lines = []
-    current_line = ""
-
-    for word in words:
-        test_line = current_line + " " + word if current_line else word
-        bbox = draw.textbbox((0, 0), test_line, font=font)
-        line_width = bbox[2] - bbox[0]
-
-        if line_width <= max_width:
-            current_line = test_line
-        else:
-            lines.append(current_line)
-            current_line = word
-
-    if current_line:
-        lines.append(current_line)
-
-    y = start_y
-    for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
-
-        draw.text(((width - w)/2, y), line, fill="white", font=font)
-        y += h + line_spacing
-
-    return y
-    
 def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
     width = 1200
     height = 900
-    side_margin = 110
+    margin = 110
 
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
@@ -108,17 +41,17 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 72)
+    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 70)
     uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 34)
     title_font = ImageFont.truetype("DejaVuSans.ttf", 45)
 
-    # ================= TITLE =================
+    # TITLE
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
     tw = bbox[2] - bbox[0]
     draw.text(((width - tw)//2, 40), title, fill="#d4af37", font=title_font)
 
-    # ================= FOOTER =================
+    # FOOTER
     footer = f"{surah_name} surasi, {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
     fw = bbox[2] - bbox[0]
@@ -126,119 +59,99 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     footer_y = height - fh - 40
     draw.text(((width - fw)//2, footer_y), footer, fill="#d4af37", font=title_font)
 
-    
-        # ================= ARABIC AUTO FIT =================
-    
-       # ================= ARABIC MULTI-LINE RTL =================
-    segments = parse_tajweed_segments(arabic_html)
+    # ================= ARABIC =================
 
-    max_width = width - side_margin * 2
-    y_text = 120
+    arabic_text = clean_tajweed_text(arabic_html)
+    reshaped = arabic_reshaper.reshape(arabic_text)
+    bidi_text = get_display(reshaped)
+
+    max_width = width - margin*2
+    words = bidi_text.split(" ")
 
     lines = []
-    current_line = []
-    current_width = 0
+    line = ""
+    for word in words:
+        test = line + " " + word if line else word
+        bbox = draw.textbbox((0,0), test, font=arabic_font)
+        w = bbox[2] - bbox[0]
+        if w <= max_width:
+            line = test
+        else:
+            lines.append(line)
+            line = word
+    if line:
+        lines.append(line)
 
-    # --- SATRGA AJRATISH ---
-    for rule, part in segments:
-
-        reshaped = arabic_reshaper.reshape(part)
-        bidi_text = get_display(reshaped)
-
-        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+    y = 130
+    for ln in lines:
+        bbox = draw.textbbox((0,0), ln, font=arabic_font)
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
+        draw.text(((width - w)//2, y), ln, fill="white", font=arabic_font)
+        y += h + 20
 
-        # Агар ҳозирги сатрга сиғмаса → янги сатр
-        if current_width + w > max_width:
-            lines.append(current_line)
-            current_line = []
-            current_width = 0
-
-        current_line.append((rule, bidi_text, w, h))
-        current_width += w
-
-    if current_line:
-        lines.append(current_line)
-
-    # --- CHIZISH (RTL) ---
-    for line in lines:
-
-        total_line_width = sum(part[2] for part in line)
-        x_cursor = (width + total_line_width) // 2  # марказлашган RTL
-        max_h = 0
-
-        for rule, text_part, w, h in line:
-            color = TAJWEED_COLORS.get(rule, "white")
-            draw.text((x_cursor - w, y_text), text_part, fill=color, font=arabic_font)
-            x_cursor -= w
-            max_h = max(max_h, h)
-
-        y_text += max_h + 20
-
-
-    # ================= SEPARATOR =================
-    line_y = y_text + 10
-    draw.line((side_margin, line_y, width - side_margin, line_y), fill="#d4af37", width=3)
+    # SEPARATOR
+    line_y = y + 10
+    draw.line((margin, line_y, width - margin, line_y), fill="#d4af37", width=3)
 
     # ================= TRANSLATION =================
-    y_text = line_y + 30
-    max_text_width = width - side_margin * 2
+
+    y = line_y + 30
     limit_bottom = footer_y - 20
+    max_width = width - margin*2
 
     words = uzbek.split()
     line = ""
 
     for word in words:
-        test_line = line + " " + word if line else word
-        bbox = draw.textbbox((0, 0), test_line, font=uzbek_font)
+        test = line + " " + word if line else word
+        bbox = draw.textbbox((0,0), test, font=uzbek_font)
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
 
-        if w <= max_text_width:
-            line = test_line
+        if w <= max_width:
+            line = test
         else:
-            if y_text + h > limit_bottom:
+            if y + h > limit_bottom:
                 break
-
-            bbox = draw.textbbox((0, 0), line, font=uzbek_font)
+            bbox = draw.textbbox((0,0), line, font=uzbek_font)
             lw = bbox[2] - bbox[0]
-            draw.text(((width - lw)//2, y_text), line, fill="white", font=uzbek_font)
-
-            y_text += h + 8
+            draw.text(((width - lw)//2, y), line, fill="white", font=uzbek_font)
+            y += h + 8
             line = word
 
     if line:
-        bbox = draw.textbbox((0, 0), line, font=uzbek_font)
+        bbox = draw.textbbox((0,0), line, font=uzbek_font)
         lw = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
-        if y_text + h <= limit_bottom:
-            draw.text(((width - lw)//2, y_text), line, fill="white", font=uzbek_font)
+        if y + h <= limit_bottom:
+            draw.text(((width - lw)//2, y), line, fill="white", font=uzbek_font)
 
     img.save("card.png")
 
+# =======================
+# KEYBOARD
+# =======================
 
-# ======================
-# SURAH KEYBOARD
-# ======================
+def main_menu():
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(InlineKeyboardButton("📖 Surani tanlang", callback_data="surah_menu"))
+    kb.add(InlineKeyboardButton("📊 Statistika", callback_data="stat"))
+    return kb
 
 def surah_keyboard():
     kb = InlineKeyboardMarkup(row_width=4)
     surahs = get_surahs()
-
-    for surah in surahs:
-        kb.insert(
-            InlineKeyboardButton(
-                f"{surah['number']}. {surah['name']}",
-                callback_data=f"surah_{surah['number']}"
-            )
-        )
+    for s in surahs:
+        kb.insert(InlineKeyboardButton(
+            f"{s['number']}. {s['name']}",
+            callback_data=f"surah_{s['number']}"
+        ))
     return kb
 
-
-# ======================
+# =======================
 # SEND AYAH
-# ======================
+# =======================
 
 async def send_ayah(user_id, message):
 
@@ -247,122 +160,62 @@ async def send_ayah(user_id, message):
     ayah = user["current_ayah"]
 
     async with aiohttp.ClientSession() as session:
-
         async with session.get(
-            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
+            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik"
         ) as resp:
             r = await resp.json()
 
-        arabic_html = r['data'][0]['text']
-        uzbek = r['data'][1]['text']
-        surah_name = r['data'][0]['surah']['englishName']
-        total_ayahs = r['data'][0]['surah']['numberOfAyahs']
-        import re
+    arabic_html = r['data'][0]['text']
+    uzbek = r['data'][1]['text']
+    surah_name = r['data'][0]['surah']['englishName']
 
-        
-        # IMAGE
-        create_card_image(arabic_html, uzbek, surah_name, ayah)
-        await message.answer_photo(InputFile("card.png"))
+    update_user(user_id, "last_surah", surah)
+    update_user(user_id, "last_ayah", ayah)
 
-        # AUDIO
-        sura = str(surah).zfill(3)
-        ayah_num = str(ayah).zfill(3)
-        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+    create_card_image(arabic_html, uzbek, surah_name, ayah)
+    await message.answer_photo(InputFile("card.png"))
 
-        async with session.get(audio_url) as audio_resp:
-            if audio_resp.status == 200:
-                filename = f"{sura}{ayah_num}.mp3"
-                with open(filename, "wb") as f:
-                    f.write(await audio_resp.read())
-
-                await message.answer_audio(InputFile(filename))
-                os.remove(filename)
-            else:
-                await message.answer("🔊 Audio topilmadi.")
-
-    # NAVIGATION
-    kb = InlineKeyboardMarkup()
-
-    if ayah > 1:
-        kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
-
-    if ayah < total_ayahs:
-        kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
-
-    kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
-
-    await message.answer("👇 Navigatsiya:", reply_markup=kb)
-
-
-# ======================
+# =======================
 # HANDLERS
-# ======================
+# =======================
 
 @dp.message_handler(commands=['start'])
 async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
-    await message.answer("📖 Surani tanlang:", reply_markup=surah_keyboard())
+    await message.answer("Асосий меню:", reply_markup=main_menu())
 
+@dp.callback_query_handler(lambda c: c.data == "surah_menu")
+async def open_surah_menu(callback: types.CallbackQuery):
+    await callback.message.answer("Сурани танланг:", reply_markup=surah_keyboard())
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
-
     surah_number = int(callback.data.split("_")[1])
-
     update_user(callback.from_user.id, "current_surah", surah_number)
-
-    # оятлар сонини оламиз
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
-            r = await resp.json()
-
-    total_ayahs = r['data']['numberOfAyahs']
-
-    kb = InlineKeyboardMarkup(row_width=6)
-
-    for i in range(1, total_ayahs+1):
-        kb.insert(
-            InlineKeyboardButton(str(i), callback_data=f"ayah_{i}")
-        )
-
-    await callback.message.answer("Оятни танланг:", reply_markup=kb)
-
-@dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
-async def select_ayah(callback: types.CallbackQuery):
-
-    ayah = int(callback.data.split("_")[1])
-    update_user(callback.from_user.id, "current_ayah", ayah)
-
+    update_user(callback.from_user.id, "current_ayah", 1)
     await send_ayah(callback.from_user.id, callback.message)
 
+@dp.callback_query_handler(lambda c: c.data == "stat")
+async def show_stat(callback: types.CallbackQuery):
+    user = get_user(callback.from_user.id)
+    if user.get("last_surah"):
+        await callback.message.answer(
+            f"Oxirgi o‘qilgan:\nSura: {user['last_surah']}\nOyat: {user['last_ayah']}",
+            reply_markup=InlineKeyboardMarkup().add(
+                InlineKeyboardButton("▶ Davom etish", callback_data="continue")
+            )
+        )
+    else:
+        await callback.message.answer("Hali o‘qilmagan.")
 
-@dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
-async def navigation(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data == "continue")
+async def continue_read(callback: types.CallbackQuery):
+    user = get_user(callback.from_user.id)
+    update_user(callback.from_user.id, "current_surah", user["last_surah"])
+    update_user(callback.from_user.id, "current_ayah", user["last_ayah"])
+    await send_ayah(callback.from_user.id, callback.message)
 
-    user_id = callback.from_user.id
-    user = get_user(user_id)
-
-    surah = user["current_surah"]
-    ayah = user["current_ayah"]
-
-    if callback.data == "next":
-        update_user(user_id, "current_ayah", ayah + 1)
-
-    elif callback.data == "prev":
-        update_user(user_id, "current_ayah", ayah - 1)
-
-    elif callback.data == "menu":
-        await callback.message.answer("📖 Surani tanlang:", reply_markup=surah_keyboard())
-        await callback.answer()
-        return
-
-    await send_ayah(user_id, callback.message)
-    await callback.answer()
-
-
-# ======================
-# RUN
-# ======================
+# =======================
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
