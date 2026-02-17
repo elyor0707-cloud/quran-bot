@@ -86,10 +86,11 @@ def create_card_image(arabic, uzbek, surah_name, ayah):
     reshaped_text = arabic_reshaper.reshape(arabic)
     bidi_text = get_display(reshaped_text)
 
-    wrapped_ar = textwrap.fill(bidi_text, width=25)
     y_text = 160
+    max_ar_width = width - 300
 
-    for line in wrapped_ar.split("\n"):
+    y_text = draw_multiline_text(draw, bidi_text, arabic_font, max_ar_width, y_text, width)
+
         bbox = draw.textbbox((0, 0), line, font=arabic_font)
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
