@@ -99,6 +99,7 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
     width = 1200
     height = 900
+    side_margin = 100   # <<< ЭНДИ ИККИ ТОМОН 100px
 
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
@@ -108,7 +109,7 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
         draw.line([(0, i), (width, i)], fill=color)
 
     arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 75)
-    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 32)
+    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 34)
     title_font = ImageFont.truetype("DejaVuSans.ttf", 45)
 
     # ================= TITLE =================
@@ -126,48 +127,62 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     footer_y = height - fh - 40
     draw.text(((width - fw)/2, footer_y), footer, fill="#d4af37", font=title_font)
 
-    # ================= ARABIC =================
+    # ================= ARABIC BLOCK =================
     segments = parse_tajweed_segments(arabic_html)
 
     y_text = 120
-    x_cursor = width - 150
-    max_left = 150
-    max_line_height = 0
+    max_width = width - (side_margin * 2)
+    current_width = 0
+    line_height = 0
+    lines = []
+    line_parts = []
 
+    # SATRGA AJRATISH
     for rule, part in segments:
-
         reshaped = arabic_reshaper.reshape(part)
         bidi_part = get_display(reshaped)
-        color = TAJWEED_COLORS.get(rule, "white")
 
         bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
 
-        if x_cursor - w < max_left:
-            y_text += max_line_height + 20
-            x_cursor = width - 150
-            max_line_height = 0
+        if current_width + w > max_width:
+            lines.append(line_parts)
+            line_parts = []
+            current_width = 0
 
-        draw.text((x_cursor - w, y_text), bidi_part, fill=color, font=arabic_font)
+        line_parts.append((rule, bidi_part, w, h))
+        current_width += w
 
-        x_cursor -= w
-        max_line_height = max(max_line_height, h)
+    if line_parts:
+        lines.append(line_parts)
 
-    arabic_bottom = y_text + max_line_height
+    # CHIZISH (RTL)
+    for line in lines:
+        x_cursor = width - side_margin
+        max_h = 0
+
+        for rule, text_part, w, h in line:
+            color = TAJWEED_COLORS.get(rule, "white")
+            draw.text((x_cursor - w, y_text), text_part, fill=color, font=arabic_font)
+            x_cursor -= w
+            max_h = max(max_h, h)
+
+        y_text += max_h + 20
+
+    arabic_bottom = y_text
 
     # ================= LINE =================
-    line_y = arabic_bottom + 20
-    draw.line((200, line_y, width-200, line_y), fill="#d4af37", width=3)
+    line_y = arabic_bottom + 10
+    draw.line((side_margin+50, line_y, width-(side_margin+50), line_y), fill="#d4af37", width=3)
 
-    # ================= TRANSLATION AREA =================
+    # ================= TRANSLATION =================
     translation_top = line_y + 30
-    translation_bottom_limit = footer_y - 30
-
-    y_current = translation_top
+    translation_limit = footer_y - 25
 
     words = uzbek.split()
     line = ""
+    y_current = translation_top
 
     for word in words:
         test_line = line + " " + word if line else word
@@ -175,10 +190,10 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
 
-        if w <= width - 300:
+        if w <= max_width:
             line = test_line
         else:
-            if y_current + h > translation_bottom_limit:
+            if y_current + h > translation_limit:
                 break
 
             bbox = draw.textbbox((0, 0), line, font=uzbek_font)
@@ -188,19 +203,15 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
             y_current += h + 8
             line = word
 
-    # Oxirgi qatordan
     if line:
         bbox = draw.textbbox((0, 0), line, font=uzbek_font)
         lw = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
 
-        if y_current + h <= translation_bottom_limit:
+        if y_current + h <= translation_limit:
             draw.text(((width - lw)/2, y_current), line, fill="white", font=uzbek_font)
 
     img.save("card.png")
-
-
-
 
 # ======================
 # SURAH KEYBOARD
