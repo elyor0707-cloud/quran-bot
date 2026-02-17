@@ -310,10 +310,30 @@ async def select_surah(callback: types.CallbackQuery):
     surah_number = int(callback.data.split("_")[1])
 
     update_user(callback.from_user.id, "current_surah", surah_number)
-    update_user(callback.from_user.id, "current_ayah", 1)
+
+    # оятлар сонини оламиз
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
+            r = await resp.json()
+
+    total_ayahs = r['data']['numberOfAyahs']
+
+    kb = InlineKeyboardMarkup(row_width=6)
+
+    for i in range(1, total_ayahs+1):
+        kb.insert(
+            InlineKeyboardButton(str(i), callback_data=f"ayah_{i}")
+        )
+
+    await callback.message.answer("Оятни танланг:", reply_markup=kb)
+
+@dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
+async def select_ayah(callback: types.CallbackQuery):
+
+    ayah = int(callback.data.split("_")[1])
+    update_user(callback.from_user.id, "current_ayah", ayah)
 
     await send_ayah(callback.from_user.id, callback.message)
-    await callback.answer()
 
 
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
