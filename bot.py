@@ -5,6 +5,59 @@ import requests
 from database import get_surahs, get_user, update_user
 from aiogram.types import InputFile
 from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont
+import textwrap
+
+def create_card_image(arabic, uzbek, surah_name, ayah):
+
+    width = 1200
+    height = 900
+
+    # Gradient фон
+    img = Image.new("RGB", (width, height), "#0f1b2d")
+    draw = ImageDraw.Draw(img)
+
+    for i in range(height):
+        color = (15, 27 + i//8, 45 + i//10)
+        draw.line([(0, i), (width, i)], fill=color)
+
+    # Fontlar
+    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 80)
+    uzbek_font = ImageFont.truetype("Amiri-Regular.ttf", 40)
+    title_font = ImageFont.truetype("Amiri-Regular.ttf", 45)
+
+    # Sarlavha
+    title = "Qur’oniy oyat"
+    tw, th = draw.textsize(title, font=title_font)
+    draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
+
+    # Arabcha matn (марказ)
+    wrapped_ar = textwrap.fill(arabic, width=25)
+    y_text = 200
+
+    for line in wrapped_ar.split("\n"):
+        w, h = draw.textsize(line, font=arabic_font)
+        draw.text(((width - w)/2, y_text), line, fill="white", font=arabic_font)
+        y_text += h + 25
+
+    # Чизиқ
+    draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
+
+    # Ўзбекча таржима
+    wrapped_uz = textwrap.fill(uzbek, width=60)
+    y_text += 70
+
+    for line in wrapped_uz.split("\n"):
+        w, h = draw.textsize(line, font=uzbek_font)
+        draw.text(((width - w)/2, y_text), line, fill="white", font=uzbek_font)
+        y_text += h + 15
+
+    # Пастки ёзув
+    footer = f"{surah_name} сураси, {ayah}-оят"
+    fw, fh = draw.textsize(footer, font=title_font)
+    draw.text(((width - fw)/2, height-100), footer, fill="#d4af37", font=title_font)
+
+    img.save("card.png")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -82,8 +135,9 @@ async def send_ayah(user_id, message):
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
     # 🖼 PNG яратиш
-    create_ayah_image(arabic)
-    await message.answer_photo(InputFile("ayah.png"))
+    create_card_image(arabic, uzbek, surah_name, ayah)
+    await message.answer_photo(InputFile("card.png"))
+
 
     text = f"""
 📖 {surah_name} сураси
@@ -102,8 +156,7 @@ async def send_ayah(user_id, message):
 
     kb.add(InlineKeyboardButton("🏠 Бош меню", callback_data="menu"))
 
-    await message.answer(text, reply_markup=kb)
-
+   
     # 🔊 AUDIO
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
