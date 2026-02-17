@@ -106,12 +106,15 @@ async def send_ayah(user_id, message):
         ayah_num = str(ayah).zfill(3)
         audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
 
-        async with session.get(audio_url) as audio_resp:
-            if audio_resp.status == 200:
-                filename = f"{sura}{ayah_num}.mp3"
-                with open(filename, "wb") as f:
-                    f.write(await audio_resp.read())
-                await message.answer_audio(InputFile(filename))
+       # 🔊 AUDIO
+# async with session.get(audio_url) as audio_resp:
+#     if audio_resp.status == 200:
+#         filename = f"{sura}{ayah_num}.mp3"
+#         with open(filename, "wb") as f:
+#             f.write(await audio_resp.read())
+#
+#         await message.answer_audio(InputFile(filename))
+
 
     kb = InlineKeyboardMarkup()
 
