@@ -94,6 +94,7 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
         y += h + line_spacing
 
     return y
+    
     def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
     width = 1200
@@ -106,12 +107,9 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
-    uzbek_font_path = os.path.join(os.getcwd(), "DejaVuSans.ttf")
-
-    arabic_font = ImageFont.truetype(arabic_font_path, 75)
-    uzbek_font = ImageFont.truetype(uzbek_font_path, 32)
-    title_font = ImageFont.truetype(uzbek_font_path, 45)
+    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 75)
+    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 32)
+    title_font = ImageFont.truetype("DejaVuSans.ttf", 45)
 
     # TITLE
     title = "Qur’oniy oyat"
@@ -119,72 +117,48 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
     tw = bbox[2] - bbox[0]
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
-    # ===== ARABIC PROFESSIONAL RTL =====
+    # ===== ARABIC =====
     segments = parse_tajweed_segments(arabic_html)
 
     y_text = 150
-    max_right = width - 150
-    min_left = 150
-
-    line_segments = []
-    current_width = 0
-    lines = []
+    x_cursor = width - 150
 
     for rule, part in segments:
 
         reshaped = arabic_reshaper.reshape(part)
         bidi_part = get_display(reshaped)
 
+        color = TAJWEED_COLORS.get(rule, "white")
+
         bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
         w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
 
-        if current_width + w > (max_right - min_left):
-            lines.append(line_segments)
-            line_segments = []
-            current_width = 0
+        if x_cursor - w < 150:
+            y_text += h + 25
+            x_cursor = width - 150
 
-        line_segments.append((rule, bidi_part, w))
-        current_width += w
+        draw.text((x_cursor - w, y_text), bidi_part, fill=color, font=arabic_font)
 
-    if line_segments:
-        lines.append(line_segments)
-
-    for line in lines:
-        x_cursor = max_right
-        max_h = 0
-
-        for rule, text_part, w in line:
-            color = TAJWEED_COLORS.get(rule, "white")
-
-            bbox = draw.textbbox((0, 0), text_part, font=arabic_font)
-            h = bbox[3] - bbox[1]
-
-            draw.text((x_cursor - w, y_text), text_part, fill=color, font=arabic_font)
-
-            x_cursor -= w
-            max_h = max(max_h, h)
-
-        y_text += max_h + 25
+        x_cursor -= w
 
     # LINE
-    draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
+    draw.line((200, y_text+60, width-200, y_text+60), fill="#d4af37", width=3)
 
     # ===== UZBEK =====
-    y_text += 60
-    max_text_width = width - 300
-
+    y_text += 100
     y_text = draw_multiline_text(
-        draw, uzbek, uzbek_font, max_text_width, y_text, width, line_spacing=8
+        draw, uzbek, uzbek_font, width - 300, y_text, width
     )
 
     # FOOTER
     footer = f"{surah_name} surasi, {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
     fw = bbox[2] - bbox[0]
-
     draw.text(((width - fw)/2, height-90), footer, fill="#d4af37", font=title_font)
 
     img.save("card.png")
+
 
 # ======================
 # SURAH KEYBOARD
