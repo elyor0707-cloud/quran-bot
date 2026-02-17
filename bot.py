@@ -162,6 +162,112 @@ async def fatvo_search(message: types.Message):
             await message.answer("Natijalar topildi. Muslim.uz saytini tekshiring.")
 
 # =========================
+# IMAGE CARD (2-KO'RINISH)
+# =========================
+
+def create_card(arabic, uzbek, surah_name, ayah):
+
+    width = 1200
+    height = 900
+    margin = 120
+
+    img = Image.new("RGB", (width, height), "#0f1b2d")
+    draw = ImageDraw.Draw(img)
+
+    for i in range(height):
+        color = (15, 27 + i//8, 45 + i//10)
+        draw.line([(0, i), (width, i)], fill=color)
+
+    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 72)
+    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 34)
+    title_font = ImageFont.truetype("DejaVuSans.ttf", 45)
+
+    # TITLE
+    title = "Qur’oniy oyat"
+    bbox = draw.textbbox((0,0), title, font=title_font)
+    draw.text(((width - (bbox[2]-bbox[0]))//2, 40),
+              title, fill="#d4af37", font=title_font)
+
+    # FOOTER
+    footer = f"{surah_name} surasi, {ayah}-oyat"
+    bbox = draw.textbbox((0,0), footer, font=title_font)
+    footer_y = height - (bbox[3]-bbox[1]) - 40
+    draw.text(((width - (bbox[2]-bbox[0]))//2, footer_y),
+              footer, fill="#d4af37", font=title_font)
+
+    # ================= ARABIC =================
+
+    reshaped = arabic_reshaper.reshape(arabic)
+    bidi_text = get_display(reshaped)
+
+    max_width = width - margin*2
+    y = 140
+
+    words = bidi_text.split(" ")
+    line = ""
+
+    for word in words:
+        test_line = line + " " + word if line else word
+        bbox = draw.textbbox((0,0), test_line, font=arabic_font)
+        w = bbox[2] - bbox[0]
+
+        if w <= max_width:
+            line = test_line
+        else:
+            bbox = draw.textbbox((0,0), line, font=arabic_font)
+            lw = bbox[2] - bbox[0]
+            draw.text(((width-lw)//2, y), line,
+                      fill="white", font=arabic_font)
+            y += 80
+            line = word
+
+    if line:
+        bbox = draw.textbbox((0,0), line, font=arabic_font)
+        lw = bbox[2] - bbox[0]
+        draw.text(((width-lw)//2, y), line,
+                  fill="white", font=arabic_font)
+        y += 80
+
+    # SARIQ CHIZIQ
+    draw.line((margin, y, width-margin, y),
+              fill="#d4af37", width=3)
+
+    # ================= TARJIMA =================
+
+    y += 30
+    limit = footer_y - 20
+    line = ""
+
+    words = uzbek.split()
+
+    for word in words:
+        test_line = line + " " + word if line else word
+        bbox = draw.textbbox((0,0), test_line, font=uzbek_font)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+
+        if w <= max_width:
+            line = test_line
+        else:
+            if y + h > limit:
+                break
+
+            bbox = draw.textbbox((0,0), line, font=uzbek_font)
+            lw = bbox[2] - bbox[0]
+            draw.text(((width-lw)//2, y), line,
+                      fill="white", font=uzbek_font)
+            y += h + 8
+            line = word
+
+    if line:
+        bbox = draw.textbbox((0,0), line, font=uzbek_font)
+        lw = bbox[2] - bbox[0]
+        draw.text(((width-lw)//2, y), line,
+                  fill="white", font=uzbek_font)
+
+    img.save("card.png")
+
+# =========================
 # SEND AYAH
 # =========================
 
