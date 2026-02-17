@@ -5,3 +5,5 @@ reportlab
 stripe
 openai
 gTTS
+arabic-reshaper
+python-bidi
