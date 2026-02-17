@@ -137,21 +137,15 @@ async def start_cmd(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
 
+    await callback.answer("⏳ Юкланмоқда...")   # ⚡ Биринчи шу
+
     surah_number = int(callback.data.split("_")[1])
+
     update_user(callback.from_user.id, "current_surah", surah_number)
     update_user(callback.from_user.id, "current_ayah", 1)
 
     await send_ayah(callback.from_user.id, callback.message)
-    await callback.answer()@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
-    async def select_surah(callback: types.CallbackQuery):
 
-    await callback.answer()   # ⚡ Биринчи шу
-
-    surah_number = int(callback.data.split("_")[1])
-    update_user(callback.from_user.id, "current_surah", surah_number)
-    update_user(callback.from_user.id, "current_ayah", 1)
-
-    await send_ayah(callback.from_user.id, callback.message)
 
 
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
