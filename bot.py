@@ -77,7 +77,7 @@ async def select_surah(callback: types.CallbackQuery):
     update_user(callback.from_user.id, "current_surah", surah_number)
     update_user(callback.from_user.id, "current_ayah", 1)
 
-    await send_ayah(callback.from_user.id, callback.message)
+    await send_ayah(callback.message, surah, ayah)
     await callback.answer()
 
 # ======================
