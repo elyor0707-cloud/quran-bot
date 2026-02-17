@@ -14,7 +14,7 @@ dp = Dispatcher(bot)
 # ======================
 
 def surah_keyboard():
-    kb = InlineKeyboardMarkup(row_width=5)
+    kb = InlineKeyboardMarkup(row_width=4)
     surahs = get_surahs()
 
     for surah in surahs:
@@ -26,7 +26,6 @@ def surah_keyboard():
         )
 
     return kb
-
 
 # ======================
 # START
