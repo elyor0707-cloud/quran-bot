@@ -48,3 +48,11 @@ def update_progress(user_id, surah, ayah):
 def get_progress(user_id):
     user = get_user(user_id)
     return user.get("last_surah"), user.get("last_ayah")
+
+def update_page_progress(user_id, page):
+    update_user(user_id, "last_page", page)
+
+def get_page_progress(user_id):
+    user = get_user(user_id)
+    return user.get("last_page")
+
