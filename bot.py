@@ -111,17 +111,19 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 32)
     title_font = ImageFont.truetype("DejaVuSans.ttf", 45)
 
-    # TITLE
+    # ================= TITLE =================
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
     tw = bbox[2] - bbox[0]
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
-    # ===== ARABIC =====
+    # ================= ARABIC =================
     segments = parse_tajweed_segments(arabic_html)
 
-    y_text = 150
+    y_text = 120   # <<< ARABIC YUQORIROQ
     x_cursor = width - 150
+    max_left = 150
+    max_line_height = 0
 
     for rule, part in segments:
 
@@ -134,30 +136,51 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
 
-        if x_cursor - w < 150:
-            y_text += h + 25
+        if x_cursor - w < max_left:
+            y_text += max_line_height + 20
             x_cursor = width - 150
+            max_line_height = 0
 
         draw.text((x_cursor - w, y_text), bidi_part, fill=color, font=arabic_font)
 
         x_cursor -= w
+        max_line_height = max(max_line_height, h)
 
-    # LINE
-    draw.line((200, y_text+60, width-200, y_text+60), fill="#d4af37", width=3)
+    arabic_bottom = y_text + max_line_height
 
-    # ===== UZBEK =====
-    y_text += 100
-    y_text = draw_multiline_text(
-        draw, uzbek, uzbek_font, width - 300, y_text, width
+    # ================= LINE =================
+    line_y = arabic_bottom + 20
+    draw.line((200, line_y, width-200, line_y), fill="#d4af37", width=3)
+
+    # ================= UZBEK =================
+    translation_y = line_y + 40   # <<< TARJIMA PASTROQ
+
+    translation_bottom = draw_multiline_text(
+        draw,
+        uzbek,
+        uzbek_font,
+        width - 300,
+        translation_y,
+        width,
+        line_spacing=8
     )
 
-    # FOOTER
+    # ================= FOOTER =================
     footer = f"{surah_name} surasi, {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
     fw = bbox[2] - bbox[0]
-    draw.text(((width - fw)/2, height-90), footer, fill="#d4af37", font=title_font)
+    fh = bbox[3] - bbox[1]
+
+    footer_y = translation_bottom + 30
+
+    # Agar juda pastga tushsa, balandlikni cheklaymiz
+    if footer_y + fh > height - 40:
+        footer_y = height - fh - 40
+
+    draw.text(((width - fw)/2, footer_y), footer, fill="#d4af37", font=title_font)
 
     img.save("card.png")
+
 
 
 # ======================
