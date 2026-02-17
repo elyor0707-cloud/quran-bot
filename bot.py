@@ -93,8 +93,7 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
         y += h + line_spacing
 
     return y
-
-def create_card_image(arabic_html, uzbek, surah_name, ayah):
+    def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
     width = 1200
     height = 900
@@ -119,59 +118,58 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     tw = bbox[2] - bbox[0]
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
-      # ===== ARABIC PROFESSIONAL RTL =====
-segments = parse_tajweed_segments(arabic_html)
+    # ===== ARABIC PROFESSIONAL RTL =====
+    segments = parse_tajweed_segments(arabic_html)
 
-y_text = 150
-max_right = width - 150
-min_left = 150
+    y_text = 150
+    max_right = width - 150
+    min_left = 150
 
-line_segments = []
-current_width = 0
-lines = []
+    line_segments = []
+    current_width = 0
+    lines = []
 
-for rule, part in segments:
+    for rule, part in segments:
 
-    reshaped = arabic_reshaper.reshape(part)
-    bidi_part = get_display(reshaped)
+        reshaped = arabic_reshaper.reshape(part)
+        bidi_part = get_display(reshaped)
 
-    bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
-    w = bbox[2] - bbox[0]
+        bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
+        w = bbox[2] - bbox[0]
 
-    if current_width + w > (max_right - min_left):
+        if current_width + w > (max_right - min_left):
+            lines.append(line_segments)
+            line_segments = []
+            current_width = 0
+
+        line_segments.append((rule, bidi_part, w))
+        current_width += w
+
+    if line_segments:
         lines.append(line_segments)
-        line_segments = []
-        current_width = 0
 
-    line_segments.append((rule, bidi_part, w))
-    current_width += w
+    for line in lines:
+        x_cursor = max_right
+        max_h = 0
 
-if line_segments:
-    lines.append(line_segments)
+        for rule, text_part, w in line:
+            color = TAJWEED_COLORS.get(rule, "white")
 
-for line in lines:
-    x_cursor = max_right
-    max_h = 0
+            bbox = draw.textbbox((0, 0), text_part, font=arabic_font)
+            h = bbox[3] - bbox[1]
 
-    for rule, text_part, w in line:
-        color = TAJWEED_COLORS.get(rule, "white")
+            draw.text((x_cursor - w, y_text), text_part, fill=color, font=arabic_font)
 
-        bbox = draw.textbbox((0, 0), text_part, font=arabic_font)
-        h = bbox[3] - bbox[1]
+            x_cursor -= w
+            max_h = max(max_h, h)
 
-        draw.text((x_cursor - w, y_text), text_part, fill=color, font=arabic_font)
-
-        x_cursor -= w
-        max_h = max(max_h, h)
-
-    y_text += max_h + 25
-
+        y_text += max_h + 25
 
     # LINE
-    draw.line((200, y_text+line_height+30, width-200, y_text+line_height+30), fill="#d4af37", width=3)
+    draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
 
     # ===== UZBEK =====
-    y_text = y_text + line_height + 70
+    y_text += 60
     max_text_width = width - 300
 
     y_text = draw_multiline_text(
@@ -186,11 +184,6 @@ for line in lines:
     draw.text(((width - fw)/2, height-90), footer, fill="#d4af37", font=title_font)
 
     img.save("card.png")
-
-
-
-
-
 
 # ======================
 # SURAH KEYBOARD
