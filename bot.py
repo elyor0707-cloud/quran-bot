@@ -121,34 +121,53 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     tw = bbox[2] - bbox[0]
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
-    # ===== ARABIC =====
-    segments = parse_tajweed_segments(arabic_html)
+      # ===== ARABIC PROFESSIONAL RTL =====
+segments = parse_tajweed_segments(arabic_html)
 
-    y_text = 150
-    x_cursor = width - 150
-    line_height = 0
-    max_left = 150
+y_text = 150
+max_right = width - 150
+min_left = 150
 
-    for rule, part in segments:
+line_segments = []
+current_width = 0
+lines = []
 
-        reshaped = arabic_reshaper.reshape(part)
-        bidi_part = get_display(reshaped)
+for rule, part in segments:
 
+    reshaped = arabic_reshaper.reshape(part)
+    bidi_part = get_display(reshaped)
+
+    bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
+    w = bbox[2] - bbox[0]
+
+    if current_width + w > (max_right - min_left):
+        lines.append(line_segments)
+        line_segments = []
+        current_width = 0
+
+    line_segments.append((rule, bidi_part, w))
+    current_width += w
+
+if line_segments:
+    lines.append(line_segments)
+
+for line in lines:
+    x_cursor = max_right
+    max_h = 0
+
+    for rule, text_part, w in line:
         color = TAJWEED_COLORS.get(rule, "white")
 
-        bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
-        w = bbox[2] - bbox[0]
+        bbox = draw.textbbox((0, 0), text_part, font=arabic_font)
         h = bbox[3] - bbox[1]
 
-        if x_cursor - w < max_left:
-            y_text += line_height + 25
-            x_cursor = width - 150
-            line_height = 0
-
-        draw.text((x_cursor - w, y_text), bidi_part, fill=color, font=arabic_font)
+        draw.text((x_cursor - w, y_text), text_part, fill=color, font=arabic_font)
 
         x_cursor -= w
-        line_height = max(line_height, h)
+        max_h = max(max_h, h)
+
+    y_text += max_h + 25
+
 
     # LINE
     draw.line((200, y_text+line_height+30, width-200, y_text+line_height+30), fill="#d4af37", width=3)
