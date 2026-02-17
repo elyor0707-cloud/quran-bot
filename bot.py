@@ -169,7 +169,7 @@ def create_card(arabic, uzbek, surah_name, ayah):
 
     width = 1200
     height = 900
-    margin = 120
+    margin = 90   # <<< икки четда кам жой
 
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
@@ -178,30 +178,30 @@ def create_card(arabic, uzbek, surah_name, ayah):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 72)
-    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 34)
+    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", 82)   # <<< каттароқ
+    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 36)
     title_font = ImageFont.truetype("DejaVuSans.ttf", 45)
 
-    # TITLE
+    # ===== TITLE =====
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0,0), title, font=title_font)
     draw.text(((width - (bbox[2]-bbox[0]))//2, 40),
               title, fill="#d4af37", font=title_font)
 
-    # FOOTER
+    # ===== FOOTER =====
     footer = f"{surah_name} surasi, {ayah}-oyat"
     bbox = draw.textbbox((0,0), footer, font=title_font)
     footer_y = height - (bbox[3]-bbox[1]) - 40
     draw.text(((width - (bbox[2]-bbox[0]))//2, footer_y),
               footer, fill="#d4af37", font=title_font)
 
-    # ================= ARABIC =================
+    # ===== ARABIC =====
 
     reshaped = arabic_reshaper.reshape(arabic)
     bidi_text = get_display(reshaped)
 
     max_width = width - margin*2
-    y = 140
+    y = 180  # <<< пастроқ туширилди
 
     words = bidi_text.split(" ")
     line = ""
@@ -218,7 +218,7 @@ def create_card(arabic, uzbek, surah_name, ayah):
             lw = bbox[2] - bbox[0]
             draw.text(((width-lw)//2, y), line,
                       fill="white", font=arabic_font)
-            y += 80
+            y += 65   # <<< сатрлар яқинлашди
             line = word
 
     if line:
@@ -226,16 +226,16 @@ def create_card(arabic, uzbek, surah_name, ayah):
         lw = bbox[2] - bbox[0]
         draw.text(((width-lw)//2, y), line,
                   fill="white", font=arabic_font)
-        y += 80
+        y += 70
 
-    # SARIQ CHIZIQ
+    # ===== SARIQ CHIZIQ =====
     draw.line((margin, y, width-margin, y),
               fill="#d4af37", width=3)
 
-    # ================= TARJIMA =================
+    # ===== TARJIMA =====
 
-    y += 30
-    limit = footer_y - 20
+    y += 35
+    limit = footer_y - 25
     line = ""
 
     words = uzbek.split()
@@ -256,7 +256,7 @@ def create_card(arabic, uzbek, surah_name, ayah):
             lw = bbox[2] - bbox[0]
             draw.text(((width-lw)//2, y), line,
                       fill="white", font=uzbek_font)
-            y += h + 8
+            y += h + 6
             line = word
 
     if line:
@@ -266,6 +266,7 @@ def create_card(arabic, uzbek, surah_name, ayah):
                   fill="white", font=uzbek_font)
 
     img.save("card.png")
+
 
 # =========================
 # SEND AYAH
