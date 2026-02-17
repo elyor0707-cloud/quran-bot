@@ -335,6 +335,42 @@ async def surah_page(callback: types.CallbackQuery):
     )
     await callback.answer()
 
+async def show_ayah_page(callback, surah_number, page, total_ayahs):
+
+    per_page = 50
+    start = (page - 1) * per_page + 1
+    end = min(start + per_page - 1, total_ayahs)
+
+    kb = InlineKeyboardMarkup(row_width=6)
+
+    for i in range(start, end + 1):
+        kb.insert(
+            InlineKeyboardButton(str(i), callback_data=f"ayah_{i}")
+        )
+
+    nav = []
+
+    if start > 1:
+        nav.append(
+            InlineKeyboardButton("⬅ Oldingi", callback_data=f"ayahpage_{page-1}")
+        )
+
+    if end < total_ayahs:
+        nav.append(
+            InlineKeyboardButton("➡ Keyingi", callback_data=f"ayahpage_{page+1}")
+        )
+
+    if nav:
+        kb.row(*nav)
+
+    kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+
+    await callback.message.edit_text(
+        "Оятни танланг:",
+        reply_markup=kb
+    )
+    await callback.answer()
+
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
@@ -358,6 +394,22 @@ async def select_ayah(callback: types.CallbackQuery):
     update_user(callback.from_user.id, "current_ayah", ayah)
 
     await send_ayah(callback.from_user.id, callback.message)
+
+@dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
+async def ayah_page(callback: types.CallbackQuery):
+
+    page = int(callback.data.split("_")[1])
+
+    user = get_user(callback.from_user.id)
+    surah_number = user["current_surah"]
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
+            r = await resp.json()
+
+    total_ayahs = r['data']['numberOfAyahs']
+
+    await show_ayah_page(callback, surah_number, page, total_ayahs)
 
 
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
