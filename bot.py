@@ -290,7 +290,16 @@ async def send_ayah(user_id, message):
     update_user(user_id, "last_surah", surah)
     update_user(user_id, "last_ayah", ayah)
 
-    await message.answer(f"{arabic}\n\n{uzbek}")
+    create_card(arabic, uzbek, surah_name, ayah)
+await message.answer_photo(InputFile("card.png"))
+
+# AUDIO
+sura = str(surah).zfill(3)
+ayah_num = str(ayah).zfill(3)
+audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+await message.answer_audio(audio_url)
+
 
 # =========================
 
