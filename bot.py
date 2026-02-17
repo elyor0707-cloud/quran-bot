@@ -36,23 +36,29 @@ def surah_keyboard():
 
 import os
 
+import os
+
 def create_ayah_image(arabic_text, filename="ayah.png"):
-    width = 1200
-    height = 400
+    width = 1400
+    height = 500
 
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
     font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
-    font = ImageFont.truetype(font_path, 70)
+    font = ImageFont.truetype(font_path, 80)
 
-    w, h = draw.textsize(arabic_text, font=font)
-    x = (width - w) / 2
-    y = (height - h) / 2
+    bbox = draw.textbbox((0, 0), arabic_text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    x = (width - text_width) / 2
+    y = (height - text_height) / 2
 
     draw.text((x, y), arabic_text, fill="black", font=font)
 
     img.save(filename)
+
 
 
 async def send_ayah(user_id, message):
