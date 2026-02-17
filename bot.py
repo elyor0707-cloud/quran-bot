@@ -130,6 +130,8 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
         # ================= ARABIC AUTO FIT =================
     
        # ================= ARABIC MULTI-LINE RTL =================
+        # ================= PROFESSIONAL RTL WORD WRAP =================
+
     segments = parse_tajweed_segments(arabic_html)
 
     max_width = width - side_margin * 2
@@ -139,33 +141,37 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     current_line = []
     current_width = 0
 
-    # --- SATRGA AJRATISH ---
+    # --- SEGMENT → WORD LEVEL ---
     for rule, part in segments:
 
-        reshaped = arabic_reshaper.reshape(part)
-        bidi_text = get_display(reshaped)
+        words = part.split(" ")
 
-        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
+        for word in words:
 
-        # Агар ҳозирги сатрга сиғмаса → янги сатр
-        if current_width + w > max_width:
-            lines.append(current_line)
-            current_line = []
-            current_width = 0
+            reshaped = arabic_reshaper.reshape(word + " ")
+            bidi_text = get_display(reshaped)
 
-        current_line.append((rule, bidi_text, w, h))
-        current_width += w
+            bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+            w = bbox[2] - bbox[0]
+            h = bbox[3] - bbox[1]
+
+            # агар сатрга сиғмаса → янги сатр
+            if current_width + w > max_width:
+                lines.append(current_line)
+                current_line = []
+                current_width = 0
+
+            current_line.append((rule, bidi_text, w, h))
+            current_width += w
 
     if current_line:
         lines.append(current_line)
 
-    # --- CHIZISH (RTL) ---
+    # --- CHIZISH ---
     for line in lines:
 
         total_line_width = sum(part[2] for part in line)
-        x_cursor = (width + total_line_width) // 2  # марказлашган RTL
+        x_cursor = (width + total_line_width) // 2
         max_h = 0
 
         for rule, text_part, w, h in line:
@@ -175,6 +181,7 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
             max_h = max(max_h, h)
 
         y_text += max_h + 20
+
 
 
     # ================= SEPARATOR =================
