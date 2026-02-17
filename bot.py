@@ -38,25 +38,42 @@ import os
 
 import os
 from PIL import Image, ImageDraw, ImageFont
+import textwrap
 
 def create_ayah_image(arabic_text, filename="ayah.png"):
     width = 1600
-    height = 800
+    height = 900
+    margin = 100
 
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
     font_path = os.path.join(os.getcwd(), "Amiri-Regular.ttf")
-    font = ImageFont.truetype(font_path, 140)   # 🔥 katta qildik
+    font = ImageFont.truetype(font_path, 150)
 
-    bbox = draw.textbbox((0, 0), arabic_text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
+    # 🔥 Matnni qatorlarga bo‘lamiz
+    wrapped_text = textwrap.fill(arabic_text, width=25)
+    lines = wrapped_text.split("\n")
 
-    x = (width - text_width) / 2
-    y = (height - text_height) / 2
+    total_height = 0
+    line_heights = []
 
-    draw.text((x, y), arabic_text, fill="black", font=font)
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=font)
+        h = bbox[3] - bbox[1]
+        total_height += h + 20
+        line_heights.append(h)
+
+    y = (height - total_height) / 2
+
+    for i, line in enumerate(lines):
+        bbox = draw.textbbox((0, 0), line, font=font)
+        w = bbox[2] - bbox[0]
+
+        x = width - w - margin   # 🔥 RTL joylashuv
+        draw.text((x, y), line, fill="black", font=font)
+
+        y += line_heights[i] + 20
 
     img.save(filename)
 
