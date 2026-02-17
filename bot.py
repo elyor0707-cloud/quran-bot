@@ -4,6 +4,7 @@ import os
 import requests
 from database import get_surahs, get_user, update_user
 from aiogram.types import InputFile
+from PIL import Image, ImageDraw, ImageFont
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -32,6 +33,22 @@ def surah_keyboard():
 # ======================
 # SEND AYAH (AUDIO WITH REAL API)
 # ======================
+def create_ayah_image(arabic_text, filename="ayah.png"):
+    width = 1200
+    height = 400
+
+    img = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(img)
+
+    font = ImageFont.truetype("Amiri-Regular.ttf", 70)
+
+    w, h = draw.textsize(arabic_text, font=font)
+    x = (width - w) / 2
+    y = (height - h) / 2
+
+    draw.text((x, y), arabic_text, fill="black", font=font)
+
+    img.save(filename)
 
 async def send_ayah(user_id, message):
 
@@ -45,6 +62,11 @@ async def send_ayah(user_id, message):
     ).json()
 
     arabic = r['data'][0]['text']
+    create_ayah_image(arabic)
+
+    from aiogram.types import InputFile
+    await message.answer_photo(InputFile("ayah.png"))
+
     uzbek = r['data'][1]['text']
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
