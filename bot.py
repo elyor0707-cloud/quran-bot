@@ -31,7 +31,15 @@ TAJWEED_COLORS = {
     "iqlab": "#f39c12",
 }
 
+def clean_tajweed_text(text):
+    # Remove internal markers like [h:1], [n], etc.
+    text = re.sub(r'\[.*?\]', '', text)
+    return text
+
+
 def parse_tajweed_segments(text):
+    text = clean_tajweed_text(text)
+
     segments = []
     pattern = r'<tajweed class="(.*?)">(.*?)</tajweed>'
 
