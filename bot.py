@@ -402,10 +402,6 @@ async def select_ayah(callback: types.CallbackQuery):
 
     await send_ayah(callback.from_user.id, callback.message)
     
-
-
-
-
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
 
