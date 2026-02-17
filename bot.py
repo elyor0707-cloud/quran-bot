@@ -88,7 +88,6 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
 
     return y
 
-
 def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
     width = 1200
@@ -115,7 +114,6 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     draw.text(((width - tw)/2, 40), title, fill="#d4af37", font=title_font)
 
     # ===== ARABIC =====
-    # ===== ARABIC =====
     segments = parse_tajweed_segments(arabic_html)
 
     y_text = 150
@@ -125,33 +123,30 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
     for rule, part in segments:
 
-    reshaped = arabic_reshaper.reshape(part)
-    bidi_part = get_display(reshaped)
+        reshaped = arabic_reshaper.reshape(part)
+        bidi_part = get_display(reshaped)
 
-    color = TAJWEED_COLORS.get(rule, "white")
+        color = TAJWEED_COLORS.get(rule, "white")
 
-    bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
-    w = bbox[2] - bbox[0]
-    h = bbox[3] - bbox[1]
+        bbox = draw.textbbox((0, 0), bidi_part, font=arabic_font)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
 
-    if x_cursor - w < max_left:
-        y_text += line_height + 20
-        x_cursor = width - 150
-        line_height = 0
+        if x_cursor - w < max_left:
+            y_text += line_height + 25
+            x_cursor = width - 150
+            line_height = 0
 
-    draw.text((x_cursor - w, y_text), bidi_part, fill=color, font=arabic_font)
+        draw.text((x_cursor - w, y_text), bidi_part, fill=color, font=arabic_font)
 
-    x_cursor -= w
-    line_height = max(line_height, h)
-
-
-
+        x_cursor -= w
+        line_height = max(line_height, h)
 
     # LINE
-    draw.line((200, y_text+20, width-200, y_text+20), fill="#d4af37", width=3)
+    draw.line((200, y_text+line_height+30, width-200, y_text+line_height+30), fill="#d4af37", width=3)
 
     # ===== UZBEK =====
-    y_text += 60
+    y_text = y_text + line_height + 70
     max_text_width = width - 300
 
     y_text = draw_multiline_text(
@@ -166,6 +161,10 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     draw.text(((width - fw)/2, height-90), footer, fill="#d4af37", font=title_font)
 
     img.save("card.png")
+
+
+
+
 
 
 # ======================
