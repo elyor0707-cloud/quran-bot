@@ -41,3 +41,10 @@ def get_ayah(surah, ayah):
         "uzbek": f"Оят {ayah} ўзбекча таржима",
         "total_ayahs": 7
     }
+def update_progress(user_id, surah, ayah):
+    update_user(user_id, "last_surah", surah)
+    update_user(user_id, "last_ayah", ayah)
+
+def get_progress(user_id):
+    user = get_user(user_id)
+    return user.get("last_surah"), user.get("last_ayah")
