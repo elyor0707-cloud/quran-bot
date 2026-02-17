@@ -114,19 +114,15 @@ async def send_ayah(user_id, message):
 
     async with aiohttp.ClientSession() as session:
 
-       async with session.get(
-    f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani"
-) as resp:
-    arabic_data = await resp.json()
+        async with session.get(
+            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik"
+        ) as resp:
+            r = await resp.json()
 
-async with session.get(
-    f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/uz.sodik"
-) as resp:
-    uzbek_data = await resp.json()
-
-arabic = arabic_data['data']['text']
-uzbek = uzbek_data['data']['text']
-
+        arabic = r['data'][0]['text']
+        uzbek = r['data'][1]['text']
+        surah_name = r['data'][0]['surah']['englishName']
+        total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
         # IMAGE
         create_card_image(arabic, uzbek, surah_name, ayah)
