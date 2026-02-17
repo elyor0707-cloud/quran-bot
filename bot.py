@@ -52,7 +52,7 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width):
         h = bbox[3] - bbox[1]
 
         draw.text(((width - w)/2, y), line, fill="white", font=font)
-        y += h + 15
+        y += h + 9
 
     return y
 
