@@ -261,13 +261,13 @@ def surah_keyboard(page=1):
 
 async def send_ayah(user_id, message):
 
-    session = aiohttp.ClientSession()
-
     user = get_user(user_id)
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    
+    async with aiohttp.ClientSession() as session:
+
+        # ===== AYAH DATA =====
         async with session.get(
             f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
         ) as resp:
@@ -278,11 +278,11 @@ async def send_ayah(user_id, message):
         surah_name = r['data'][0]['surah']['englishName']
         total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-        # IMAGE
+        # ===== IMAGE =====
         create_card_image(arabic_html, uzbek, surah_name, ayah)
         await message.answer_photo(InputFile("card.png"))
 
-        # AUDIO
+        # ===== AUDIO =====
         sura = str(surah).zfill(3)
         ayah_num = str(ayah).zfill(3)
         audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
@@ -293,15 +293,40 @@ async def send_ayah(user_id, message):
                 with open(filename, "wb") as f:
                     f.write(await audio_resp.read())
 
-                await message.answer_audio(
-                    InputFile(filename),
-                    caption="👇 Navigatsiya:",
-                    reply_markup=kb
-                )
-
+                await message.answer_audio(InputFile(filename))
                 os.remove(filename)
             else:
-                await message.answer("🔊 Audio topilmadi.", reply_markup=kb)
+                await message.answer("🔊 Audio topilmadi.")
+
+    # ===== NAVIGATION =====
+    kb = InlineKeyboardMarkup()
+
+    # Oddiy oldinga/orqaga
+    if ayah > 1:
+        kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+
+    if ayah < total_ayahs:
+        kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+
+    # 50 lik sahifa navigatsiyasi
+    current_page = (ayah - 1) // 50 + 1
+    total_pages = (total_ayahs - 1) // 50 + 1
+
+    if total_pages > 1:
+        page_nav = []
+
+        if current_page > 1:
+            page_nav.append(
+                InlineKeyboardButton("⬅ 50 Oldingi", callback_data=f"ayahpage_{current_page-1}")
+            )
+
+        if current_page < total_pages:
+            page_nav.append(
+                InlineKeyboardButton("➡ 50 Keyingi", callback_data=f"ayahpage_{current_page+1}")
+            )
+
+        if page_nav:
+            kb.row(*page_nav)
 
 
         
