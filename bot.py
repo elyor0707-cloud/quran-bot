@@ -127,8 +127,6 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     draw.text(((width - fw)//2, footer_y), footer, fill="#d4af37", font=title_font)
 
     
-        # ================= ARABIC AUTO FIT =================
-    
        # ================= ARABIC MULTI-LINE RTL =================
     segments = parse_tajweed_segments(arabic_html)
 
@@ -257,8 +255,6 @@ def surah_keyboard(page=1):
 
     return kb
 
-
-
 # ======================
 # SEND AYAH
 # ======================
@@ -280,9 +276,7 @@ async def send_ayah(user_id, message):
         uzbek = r['data'][1]['text']
         surah_name = r['data'][0]['surah']['englishName']
         total_ayahs = r['data'][0]['surah']['numberOfAyahs']
-        import re
 
-        
         # IMAGE
         create_card_image(arabic_html, uzbek, surah_name, ayah)
         await message.answer_photo(InputFile("card.png"))
@@ -302,42 +296,42 @@ async def send_ayah(user_id, message):
                 os.remove(filename)
             else:
                 await message.answer("🔊 Audio topilmadi.")
-                
-# NAVIGATION
-kb = InlineKeyboardMarkup()
 
-# 50 та диапазон
-current_page = (ayah - 1) // 50 + 1
-total_pages = (total_ayahs - 1) // 50 + 1
+    # ================= NAVIGATION =================
 
-if ayah > 1:
-    kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+    kb = InlineKeyboardMarkup()
 
-if ayah < total_ayahs:
-    kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+    current_page = (ayah - 1) // 50 + 1
+    total_pages = (total_ayahs - 1) // 50 + 1
 
-if total_pages > 1:
+    if ayah > 1:
+        kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
 
-    page_nav = []
+    if ayah < total_ayahs:
+        kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
 
-    if current_page > 1:
-        page_nav.append(
-            InlineKeyboardButton("⬅ 50 Oldingi", callback_data=f"ayahpage_{current_page-1}")
-        )
+    if total_pages > 1:
 
-    if current_page < total_pages:
-        page_nav.append(
-            InlineKeyboardButton("➡ 50 Keyingi", callback_data=f"ayahpage_{current_page+1}")
-        )
+        page_nav = []
 
-    if page_nav:
-        kb.row(*page_nav)
+        if current_page > 1:
+            page_nav.append(
+                InlineKeyboardButton("⬅ 50 Oldingi", callback_data=f"ayahpage_{current_page-1}")
+            )
 
-kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+        if current_page < total_pages:
+            page_nav.append(
+                InlineKeyboardButton("➡ 50 Keyingi", callback_data=f"ayahpage_{current_page+1}")
+            )
 
-await message.answer("👇 Navigatsiya:", reply_markup=kb)
+        if page_nav:
+            kb.row(*page_nav)
 
-    
+    kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+
+    await message.answer("👇 Navigatsiya:", reply_markup=kb)
+
+
 # ======================
 # HANDLERS
 # ======================
@@ -357,9 +351,10 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     kb = InlineKeyboardMarkup(row_width=6)
 
     for i in range(start, end + 1):
-        kb.insert(
-            InlineKeyboardButton(f"{i}-oyat", callback_data=f"ayah_{i}")
-        )
+    kb.insert(
+        InlineKeyboardButton(f"{i}-oyat", callback_data=f"ayah_{i}")
+    )
+
 
 
     nav = []
