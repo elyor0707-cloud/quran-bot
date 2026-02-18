@@ -261,12 +261,13 @@ def surah_keyboard(page=1):
 
 async def send_ayah(user_id, message):
 
+    session = aiohttp.ClientSession()
+
     user = get_user(user_id)
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    async with aiohttp.ClientSession() as session:
-
+    
         async with session.get(
             f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
         ) as resp:
