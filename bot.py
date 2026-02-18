@@ -281,21 +281,29 @@ async def send_ayah(user_id, message):
         create_card_image(arabic_html, uzbek, surah_name, ayah)
         await message.answer_photo(InputFile("card.png"))
 
-        # AUDIO
-        sura = str(surah).zfill(3)
-        ayah_num = str(ayah).zfill(3)
-        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+    # AUDIO
+sura = str(surah).zfill(3)
+ayah_num = str(ayah).zfill(3)
+audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
 
-        async with session.get(audio_url) as audio_resp:
-            if audio_resp.status == 200:
-                filename = f"{sura}{ayah_num}.mp3"
-                with open(filename, "wb") as f:
-                    f.write(await audio_resp.read())
+async with session.get(audio_url) as audio_resp:
+    if audio_resp.status == 200:
+        filename = f"{sura}{ayah_num}.mp3"
+        with open(filename, "wb") as f:
+            f.write(await audio_resp.read())
 
-                await message.answer_audio(InputFile(filename))
-                os.remove(filename)
-            else:
-                await message.answer("🔊 Audio topilmadi.")
+        await message.answer_audio(
+            InputFile(filename),
+            caption="👇 Navigatsiya:",
+            reply_markup=kb
+        )
+
+        os.remove(filename)
+    else:
+        await message.answer("🔊 Audio topilmadi.", reply_markup=kb)
+
+
+        
 
     # ================= NAVIGATION =================
 
