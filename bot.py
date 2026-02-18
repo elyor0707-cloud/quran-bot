@@ -238,25 +238,28 @@ def surah_keyboard(page=1):
             )
         )
 
-    nav = []
+    nav_buttons = []
 
     if page > 1:
-        nav.append(
+        nav_buttons.append(
             InlineKeyboardButton("⬅ Oldingi", callback_data=f"surahpage_{page-1}")
         )
 
     if page < total_pages:
-        nav.append(
+        nav_buttons.append(
             InlineKeyboardButton("➡ Keyingi", callback_data=f"surahpage_{page+1}")
         )
 
-    if nav:
-        kb.row(*nav)
+    if nav_buttons:
+        kb.row(*nav_buttons)
 
-    # 🔥 Doimiy pastki tugma
-    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+    # 🔥 DOIMIY PASTKI QATOR
+    kb.row(
+        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+    )
 
     return kb
+
 
 # ======================
 # SEND AYAH
@@ -363,30 +366,33 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
             InlineKeyboardButton(f"{i}-oyat", callback_data=f"ayah_{i}")
         )
 
-    nav = []
+    nav_buttons = []
 
     if start > 1:
-        nav.append(
+        nav_buttons.append(
             InlineKeyboardButton("⬅ Oldingi 50", callback_data=f"ayahpage_{page-1}")
         )
 
     if end < total_ayahs:
-        nav.append(
+        nav_buttons.append(
             InlineKeyboardButton("➡ Keyingi 50", callback_data=f"ayahpage_{page+1}")
         )
 
-    if nav:
-        kb.row(*nav)
+    if nav_buttons:
+        kb.row(*nav_buttons)
 
-    # 🔥 DOIMIY BOSH MENYU
-    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+    # 🔥 HAR DOIM KO‘RINADIGAN PASTKI QATOR
+    kb.row(
+        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+    )
 
     await callback.message.edit_text(
-        "📜 Оятни танланг:",
+        "📜 Oyatni tanlang:",
         reply_markup=kb
     )
 
     await callback.answer()
+
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surahpage_"))
@@ -498,6 +504,7 @@ async def navigation(callback: types.CallbackQuery):
         )
         await callback.answer()
         return
+
 
 
     await send_ayah(user_id, callback.message)
