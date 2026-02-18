@@ -336,9 +336,10 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     kb = InlineKeyboardMarkup(row_width=6)
 
     for i in range(start, end + 1):
-        kb.insert(
-            InlineKeyboardButton(str(i), callback_data=f"ayah_{i}")
-        )
+    kb.insert(
+        InlineKeyboardButton(f"{i}-oyat", callback_data=f"ayah_{i}")
+    )
+
 
     nav = []
 
@@ -401,7 +402,28 @@ async def select_ayah(callback: types.CallbackQuery):
     update_user(callback.from_user.id, "current_ayah", ayah)
 
     await send_ayah(callback.from_user.id, callback.message)
-    
+    # 50 та диапазон аниқлаймиз
+current_page = (ayah - 1) // 50 + 1
+total_pages = (total_ayahs - 1) // 50 + 1
+
+if total_pages > 1:
+    page_nav = []
+
+    if current_page > 1:
+        page_nav.append(
+            InlineKeyboardButton("⬅ 50 Oldingi", callback_data=f"ayahpage_{current_page-1}")
+        )
+
+    if current_page < total_pages:
+        page_nav.append(
+            InlineKeyboardButton("➡ 50 Keyingi", callback_data=f"ayahpage_{current_page+1}")
+        )
+
+    if page_nav:
+        kb.row(*page_nav)
+
+
+
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
 
