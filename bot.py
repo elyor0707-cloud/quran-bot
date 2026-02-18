@@ -390,26 +390,6 @@ async def select_ayah(callback: types.CallbackQuery):
 
     await send_ayah(callback.from_user.id, callback.message)
     # 50 та диапазон аниқлаймиз
-current_page = (ayah - 1) // 50 + 1
-total_pages = (total_ayahs - 1) // 50 + 1
-
-if total_pages > 1:
-    page_nav = []
-
-    if current_page > 1:
-        page_nav.append(
-            InlineKeyboardButton("⬅ 50 Oldingi", callback_data=f"ayahpage_{current_page-1}")
-        )
-
-    if current_page < total_pages:
-        page_nav.append(
-            InlineKeyboardButton("➡ 50 Keyingi", callback_data=f"ayahpage_{current_page+1}")
-        )
-
-    if page_nav:
-        kb.row(*page_nav)
-
-
 
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
