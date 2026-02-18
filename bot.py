@@ -302,43 +302,42 @@ async def send_ayah(user_id, message):
                 os.remove(filename)
             else:
                 await message.answer("🔊 Audio topilmadi.")
+                
+# NAVIGATION
+kb = InlineKeyboardMarkup()
 
-    # NAVIGATION
-    kb = InlineKeyboardMarkup()
+# 50 та диапазон
+current_page = (ayah - 1) // 50 + 1
+total_pages = (total_ayahs - 1) // 50 + 1
 
-    # 50 та диапазон
-    current_page = (ayah - 1) // 50 + 1
-    total_pages = (total_ayahs - 1) // 50 + 1
+if ayah > 1:
+    kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
 
-    if ayah > 1:
-        kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+if ayah < total_ayahs:
+    kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
 
-    if ayah < total_ayahs:
-        kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+if total_pages > 1:
 
-    if total_pages > 1:
-
-        page_nav = []
+    page_nav = []
 
     if current_page > 1:
         page_nav.append(
             InlineKeyboardButton("⬅ 50 Oldingi", callback_data=f"ayahpage_{current_page-1}")
         )
 
-        if current_page < total_pages:
+    if current_page < total_pages:
         page_nav.append(
             InlineKeyboardButton("➡ 50 Keyingi", callback_data=f"ayahpage_{current_page+1}")
         )
 
-        if page_nav:
-            kb.row(*page_nav)
+    if page_nav:
+        kb.row(*page_nav)
 
-    kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
 
-    await message.answer("👇 Navigatsiya:", reply_markup=kb)
+await message.answer("👇 Navigatsiya:", reply_markup=kb)
 
-
-
+    
 # ======================
 # HANDLERS
 # ======================
