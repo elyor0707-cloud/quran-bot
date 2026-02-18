@@ -301,34 +301,6 @@ async def send_ayah(user_id, message):
 
     kb = InlineKeyboardMarkup()
 
-    current_page = (ayah - 1) // 50 + 1
-    total_pages = (total_ayahs - 1) // 50 + 1
-
-    if ayah > 1:
-        kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
-
-    if ayah < total_ayahs:
-        kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
-
-    if total_pages > 1:
-
-        page_nav = []
-
-        if current_page > 1:
-            page_nav.append(
-                InlineKeyboardButton("⬅ 50 Oldingi", callback_data=f"ayahpage_{current_page-1}")
-            )
-
-        if current_page < total_pages:
-            page_nav.append(
-                InlineKeyboardButton("➡ 50 Keyingi", callback_data=f"ayahpage_{current_page+1}")
-            )
-
-        if page_nav:
-            kb.row(*page_nav)
-
-    kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
-
     await message.answer("👇 Navigatsiya:", reply_markup=kb)
 
 
