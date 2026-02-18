@@ -356,8 +356,7 @@ async def send_ayah(user_id, message):
 
     kb = InlineKeyboardMarkup()
 
-    await message.answer("👇 Navigatsiya:", reply_markup=kb)
-
+   
 
 # ======================
 # HANDLERS
