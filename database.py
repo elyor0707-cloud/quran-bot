@@ -4,6 +4,8 @@ users = {}
 
 def get_surahs():
     return [
+        {"number": i, "name": name}
+        for i, name in [
         {"number": 1, "name": "Fatiha"},
         {"number": 2, "name": "Baqara"},
         {"number": 3, "name": "Imran"},
@@ -119,6 +121,7 @@ def get_surahs():
         {"number": 113, "name": "Falaq"},
         {"number": 114, "name": "Nas"},
     ]
+
     ]
 
 
