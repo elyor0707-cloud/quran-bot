@@ -253,6 +253,9 @@ def surah_keyboard(page=1):
     if nav:
         kb.row(*nav)
 
+    # 🔥 Doimiy pastki tugma
+    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+
     return kb
 
 # ======================
@@ -364,25 +367,39 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
 
     if start > 1:
         nav.append(
-            InlineKeyboardButton("⬅ Oldingi", callback_data=f"ayahpage_{page-1}")
+            InlineKeyboardButton("⬅ Oldingi 50", callback_data=f"ayahpage_{page-1}")
         )
 
     if end < total_ayahs:
         nav.append(
-            InlineKeyboardButton("➡ Keyingi", callback_data=f"ayahpage_{page+1}")
+            InlineKeyboardButton("➡ Keyingi 50", callback_data=f"ayahpage_{page+1}")
         )
 
     if nav:
         kb.row(*nav)
 
-    kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+    # 🔥 DOIMIY BOSH MENYU
+    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     await callback.message.edit_text(
-        "Оятни танланг:",
+        "📜 Оятни танланг:",
         reply_markup=kb
     )
+
     await callback.answer()
 
+
+@dp.callback_query_handler(lambda c: c.data.startswith("surahpage_"))
+async def surah_page(callback: types.CallbackQuery):
+
+    page = int(callback.data.split("_")[1])
+
+    await callback.message.edit_text(
+        "📖 Surani tanlang:",
+        reply_markup=surah_keyboard(page)
+    )
+
+    await callback.answer()
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
@@ -475,12 +492,13 @@ async def navigation(callback: types.CallbackQuery):
                 return
 
     elif callback.data == "menu":
-        await callback.message.answer(
+        await callback.message.edit_text(
             "📖 Surani tanlang:",
             reply_markup=surah_keyboard()
         )
         await callback.answer()
         return
+
 
     await send_ayah(user_id, callback.message)
     await callback.answer()
