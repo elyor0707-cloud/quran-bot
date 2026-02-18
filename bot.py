@@ -288,6 +288,17 @@ async def send_ayah(user_id, message):
         create_card_image(arabic_html, uzbek, surah_name, ayah)
         await message.answer_photo(InputFile("card.png"))
 
+        # ===== NAVIGATION KEYBOARD =====
+        kb = InlineKeyboardMarkup()
+
+        if ayah > 1:
+            kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+
+        if ayah < total_ayahs:
+            kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+
+        kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+
         # ===== AUDIO =====
         sura = str(surah).zfill(3)
         ayah_num = str(ayah).zfill(3)
@@ -299,10 +310,15 @@ async def send_ayah(user_id, message):
                 with open(filename, "wb") as f:
                     f.write(await audio_resp.read())
 
-                await message.answer_audio(InputFile(filename))
+                await message.answer_audio(
+                    InputFile(filename),
+                    reply_markup=kb   # 🔥 АНА ШУ ЕРДА ҚЎШИЛАДИ
+                )
+
                 os.remove(filename)
             else:
-                await message.answer("🔊 Audio topilmadi.")
+                await message.answer("🔊 Audio topilmadi.", reply_markup=kb)
+
 
     # ===== NAVIGATION =====
     kb = InlineKeyboardMarkup()
