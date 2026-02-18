@@ -351,11 +351,9 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     kb = InlineKeyboardMarkup(row_width=6)
 
     for i in range(start, end + 1):
-    kb.insert(
-        InlineKeyboardButton(f"{i}-oyat", callback_data=f"ayah_{i}")
-    )
-
-
+        kb.insert(
+            InlineKeyboardButton(f"{i}-oyat", callback_data=f"ayah_{i}")
+        )
 
     nav = []
 
@@ -379,6 +377,7 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
         reply_markup=kb
     )
     await callback.answer()
+
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
