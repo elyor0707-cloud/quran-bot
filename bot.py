@@ -490,17 +490,14 @@ async def surah_page(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
+    await callback.answer()  # МАЖБУРИЙ
 
-    surah_number = int(callback.data.split("_")[1])
-    update_user(callback.from_user.id, "current_surah", surah_number)
+    surah_id = callback.data.split("_")[1]
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
-            r = await resp.json()
+    await callback.message.edit_text(
+        f"Сура танланди: {surah_id}"
+    )
 
-    total_ayahs = r['data']['numberOfAyahs']
-
-    await show_ayah_page(callback, surah_number, 1, total_ayahs)
 
 @dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
 async def ayah_page(callback: types.CallbackQuery):
