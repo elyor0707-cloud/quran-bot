@@ -370,8 +370,8 @@ async def send_ayah(user_id, message):
 @dp.message_handler(commands=['start'])
 async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
-    await message.answer("📖 Surani tanlang:", reply_markup=surah_keyboard())
-    
+    await message.answer("🏠 Bosh menyu:", reply_markup=main_menu())
+   
 
 async def show_ayah_page(callback, surah_number, page, total_ayahs):
 
