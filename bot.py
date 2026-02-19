@@ -550,14 +550,25 @@ async def back_to_surah(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
 
+    await callback.answer()
+
     user_id = callback.from_user.id
     user = get_user(user_id)
 
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    # ===== CACHE ИШЛАТАМИЗ =====
-    
+    # ===== MENU =====
+    if callback.data == "menu":
+        set_user_mode(user_id, "normal")
+
+        await callback.message.edit_text(
+            "🏠 Bosh menyu:",
+            reply_markup=main_menu()
+        )
+        return
+
+    # ===== CACHE =====
     if surah not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
             r = await resp.json()
@@ -565,47 +576,15 @@ async def navigation(callback: types.CallbackQuery):
 
     total_ayahs = SURAH_CACHE[surah]
 
+    # ===== NEXT =====
     if callback.data == "next":
         if ayah < total_ayahs:
             update_user(user_id, "current_ayah", ayah + 1)
-        else:
-            if surah < 114:
-                update_user(user_id, "current_surah", surah + 1)
-                update_user(user_id, "current_ayah", 1)
-            else:
-                await callback.answer("Oxirgi sura!", show_alert=True)
-                return
 
+    # ===== PREV =====
     elif callback.data == "prev":
         if ayah > 1:
             update_user(user_id, "current_ayah", ayah - 1)
-        else:
-            if surah > 1:
-                new_surah = surah - 1
-
-                if new_surah not in SURAH_CACHE:
-                    async with session.get(f"https://api.alquran.cloud/v1/surah/{new_surah}") as resp:
-                        r = await resp.json()
-                        SURAH_CACHE[new_surah] = r['data']['numberOfAyahs']
-
-                update_user(user_id, "current_surah", new_surah)
-                update_user(user_id, "current_ayah", SURAH_CACHE[new_surah])
-            else:
-                await callback.answer("Birinchi sura!", show_alert=True)
-                return
-
-    elif callback.data == "menu":
-    set_user_mode(user_id, "normal")
-
-        await callback.message.edit_text(
-            "🏠 Bosh menyu:",
-            reply_markup=main_menu()
-    )
-
-    await callback.answer()
-    return
-
-
 
     await send_ayah(user_id, callback.message)
     await callback.answer()
