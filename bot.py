@@ -310,16 +310,20 @@ def main_menu():
 # SEND AYAH
 # ======================
 
-async def send_ayah(user_id, message):
+async def send_ayah(user_id: int, message: types.Message):
 
     user = get_user(user_id)
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
-    ) as resp:
-        r = await resp.json()
+    try:
+        async with session.get(
+            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
+        ) as resp:
+            r = await resp.json()
+    except Exception:
+        await message.answer("❌ API xatolik. Qayta urinib ko‘ring.")
+        return
 
     arabic_html = r['data'][0]['text']
     uzbek = r['data'][1]['text']
@@ -327,30 +331,26 @@ async def send_ayah(user_id, message):
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
     create_card_image(arabic_html, uzbek, surah_name, ayah)
+
     await message.answer_photo(InputFile("card.png"))
 
-    # ===== NAVIGATION (FUNCTION ICHIDA!) =====
+    # ===== NAVIGATION =====
     kb = InlineKeyboardMarkup(row_width=3)
 
     buttons = []
 
     if ayah > 1:
-        buttons.append(
-            InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
-        )
+        buttons.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
 
     if ayah < total_ayahs:
-        buttons.append(
-            InlineKeyboardButton("➡ Keyingi", callback_data="next")
-        )
+        buttons.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
 
-    buttons.append(
-        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-    )
+    buttons.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     kb.row(*buttons)
 
     await message.answer("👇", reply_markup=kb)
+
 
 
 
@@ -482,16 +482,19 @@ async def surah_page(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
 
+    await callback.answer()
+
     surah_id = int(callback.data.split("_")[1])
 
     update_user(callback.from_user.id, "current_surah", surah_id)
     update_user(callback.from_user.id, "current_ayah", 1)
 
-    async with aiohttp.ClientSession() as session:
+    if surah_id not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
             r = await resp.json()
+            SURAH_CACHE[surah_id] = r['data']['numberOfAyahs']
 
-    total_ayahs = r['data']['numberOfAyahs']
+    total_ayahs = SURAH_CACHE[surah_id]
 
     await show_ayah_page(callback, surah_id, 1, total_ayahs)
     await callback.answer()
@@ -516,10 +519,11 @@ async def ayah_page(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
 async def select_ayah(callback: types.CallbackQuery):
 
+    await callback.answer()
+
     ayah = int(callback.data.split("_")[1])
     update_user(callback.from_user.id, "current_ayah", ayah)
 
-    await callback.answer()
     await send_ayah(callback.from_user.id, callback.message)
     await callback.answer()
 
@@ -560,11 +564,11 @@ async def navigation(callback: types.CallbackQuery):
     # ===== MENU =====
     if callback.data == "menu":
         set_user_mode(user_id, "normal")
+        await callback.answer()
         await callback.message.edit_text(
             "🏠 Bosh menyu:",
             reply_markup=main_menu()
         )
-        await callback.answer()
         return
 
     # ===== CACHE =====
@@ -576,16 +580,14 @@ async def navigation(callback: types.CallbackQuery):
     total_ayahs = SURAH_CACHE[surah]
 
     # ===== NEXT =====
-    if callback.data == "next":
-        if ayah < total_ayahs:
-            update_user(user_id, "current_ayah", ayah + 1)
+    if callback.data == "next" and ayah < total_ayahs:
+        update_user(user_id, "current_ayah", ayah + 1)
 
     # ===== PREV =====
-    elif callback.data == "prev":
-        if ayah > 1:
-            update_user(user_id, "current_ayah", ayah - 1)
+    elif callback.data == "prev" and ayah > 1:
+        update_user(user_id, "current_ayah", ayah - 1)
 
-    await callback.answer()   # 🔥 MUHIM
+    await callback.answer()
     await send_ayah(user_id, callback.message)
 
 
@@ -634,8 +636,9 @@ async def universal_handler(message: types.Message):
 
 async def on_startup(dp):
     global session
-    session = aiohttp.ClientSession()
+    session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20))
     print("✅ Session started")
+
 
 async def on_shutdown(dp):
     await session.close()
