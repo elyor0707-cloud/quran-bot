@@ -515,9 +515,11 @@ async def ayah_page(callback: types.CallbackQuery):
     user = get_user(callback.from_user.id)
     surah_number = user["current_surah"]
 
-    async with session.get(...)
-        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
-            r = await resp.json()
+    async with session.get(
+        f"https://api.alquran.cloud/v1/surah/{surah_number}"
+    ) as resp:
+        r = await resp.json()
+
 
     total_ayahs = r['data']['numberOfAyahs']
 
