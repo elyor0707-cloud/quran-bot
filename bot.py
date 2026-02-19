@@ -474,6 +474,7 @@ async def navigation(callback: types.CallbackQuery):
     ayah = user["current_ayah"]
 
     # Сура ҳақида маълумот оламиз
+    SURAH_CACHE = {}
     async with aiohttp.ClientSession() as session:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
             r = await resp.json()
