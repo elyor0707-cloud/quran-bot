@@ -351,17 +351,29 @@ async def send_ayah(user_id, message):
             await message.answer("🔊 Audio topilmadi.")
 
     # ===== NAVIGATION =====
-    kb = InlineKeyboardMarkup()
+kb = InlineKeyboardMarkup(row_width=3)
 
-    if ayah > 1:
-        kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+buttons = []
 
-    if ayah < total_ayahs:
-        kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+if ayah > 1:
+    buttons.append(
+        InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
+    )
 
-    kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+if ayah < total_ayahs:
+    buttons.append(
+        InlineKeyboardButton("➡ Keyingi", callback_data="next")
+    )
 
-    await message.answer("👇", reply_markup=kb)
+buttons.append(
+    InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+)
+
+kb.row(*buttons)
+
+await message.answer("👇", reply_markup=kb)
+
+
 
 # ======================
 # HANDLERS
