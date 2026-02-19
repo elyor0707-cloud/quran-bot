@@ -21,8 +21,6 @@ if not BOT_TOKEN:
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
-# ===== GLOBAL SESSION =====
-session = aiohttp.ClientSession()
 
 # ===== SURAH CACHE =====
 SURAH_CACHE = {}
@@ -552,4 +550,19 @@ async def navigation(callback: types.CallbackQuery):
 # ======================
 
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+    async def on_startup(dp):
+    global session
+    session = aiohttp.ClientSession()
+    print("✅ Session started")
+
+async def on_shutdown(dp):
+    await session.close()
+    print("❌ Session closed")
+    
+    executor.start_polling(
+        dp,
+        skip_updates=True,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown
+    )
+
