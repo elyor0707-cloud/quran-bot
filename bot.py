@@ -308,16 +308,16 @@ async def send_ayah(user_id, message):
 
         async with session.get(audio_url) as audio_resp:
             if audio_resp.status == 200:
-                filename = f"{sura}{ayah_num}.mp3"
-                with open(filename, "wb") as f:
-                    f.write(await audio_resp.read())
+                import io  # файл тепасига қўш!
+
+                audio_bytes = await audio_resp.read()
 
                 await message.answer_audio(
-                    InputFile(filename),
-                    reply_markup=kb   # 🔥 АНА ШУ ЕРДА ҚЎШИЛАДИ
+                    types.InputFile(
+                        io.BytesIO(audio_bytes),
+                        filename=f"{sura}{ayah_num}.mp3"
+                    )
                 )
-
-                os.remove(filename)
             else:
                 await message.answer("🔊 Audio topilmadi.", reply_markup=kb)
 
