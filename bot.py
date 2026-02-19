@@ -290,7 +290,7 @@ async def send_ayah(user_id, message):
     create_card_image(arabic_html, uzbek, surah_name, ayah)
     await message.answer_photo(InputFile("card.png"))
 
-    # ===== AUDIO (RAM орқали — тез) =====
+    # ===== AUDIO (RAM орқали) =====
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
     audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
@@ -321,66 +321,6 @@ async def send_ayah(user_id, message):
     kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
 
     await message.answer("👇", reply_markup=kb)
-
-
-        # ===== AUDIO =====
-        sura = str(surah).zfill(3)
-        ayah_num = str(ayah).zfill(3)
-        audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
-
-        async with session.get(audio_url) as audio_resp:
-            if audio_resp.status == 200:
-                import io  # файл тепасига қўш!
-
-                audio_bytes = await audio_resp.read()
-
-                await message.answer_audio(
-                    types.InputFile(
-                        io.BytesIO(audio_bytes),
-                        filename=f"{sura}{ayah_num}.mp3"
-                    )
-                )
-            else:
-                await message.answer("🔊 Audio topilmadi.", reply_markup=kb)
-
-
-    # ===== NAVIGATION =====
-    kb = InlineKeyboardMarkup()
-
-    # Oddiy oldinga/orqaga
-    if ayah > 1:
-        kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
-
-    if ayah < total_ayahs:
-        kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
-
-    # 50 lik sahifa navigatsiyasi
-    current_page = (ayah - 1) // 50 + 1
-    total_pages = (total_ayahs - 1) // 50 + 1
-
-    if total_pages > 1:
-        page_nav = []
-
-        if current_page > 1:
-            page_nav.append(
-                InlineKeyboardButton("⬅ 50 Oldingi", callback_data=f"ayahpage_{current_page-1}")
-            )
-
-        if current_page < total_pages:
-            page_nav.append(
-                InlineKeyboardButton("➡ 50 Keyingi", callback_data=f"ayahpage_{current_page+1}")
-            )
-
-        if page_nav:
-            kb.row(*page_nav)
-
-
-        
-    # ================= NAVIGATION =================
-
-    kb = InlineKeyboardMarkup()
-
-   
 
 # ======================
 # HANDLERS
