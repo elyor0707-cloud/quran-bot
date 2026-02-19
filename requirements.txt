@@ -3,3 +3,4 @@ aiohttp
 Pillow
 arabic-reshaper
 python-bidi
+openai>=1.30.0
