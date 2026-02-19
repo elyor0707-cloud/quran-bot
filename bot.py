@@ -426,39 +426,46 @@ async def start_cmd(message: types.Message):
 
 async def show_ayah_page(callback, surah_number, page, total_ayahs):
 
-    per_page = 50
+    per_page = 10   # 🔥 50 эмас — professional 10
+
     start = (page - 1) * per_page + 1
     end = min(start + per_page - 1, total_ayahs)
 
-    kb = InlineKeyboardMarkup(row_width=6)
+    kb = InlineKeyboardMarkup(row_width=5)
 
+    # ===== HEADER =====
+    title = f"📖 {surah_number}-sura | {start}-{end} oyatlar"
+    
+    # ===== OYATLAR =====
     for i in range(start, end + 1):
         kb.insert(
-            InlineKeyboardButton(f"{i}-oyat", callback_data=f"ayah_{i}")
+            InlineKeyboardButton(
+                f"{i}",
+                callback_data=f"ayah_{i}"
+            )
         )
 
+    # ===== NAVIGATION =====
     nav_buttons = []
 
-    if start > 1:
+    if page > 1:
         nav_buttons.append(
-            InlineKeyboardButton("⬅ Oldingi 50", callback_data=f"ayahpage_{page-1}")
+            InlineKeyboardButton("⬅", callback_data=f"ayahpage_{page-1}")
         )
+
+    nav_buttons.append(
+        InlineKeyboardButton("🏠", callback_data="menu")
+    )
 
     if end < total_ayahs:
         nav_buttons.append(
-            InlineKeyboardButton("➡ Keyingi 50", callback_data=f"ayahpage_{page+1}")
+            InlineKeyboardButton("➡", callback_data=f"ayahpage_{page+1}")
         )
 
-    if nav_buttons:
-        kb.row(*nav_buttons)
-
-    # 🔥 HAR DOIM KO‘RINADIGAN PASTKI QATOR
-    kb.row(
-        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-    )
+    kb.row(*nav_buttons)
 
     await callback.message.edit_text(
-        "📜 Oyatni tanlang:",
+        title,
         reply_markup=kb
     )
 
