@@ -274,8 +274,7 @@ async def send_ayah(user_id, message):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    async with aiohttp.ClientSession() as session:
-
+    
         # ===== AYAH DATA =====
         async with session.get(
             f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
