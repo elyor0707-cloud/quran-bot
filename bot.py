@@ -309,7 +309,7 @@ def main_menu():
 # ======================
 # SEND AYAH
 # ======================
-await callback.answer(cache_time=1)
+
 async def send_ayah(user_id, message):
 
     user = get_user(user_id)
@@ -587,7 +587,7 @@ async def navigation(callback: types.CallbackQuery):
             update_user(user_id, "current_ayah", ayah - 1)
 
     await send_ayah(user_id, callback.message)
-    await callback.answer()
+   
 
 @dp.message_handler()
 async def universal_handler(message: types.Message):
