@@ -305,20 +305,16 @@ def main_menu():
 # SEND AYAH
 # ======================
 
-async def send_ayah(user_id: int, message: types.Message):
+async def send_ayah(user_id, message):
 
     user = get_user(user_id)
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    try:
-        async with session.get(
-            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
-        ) as resp:
-            r = await resp.json()
-    except Exception:
-        await message.answer("❌ API xatolik. Qayta urinib ko‘ring.")
-        return
+    async with session.get(
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
+    ) as resp:
+        r = await resp.json()
 
     arabic_html = r['data'][0]['text']
     uzbek = r['data'][1]['text']
@@ -326,11 +322,10 @@ async def send_ayah(user_id: int, message: types.Message):
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
     create_card_image(arabic_html, uzbek, surah_name, ayah)
-
     await message.answer_photo(InputFile("card.png"))
 
-    # ===== NAVIGATION =====
-        kb = InlineKeyboardMarkup(row_width=3)
+    # ===== NAVIGATION (TO‘G‘RI JOY) =====
+    kb = InlineKeyboardMarkup(row_width=3)
 
     buttons = []
 
