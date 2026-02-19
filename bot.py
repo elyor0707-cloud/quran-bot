@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 import arabic_reshaper
 from bidi.algorithm import get_display
 import re
+from openai import AsyncOpenAI
 
 # ======================
 # BOT INIT
@@ -21,9 +22,31 @@ if not BOT_TOKEN:
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
+# ======================
+# OPENAI INIT
+# ======================
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if OPENAI_API_KEY:
+    ai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+else:
+    ai_client = None
 
 # ===== SURAH CACHE =====
 SURAH_CACHE = {}
+
+# ======================
+# USER MODE MANAGER
+# ======================
+
+USER_MODES = {}
+
+def set_user_mode(user_id, mode):
+    USER_MODES[user_id] = mode
+
+def get_user_mode(user_id):
+    return USER_MODES.get(user_id, "normal")
 
 
 TAJWEED_COLORS = {
@@ -263,6 +286,24 @@ def surah_keyboard(page=1):
     )
 
     return kb
+
+def main_menu():
+    kb = InlineKeyboardMarkup(row_width=2)
+
+    kb.add(
+        InlineKeyboardButton("📖 Qur’on o‘qish", callback_data="quron_read"),
+        InlineKeyboardButton("🎧 Zam suralar", callback_data="zam_menu"),
+    )
+    kb.add(
+        InlineKeyboardButton("🌍 AI Translate", callback_data="ai_translate"),
+        InlineKeyboardButton("🕌 Zikir ahlidan so‘rang", callback_data="zikir_ai"),
+    )
+    kb.add(
+        InlineKeyboardButton("📚 Surani tanlash", callback_data="back_to_surah")
+    )
+
+    return kb
+
 
 
 # ======================
