@@ -685,14 +685,9 @@ async def on_shutdown_webhook(dp):
     print("❌ Webhook deleted")
 
 if __name__ == "__main__":
-    
-        on_shutdown=on_shutdown_webhook,
-        skip_updates=True,
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000)),
-    )
-if __name__ == "__main__":
+    from aiogram import executor
     executor.start_polling(dp, skip_updates=True)
+
 
 
 
