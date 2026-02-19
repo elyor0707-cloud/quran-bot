@@ -309,7 +309,7 @@ def main_menu():
 # ======================
 # SEND AYAH
 # ======================
-
+await callback.answer(cache_time=1)
 async def send_ayah(user_id, message):
 
     user = get_user(user_id)
@@ -595,12 +595,16 @@ async def navigation(callback: types.CallbackQuery):
                 return
 
     elif callback.data == "menu":
-        await callback.message.edit_text(
-            "📖 Surani tanlang:",
-            reply_markup=surah_keyboard()
-        )
-        await callback.answer()
-        return
+    set_user_mode(user_id, "normal")
+
+    await callback.message.edit_text(
+        "🏠 Bosh menyu:",
+        reply_markup=main_menu()
+    )
+
+    await callback.answer()
+    return
+
 
     await send_ayah(user_id, callback.message)
     await callback.answer()
