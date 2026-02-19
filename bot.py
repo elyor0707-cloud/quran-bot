@@ -521,8 +521,9 @@ async def select_ayah(callback: types.CallbackQuery):
 
     await callback.answer()
     await send_ayah(callback.from_user.id, callback.message)
+    await callback.answer()
 
-    # 50 та диапазон аниқлаймиз
+
 
 @dp.callback_query_handler(lambda c: c.data == "ai_translate")
 async def enable_translate(callback: types.CallbackQuery):
@@ -586,6 +587,7 @@ async def navigation(callback: types.CallbackQuery):
 
     await callback.answer()   # 🔥 MUHIM
     await send_ayah(user_id, callback.message)
+
 
 
 @dp.message_handler()
