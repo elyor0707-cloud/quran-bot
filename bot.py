@@ -366,6 +366,66 @@ async def send_ayah(user_id, message):
 # ======================
 # HANDLERS
 # ======================
+# ======================
+# ZAM SURALAR
+# ======================
+
+QORI_LINKS = {
+    "zam_alafasy": "Alafasy_128kbps",
+    "zam_badr": "Badr_AlTurki_128kbps",
+    "zam_alijon": "Alijon_Qori_128kbps"
+}
+
+@dp.callback_query_handler(lambda c: c.data == "zam_menu")
+async def zam_menu(callback: types.CallbackQuery):
+
+    kb = InlineKeyboardMarkup()
+
+    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="zam_badr"))
+    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="zam_alafasy"))
+    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="zam_alijon"))
+    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+
+    await callback.message.edit_text("🎧 Qorini tanlang:", reply_markup=kb)
+    await callback.answer()
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("zam_"))
+async def zam_play(callback: types.CallbackQuery):
+
+    user = get_user(callback.from_user.id)
+    surah = user["current_surah"]
+    ayah = user["current_ayah"]
+
+    reciter = QORI_LINKS.get(callback.data)
+
+    sura = str(surah).zfill(3)
+    ayah_num = str(ayah).zfill(3)
+
+    audio_url = f"https://everyayah.com/data/{reciter}/{sura}{ayah_num}.mp3"
+
+    async with session.get(audio_url) as audio_resp:
+        if audio_resp.status == 200:
+            import io
+            audio_bytes = await audio_resp.read()
+
+            await callback.message.answer_audio(
+                types.InputFile(
+                    io.BytesIO(audio_bytes),
+                    filename=f"{sura}{ayah_num}.mp3"
+                )
+            )
+        else:
+            await callback.message.answer("Audio topilmadi.")
+
+    await callback.answer()
+@dp.callback_query_handler(lambda c: c.data == "quron_read")
+async def quron_read(callback: types.CallbackQuery):
+    await callback.message.answer_document(
+        InputFile("tajwid_mushaf.pdf"),
+        caption="📖 Tajvidli Qur’on kitobi"
+    )
+    await callback.answer()
 
 @dp.message_handler(commands=['start'])
 async def start_cmd(message: types.Message):
@@ -467,6 +527,29 @@ async def select_ayah(callback: types.CallbackQuery):
     await send_ayah(callback.from_user.id, callback.message)
     # 50 та диапазон аниқлаймиз
 
+@dp.callback_query_handler(lambda c: c.data == "ai_translate")
+async def enable_translate(callback: types.CallbackQuery):
+    set_user_mode(callback.from_user.id, "translate")
+    await callback.message.answer("🌍 Tarjima rejimi yoqildi. Matn yozing.")
+    await callback.answer()
+
+
+@dp.callback_query_handler(lambda c: c.data == "zikir_ai")
+async def enable_zikir(callback: types.CallbackQuery):
+    set_user_mode(callback.from_user.id, "zikir")
+    await callback.message.answer("🕌 Savolingizni yozing.")
+    await callback.answer()
+
+
+@dp.callback_query_handler(lambda c: c.data == "back_to_surah")
+async def back_to_surah(callback: types.CallbackQuery):
+    set_user_mode(callback.from_user.id, "normal")
+    await callback.message.edit_text(
+        "📖 Surani tanlang:",
+        reply_markup=surah_keyboard()
+    )
+    await callback.answer()
+
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
 
@@ -477,6 +560,7 @@ async def navigation(callback: types.CallbackQuery):
     ayah = user["current_ayah"]
 
     # ===== CACHE ИШЛАТАМИЗ =====
+    
     if surah not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
             r = await resp.json()
@@ -523,6 +607,42 @@ async def navigation(callback: types.CallbackQuery):
 
     await send_ayah(user_id, callback.message)
     await callback.answer()
+
+@dp.message_handler()
+async def universal_handler(message: types.Message):
+
+    mode = get_user_mode(message.from_user.id)
+
+    if not ai_client:
+        return
+
+    if mode == "translate":
+
+        response = await ai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a real-time translator."},
+                {"role": "user", "content": message.text}
+            ]
+        )
+
+        await message.answer(response.choices[0].message.content)
+
+    elif mode == "zikir":
+
+        response = await ai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an Islamic scholar. Answer with hadith evidence and Uzbekistan Fatwa references."
+                },
+                {"role": "user", "content": message.text}
+            ]
+        )
+
+        await message.answer(response.choices[0].message.content)
+
 
 
 
