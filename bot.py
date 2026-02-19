@@ -490,13 +490,20 @@ async def surah_page(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
-    await callback.answer()  # МАЖБУРИЙ
 
-    surah_id = callback.data.split("_")[1]
+    surah_id = int(callback.data.split("_")[1])
 
-    await callback.message.edit_text(
-        f"Сура танланди: {surah_id}"
-    )
+    update_user(callback.from_user.id, "current_surah", surah_id)
+    update_user(callback.from_user.id, "current_ayah", 1)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
+            r = await resp.json()
+
+    total_ayahs = r['data']['numberOfAyahs']
+
+    await show_ayah_page(callback, surah_id, 1, total_ayahs)
+
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
@@ -550,23 +557,21 @@ async def back_to_surah(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
 async def navigation(callback: types.CallbackQuery):
 
-    await callback.answer()
-
     user_id = callback.from_user.id
     user = get_user(user_id)
 
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    # ===== MENU =====
     if callback.data == "menu":
         set_user_mode(user_id, "normal")
-
         await callback.message.edit_text(
             "🏠 Bosh menyu:",
             reply_markup=main_menu()
         )
+        await callback.answer()
         return
+
 
     # ===== CACHE =====
     if surah not in SURAH_CACHE:
