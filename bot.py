@@ -22,6 +22,9 @@ if not BOT_TOKEN:
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
+# ===== GLOBAL SESSION =====
+session = aiohttp.ClientSession()
+
 TAJWEED_COLORS = {
     "ghunnah": "#2ecc71",
     "idgham": "#3498db",
