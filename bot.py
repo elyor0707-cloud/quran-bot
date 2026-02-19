@@ -100,8 +100,8 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
     
 def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
-    width = 1200
-    height = 900
+    width = 900
+    height = 650
     side_margin = 110
 
     img = Image.new("RGB", (width, height), "#0f1b2d")
@@ -475,11 +475,13 @@ async def navigation(callback: types.CallbackQuery):
 
     # Сура ҳақида маълумот оламиз
     SURAH_CACHE = {}
-    async with aiohttp.ClientSession() as session:
+    if surah not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
             r = await resp.json()
+            SURAH_CACHE[surah] = r['data']['numberOfAyahs']
 
-    total_ayahs = r['data']['numberOfAyahs']
+    total_ayahs = SURAH_CACHE[surah]
+
 
     if callback.data == "next":
 
