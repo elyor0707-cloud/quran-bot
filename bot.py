@@ -21,9 +21,12 @@ if not BOT_TOKEN:
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
-
 # ===== GLOBAL SESSION =====
 session = aiohttp.ClientSession()
+
+# ===== SURAH CACHE =====
+SURAH_CACHE = {}
+
 
 TAJWEED_COLORS = {
     "ghunnah": "#2ecc71",
@@ -274,6 +277,7 @@ async def send_ayah(user_id, message):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
+    # ===== AYAH DATA =====
     async with session.get(
         f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
     ) as resp:
@@ -284,11 +288,11 @@ async def send_ayah(user_id, message):
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-    # IMAGE
+    # ===== IMAGE =====
     create_card_image(arabic_html, uzbek, surah_name, ayah)
     await message.answer_photo(InputFile("card.png"))
 
-    # AUDIO
+    # ===== AUDIO (RAM орқали — тез) =====
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
     audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
@@ -307,7 +311,7 @@ async def send_ayah(user_id, message):
         else:
             await message.answer("🔊 Audio topilmadi.")
 
-    # NAVIGATION
+    # ===== NAVIGATION =====
     kb = InlineKeyboardMarkup()
 
     if ayah > 1:
@@ -318,7 +322,7 @@ async def send_ayah(user_id, message):
 
     kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
 
-    await message.answer(reply_markup=kb)
+    await message.answer("👇", reply_markup=kb)
 
 
         # ===== AUDIO =====
@@ -493,8 +497,7 @@ async def navigation(callback: types.CallbackQuery):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    # Сура ҳақида маълумот оламиз
-    SURAH_CACHE = {}
+    # ===== CACHE ИШЛАТАМИЗ =====
     if surah not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
             r = await resp.json()
@@ -502,56 +505,46 @@ async def navigation(callback: types.CallbackQuery):
 
     total_ayahs = SURAH_CACHE[surah]
 
-
     if callback.data == "next":
-
         if ayah < total_ayahs:
             update_user(user_id, "current_ayah", ayah + 1)
         else:
-            # Кейинги сурага ўтиш
             if surah < 114:
                 update_user(user_id, "current_surah", surah + 1)
                 update_user(user_id, "current_ayah", 1)
             else:
-                await callback.answer("Охирги сура!", show_alert=True)
+                await callback.answer("Oxirgi sura!", show_alert=True)
                 return
 
     elif callback.data == "prev":
-
         if ayah > 1:
             update_user(user_id, "current_ayah", ayah - 1)
         else:
-            # Олдинги сурага ўтиш
             if surah > 1:
                 new_surah = surah - 1
 
-                async with aiohttp.ClientSession() as session:
+                if new_surah not in SURAH_CACHE:
                     async with session.get(f"https://api.alquran.cloud/v1/surah/{new_surah}") as resp:
                         r = await resp.json()
-
-                last_ayah = r['data']['numberOfAyahs']
+                        SURAH_CACHE[new_surah] = r['data']['numberOfAyahs']
 
                 update_user(user_id, "current_surah", new_surah)
-                update_user(user_id, "current_ayah", last_ayah)
+                update_user(user_id, "current_ayah", SURAH_CACHE[new_surah])
             else:
-                await callback.answer("Биринчи сура!", show_alert=True)
+                await callback.answer("Birinchi sura!", show_alert=True)
                 return
 
     elif callback.data == "menu":
-
         await callback.message.edit_text(
             "📖 Surani tanlang:",
             reply_markup=surah_keyboard()
         )
-
         await callback.answer()
         return
 
-
-
-
     await send_ayah(user_id, callback.message)
     await callback.answer()
+
 
 
 # ======================
