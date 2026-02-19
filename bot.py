@@ -597,13 +597,14 @@ async def navigation(callback: types.CallbackQuery):
     elif callback.data == "menu":
     set_user_mode(user_id, "normal")
 
-    await callback.message.edit_text(
-        "🏠 Bosh menyu:",
-        reply_markup=main_menu()
+        await callback.message.edit_text(
+            "🏠 Bosh menyu:",
+            reply_markup=main_menu()
     )
 
     await callback.answer()
     return
+
 
 
     await send_ayah(user_id, callback.message)
