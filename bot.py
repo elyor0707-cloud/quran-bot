@@ -513,12 +513,15 @@ async def navigation(callback: types.CallbackQuery):
                 return
 
     elif callback.data == "menu":
+
         await callback.message.edit_text(
             "📖 Surani tanlang:",
             reply_markup=surah_keyboard()
         )
+
         await callback.answer()
         return
+
 
 
 
