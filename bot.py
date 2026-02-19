@@ -248,10 +248,10 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
 # ======================
 
 def surah_keyboard(page=1):
-    kb = InlineKeyboardMarkup(row_width=4)
+    kb = InlineKeyboardMarkup(row_width=3)
 
     surahs = get_surahs()
-    per_page = 20
+    per_page = 12
 
     total_pages = (len(surahs) + per_page - 1) // per_page
     start = (page - 1) * per_page
@@ -265,41 +265,36 @@ def surah_keyboard(page=1):
             )
         )
 
-    nav_buttons = []
+    nav = []
 
     if page > 1:
-        nav_buttons.append(
-            InlineKeyboardButton("⬅ Oldingi", callback_data=f"surahpage_{page-1}")
-        )
+        nav.append(InlineKeyboardButton("⬅", callback_data=f"surahpage_{page-1}"))
+
+    nav.append(InlineKeyboardButton("🏠", callback_data="menu"))
 
     if page < total_pages:
-        nav_buttons.append(
-            InlineKeyboardButton("➡ Keyingi", callback_data=f"surahpage_{page+1}")
-        )
+        nav.append(InlineKeyboardButton("➡", callback_data=f"surahpage_{page+1}"))
 
-    if nav_buttons:
-        kb.row(*nav_buttons)
-
-    # 🔥 DOIMIY PASTKI QATOR
-    kb.row(
-        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-    )
+    kb.row(*nav)
 
     return kb
+
 
 def main_menu():
     kb = InlineKeyboardMarkup(row_width=2)
 
-    kb.add(
-        InlineKeyboardButton("📖 Qur’on o‘qish", callback_data="quron_read"),
-        InlineKeyboardButton("🎧 Zam suralar", callback_data="zam_menu"),
+    kb.row(
+        InlineKeyboardButton("📖 O‘qish", callback_data="back_to_surah"),
+        InlineKeyboardButton("🎧 Tinglash", callback_data="zam_menu")
     )
-    kb.add(
-        InlineKeyboardButton("🌍 AI Translate", callback_data="ai_translate"),
-        InlineKeyboardButton("🕌 Zikir ahlidan so‘rang", callback_data="zikir_ai"),
+
+    kb.row(
+        InlineKeyboardButton("🌍 Tarjima AI", callback_data="ai_translate"),
+        InlineKeyboardButton("🕌 Fatvo AI", callback_data="zikir_ai")
     )
-    kb.add(
-        InlineKeyboardButton("📚 Surani tanlash", callback_data="back_to_surah")
+
+    kb.row(
+        InlineKeyboardButton("📚 Mus'haf PDF", callback_data="quron_read")
     )
 
     return kb
@@ -335,23 +330,31 @@ async def send_ayah(user_id: int, message: types.Message):
     await message.answer_photo(InputFile("card.png"))
 
     # ===== NAVIGATION =====
-    kb = InlineKeyboardMarkup(row_width=3)
+        kb = InlineKeyboardMarkup(row_width=3)
 
     buttons = []
 
     if ayah > 1:
-        buttons.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+        buttons.append(
+            InlineKeyboardButton("⬅", callback_data="prev")
+        )
+
+    buttons.append(
+        InlineKeyboardButton("📖 Oyatlar", callback_data="back_to_surah")
+    )
 
     if ayah < total_ayahs:
-        buttons.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
-
-    buttons.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+        buttons.append(
+            InlineKeyboardButton("➡", callback_data="next")
+        )
 
     kb.row(*buttons)
 
-    await message.answer("👇", reply_markup=kb)
+    kb.row(
+        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+    )
 
-
+    await message.answer(" ", reply_markup=kb)
 
 
 # ======================
@@ -421,7 +424,18 @@ async def quron_read(callback: types.CallbackQuery):
 @dp.message_handler(commands=['start'])
 async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
-    await message.answer("🏠 Bosh menyu:", reply_markup=main_menu())
+
+    text = (
+        "📖 *Qur’on Platform*\n\n"
+        "• O‘qish\n"
+        "• Tinglash\n"
+        "• AI Tarjima\n"
+        "• Fatvo AI\n\n"
+        "_Professional tajriba_"
+    )
+
+    await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
+
    
 
 async def show_ayah_page(callback, surah_number, page, total_ayahs):
@@ -508,22 +522,40 @@ async def select_surah(callback: types.CallbackQuery):
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
-async def ayah_page(callback: types.CallbackQuery):
+async def show_ayah_page(callback, surah_number, page, total_ayahs):
 
-    page = int(callback.data.split("_")[1])
+    per_page = 12
 
-    user = get_user(callback.from_user.id)
-    surah_number = user["current_surah"]
+    start = (page - 1) * per_page + 1
+    end = min(start + per_page - 1, total_ayahs)
 
-    async with session.get(
-        f"https://api.alquran.cloud/v1/surah/{surah_number}"
-    ) as resp:
-        r = await resp.json()
+    kb = InlineKeyboardMarkup(row_width=4)
 
+    for i in range(start, end + 1):
+        kb.insert(
+            InlineKeyboardButton(
+                f"{i}",
+                callback_data=f"ayah_{i}"
+            )
+        )
 
-    total_ayahs = r['data']['numberOfAyahs']
+    nav = []
 
-    await show_ayah_page(callback, surah_number, page, total_ayahs)
+    if page > 1:
+        nav.append(InlineKeyboardButton("⬅", callback_data=f"ayahpage_{page-1}"))
+
+    nav.append(InlineKeyboardButton("🏠", callback_data="menu"))
+
+    if end < total_ayahs:
+        nav.append(InlineKeyboardButton("➡", callback_data=f"ayahpage_{page+1}"))
+
+    kb.row(*nav)
+
+    title = f"📖 {surah_number}-sura | {start}-{end}"
+
+    await callback.message.edit_text(title, reply_markup=kb)
+    await callback.answer()
+
 
 @dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
 async def select_ayah(callback: types.CallbackQuery):
@@ -571,14 +603,16 @@ async def navigation(callback: types.CallbackQuery):
     ayah = user["current_ayah"]
 
     # ===== MENU =====
+    
     if callback.data == "menu":
         set_user_mode(user_id, "normal")
-        await callback.answer()
         await callback.message.edit_text(
-            "🏠 Bosh menyu:",
+            "🏠 Asosiy menyu",
             reply_markup=main_menu()
         )
+        await callback.answer()
         return
+
 
     # ===== CACHE =====
     if surah not in SURAH_CACHE:
