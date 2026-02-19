@@ -664,6 +664,10 @@ async def on_shutdown(dp):
 # RUN
 # ======================
 
+# ======================
+# WEBHOOK MODE (RENDER)
+# ======================
+
 from aiogram.utils.executor import start_webhook
 
 WEBHOOK_HOST = os.getenv("RENDER_EXTERNAL_URL")
@@ -671,12 +675,14 @@ WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 async def on_startup_webhook(dp):
+    await on_startup(dp)
     await bot.set_webhook(WEBHOOK_URL)
-    print("Webhook set:", WEBHOOK_URL)
+    print("✅ Webhook set:", WEBHOOK_URL)
 
 async def on_shutdown_webhook(dp):
     await bot.delete_webhook()
-    print("Webhook deleted")
+    await on_shutdown(dp)
+    print("❌ Webhook deleted")
 
 if __name__ == "__main__":
     start_webhook(
@@ -688,6 +694,7 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 10000)),
     )
+
 
 
 
