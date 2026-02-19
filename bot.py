@@ -284,21 +284,20 @@ def main_menu():
     kb = InlineKeyboardMarkup(row_width=2)
 
     kb.row(
-        InlineKeyboardButton("📖 O‘qish", callback_data="back_to_surah"),
-        InlineKeyboardButton("🎧 Tinglash", callback_data="zam_menu")
+        InlineKeyboardButton("📖 Qur’on Tilovati", callback_data="back_to_surah"),
+        InlineKeyboardButton("🎧 Professional Qiroat", callback_data="zam_menu")
     )
 
     kb.row(
-        InlineKeyboardButton("🌍 Tarjima AI", callback_data="ai_translate"),
-        InlineKeyboardButton("🕌 Fatvo AI", callback_data="zikir_ai")
+        InlineKeyboardButton("🌍 AI Multi-Tarjima", callback_data="ai_translate"),
+        InlineKeyboardButton("🕌 Fatvo & Hadis AI", callback_data="zikir_ai")
     )
 
     kb.row(
-        InlineKeyboardButton("📚 Mus'haf PDF", callback_data="quron_read")
+        InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="quron_read")
     )
 
     return kb
-
 
 
 # ======================
@@ -421,16 +420,22 @@ async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
 
     text = (
-        "📖 *Qur’on Platform*\n\n"
-        "• O‘qish\n"
-        "• Tinglash\n"
-        "• AI Tarjima\n"
-        "• Fatvo AI\n\n"
-        "_Professional tajriba_"
+        "🕌 *QUR’ON INTELLECT PLATFORM*\n"
+        "━━━━━━━━━━━━━━━━━━\n\n"
+        "📖 *Tilovat & Tafakkur*\n"
+        "🎧 *Qiroat & Audio*\n"
+        "🌍 *AI Tarjima Markazi*\n"
+        "🕌 *Fatvo va Dalil AI*\n"
+        "📚 *Tajvidli Mus'haf*\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "_Ilm • Tafakkur • Amal_"
     )
 
-    await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
-
+    await message.answer(
+        text,
+        reply_markup=main_menu(),
+        parse_mode="Markdown"
+    )
    
 
 async def show_ayah_page(callback, surah_number, page, total_ayahs):
