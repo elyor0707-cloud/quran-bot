@@ -486,11 +486,10 @@ async def navigation(callback: types.CallbackQuery):
 
 
 # ======================
-# RUN
+# STARTUP / SHUTDOWN
 # ======================
 
-if __name__ == "__main__":
-    async def on_startup(dp):
+async def on_startup(dp):
     global session
     session = aiohttp.ClientSession()
     print("✅ Session started")
@@ -498,11 +497,18 @@ if __name__ == "__main__":
 async def on_shutdown(dp):
     await session.close()
     print("❌ Session closed")
-    
+
+
+# ======================
+# RUN
+# ======================
+
+if __name__ == "__main__":
     executor.start_polling(
         dp,
         skip_updates=True,
         on_startup=on_startup,
         on_shutdown=on_shutdown
     )
+
 
