@@ -316,7 +316,6 @@ async def send_ayah(user_id, message):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    # ===== AYAH DATA =====
     async with session.get(
         f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
     ) as resp:
@@ -327,51 +326,31 @@ async def send_ayah(user_id, message):
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-    # ===== IMAGE =====
     create_card_image(arabic_html, uzbek, surah_name, ayah)
     await message.answer_photo(InputFile("card.png"))
 
-    # ===== AUDIO (RAM орқали) =====
-    sura = str(surah).zfill(3)
-    ayah_num = str(ayah).zfill(3)
-    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+    # ===== NAVIGATION (FUNCTION ICHIDA!) =====
+    kb = InlineKeyboardMarkup(row_width=3)
 
-    async with session.get(audio_url) as audio_resp:
-        if audio_resp.status == 200:
-            import io
-            audio_bytes = await audio_resp.read()
+    buttons = []
 
-            await message.answer_audio(
-                types.InputFile(
-                    io.BytesIO(audio_bytes),
-                    filename=f"{sura}{ayah_num}.mp3"
-                )
-            )
-        else:
-            await message.answer("🔊 Audio topilmadi.")
+    if ayah > 1:
+        buttons.append(
+            InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
+        )
 
-    # ===== NAVIGATION =====
-kb = InlineKeyboardMarkup(row_width=3)
+    if ayah < total_ayahs:
+        buttons.append(
+            InlineKeyboardButton("➡ Keyingi", callback_data="next")
+        )
 
-buttons = []
-
-if ayah > 1:
     buttons.append(
-        InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
+        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
     )
 
-if ayah < total_ayahs:
-    buttons.append(
-        InlineKeyboardButton("➡ Keyingi", callback_data="next")
-    )
+    kb.row(*buttons)
 
-buttons.append(
-    InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-)
-
-kb.row(*buttons)
-
-await message.answer("👇", reply_markup=kb)
+    await message.answer("👇", reply_markup=kb)
 
 
 
@@ -515,7 +494,7 @@ async def select_surah(callback: types.CallbackQuery):
     total_ayahs = r['data']['numberOfAyahs']
 
     await show_ayah_page(callback, surah_id, 1, total_ayahs)
-
+    await callback.answer()
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
@@ -540,7 +519,9 @@ async def select_ayah(callback: types.CallbackQuery):
     ayah = int(callback.data.split("_")[1])
     update_user(callback.from_user.id, "current_ayah", ayah)
 
+    await callback.answer()
     await send_ayah(callback.from_user.id, callback.message)
+
     # 50 та диапазон аниқлаймиз
 
 @dp.callback_query_handler(lambda c: c.data == "ai_translate")
@@ -575,6 +556,7 @@ async def navigation(callback: types.CallbackQuery):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
+    # ===== MENU =====
     if callback.data == "menu":
         set_user_mode(user_id, "normal")
         await callback.message.edit_text(
@@ -583,7 +565,6 @@ async def navigation(callback: types.CallbackQuery):
         )
         await callback.answer()
         return
-
 
     # ===== CACHE =====
     if surah not in SURAH_CACHE:
@@ -603,8 +584,9 @@ async def navigation(callback: types.CallbackQuery):
         if ayah > 1:
             update_user(user_id, "current_ayah", ayah - 1)
 
+    await callback.answer()   # 🔥 MUHIM
     await send_ayah(user_id, callback.message)
-   
+
 
 @dp.message_handler()
 async def universal_handler(message: types.Message):
