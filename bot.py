@@ -310,45 +310,55 @@ async def send_ayah(user_id, message):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
+    await message.answer("⏳ Yuklanmoqda...")
+
     async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik,en.asad"
     ) as resp:
         r = await resp.json()
 
     arabic_html = r['data'][0]['text']
     uzbek = r['data'][1]['text']
+    english = r['data'][2]['text']
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
     create_card_image(arabic_html, uzbek, surah_name, ayah)
     await message.answer_photo(InputFile("card.png"))
 
-    # ===== NAVIGATION (TO‘G‘RI JOY) =====
-    kb = InlineKeyboardMarkup(row_width=3)
-
-    buttons = []
-
-    if ayah > 1:
-        buttons.append(
-            InlineKeyboardButton("⬅", callback_data="prev")
-        )
-
-    buttons.append(
-        InlineKeyboardButton("📖 Oyatlar", callback_data="back_to_surah")
+    text = (
+        f"📖 *{surah_name}* | {ayah}-oyat\n\n"
+        f"🇺🇿 {uzbek}\n\n"
+        f"🇬🇧 {english}"
     )
 
-    if ayah < total_ayahs:
-        buttons.append(
-            InlineKeyboardButton("➡", callback_data="next")
-        )
+    await message.answer(text, parse_mode="Markdown")
 
-    kb.row(*buttons)
+    kb = InlineKeyboardMarkup(row_width=3)
+
+    nav = []
+
+    if ayah > 1:
+        nav.append(InlineKeyboardButton("⬅", callback_data="prev"))
+
+    nav.append(InlineKeyboardButton("🔖 Bookmark", callback_data="bookmark"))
+
+    if ayah < total_ayahs:
+        nav.append(InlineKeyboardButton("➡", callback_data="next"))
+
+    kb.row(*nav)
+
+    kb.row(
+        InlineKeyboardButton("📚 Tafsir", callback_data="tafsir"),
+        InlineKeyboardButton("🎧 Audio", callback_data="zam_menu")
+    )
 
     kb.row(
         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
     )
 
     await message.answer(" ", reply_markup=kb)
+
 
 
 # ======================
@@ -369,9 +379,7 @@ async def zam_menu(callback: types.CallbackQuery):
 
     kb = InlineKeyboardMarkup()
 
-    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="zam_badr"))
-    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="zam_alafasy"))
-    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="zam_alijon"))
+    kb.add(InlineKeyboardButton("🎧 To‘liq sura", callback_data="full_surah_audio"))
     kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     await callback.message.edit_text("🎧 Qorini tanlang:", reply_markup=kb)
