@@ -274,32 +274,52 @@ async def send_ayah(user_id, message):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    
-        # ===== AYAH DATA =====
-        async with session.get(
-            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
-        ) as resp:
-            r = await resp.json()
+    async with session.get(
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
+    ) as resp:
+        r = await resp.json()
 
-        arabic_html = r['data'][0]['text']
-        uzbek = r['data'][1]['text']
-        surah_name = r['data'][0]['surah']['englishName']
-        total_ayahs = r['data'][0]['surah']['numberOfAyahs']
+    arabic_html = r['data'][0]['text']
+    uzbek = r['data'][1]['text']
+    surah_name = r['data'][0]['surah']['englishName']
+    total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-        # ===== IMAGE =====
-        create_card_image(arabic_html, uzbek, surah_name, ayah)
-        await message.answer_photo(InputFile("card.png"))
+    # IMAGE
+    create_card_image(arabic_html, uzbek, surah_name, ayah)
+    await message.answer_photo(InputFile("card.png"))
 
-        # ===== NAVIGATION KEYBOARD =====
-        kb = InlineKeyboardMarkup()
+    # AUDIO
+    sura = str(surah).zfill(3)
+    ayah_num = str(ayah).zfill(3)
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
 
-        if ayah > 1:
-            kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+    async with session.get(audio_url) as audio_resp:
+        if audio_resp.status == 200:
+            import io
+            audio_bytes = await audio_resp.read()
 
-        if ayah < total_ayahs:
-            kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+            await message.answer_audio(
+                types.InputFile(
+                    io.BytesIO(audio_bytes),
+                    filename=f"{sura}{ayah_num}.mp3"
+                )
+            )
+        else:
+            await message.answer("🔊 Audio topilmadi.")
 
-        kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+    # NAVIGATION
+    kb = InlineKeyboardMarkup()
+
+    if ayah > 1:
+        kb.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+
+    if ayah < total_ayahs:
+        kb.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+
+    kb.add(InlineKeyboardButton("🏠 Bosh menu", callback_data="menu"))
+
+    await message.answer(reply_markup=kb)
+
 
         # ===== AUDIO =====
         sura = str(surah).zfill(3)
