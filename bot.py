@@ -547,37 +547,19 @@ async def select_surah(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
 async def ayah_page_handler(callback: types.CallbackQuery):
 
-    per_page = 12
+    page = int(callback.data.split("_")[1])
 
-    start = (page - 1) * per_page + 1
-    end = min(start + per_page - 1, total_ayahs)
+    user = get_user(callback.from_user.id)
+    surah_number = user["current_surah"]
 
-    kb = InlineKeyboardMarkup(row_width=4)
+    if surah_number not in SURAH_CACHE:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
+            r = await resp.json()
+            SURAH_CACHE[surah_number] = r['data']['numberOfAyahs']
 
-    for i in range(start, end + 1):
-        kb.insert(
-            InlineKeyboardButton(
-                f"{i}",
-                callback_data=f"ayah_{i}"
-            )
-        )
+    total_ayahs = SURAH_CACHE[surah_number]
 
-    nav = []
-
-    if page > 1:
-        nav.append(InlineKeyboardButton("⬅", callback_data=f"ayahpage_{page-1}"))
-
-    nav.append(InlineKeyboardButton("🏠", callback_data="menu"))
-
-    if end < total_ayahs:
-        nav.append(InlineKeyboardButton("➡", callback_data=f"ayahpage_{page+1}"))
-
-    kb.row(*nav)
-
-    title = f"📖 {surah_number}-sura | {start}-{end}"
-
-    await callback.message.edit_text(title, reply_markup=kb)
-    await callback.answer()
+    await show_ayah_page(callback, surah_number, page, total_ayahs)
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
