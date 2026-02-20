@@ -400,6 +400,12 @@ async def zam_menu(callback: types.CallbackQuery):
 async def zam_play(callback: types.CallbackQuery):
 
     user = get_user(callback.from_user.id)
+
+    if not user.get("current_surah") or not user.get("current_ayah"):
+        await callback.message.answer("Avval oyat tanlang 📖")
+        await callback.answer()
+        return
+
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
@@ -422,7 +428,7 @@ async def zam_play(callback: types.CallbackQuery):
                 )
             )
         else:
-            await callback.message.answer("Audio topilmadi.")
+            await callback.message.answer("Audio topilmadi ❌")
 
     await callback.answer()
 @dp.callback_query_handler(lambda c: c.data == "quron_read")
