@@ -527,6 +527,7 @@ async def surah_page(callback: types.CallbackQuery):
 async def select_surah(callback: types.CallbackQuery):
 
     surah_id = int(callback.data.split("_")[1])
+    print("SURAH BOSILDI")
 
     update_user(callback.from_user.id, "current_surah", surah_id)
     update_user(callback.from_user.id, "current_ayah", 1)
