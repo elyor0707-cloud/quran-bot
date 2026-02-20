@@ -158,112 +158,122 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     fw = bbox[2] - bbox[0]
     draw.text(((width - fw)//2, height-80), footer, fill="#d4af37", font=title_font)
 
-    # ===== ARABIC AUTO WRAP =====
-
     # ===== ARABIC CLEAN =====
-    clean_text = re.sub(r'<.*?>', '', arabic_html)   # barcha html teglarni o‘chir
-    clean_text = re.sub(r'\[.*?\]', '', clean_text)  # ichki markerlarni o‘chir
-    clean_text = clean_text.strip()
-    reshaped = arabic_reshaper.reshape(clean_text)
-    bidi_text = get_display(reshaped)
+clean_text = re.sub(r'<.*?>', '', arabic_html)
+clean_text = re.sub(r'\[.*?\]', '', clean_text)
+clean_text = clean_text.strip()
 
-    max_width = width - side_margin * 2
-    max_height = 300
+reshaped = arabic_reshaper.reshape(clean_text)
+bidi_text = get_display(reshaped)
 
-    while True:
-        arabic_font = ImageFont.truetype("DejaVuSans.ttf", arabic_font_size)
+max_width = width - side_margin * 2
+max_height = 320
 
-        words = bidi_text.split()
-        lines = []
-        current_line = ""
+while True:
+    arabic_font = ImageFont.truetype(
+        "KFGQPC-Uthmanic-Script-Regular.ttf",
+        arabic_font_size
+    )
 
-        for word in words:
-            test_line = word + " " + current_line if current_line else word
-            bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
-            w = bbox[2] - bbox[0]
+    words = bidi_text.split()
+    lines = []
+    current_line = ""
 
-            if w <= max_width:
-                current_line = test_line
-            else:
-                lines.append(current_line)
-                current_line = word
+    for word in words:
+        test_line = word + " " + current_line if current_line else word
+        bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
+        w = bbox[2] - bbox[0]
 
-        if current_line:
+        if w <= max_width:
+            current_line = test_line
+        else:
             lines.append(current_line)
+            current_line = word
 
-        total_height = len(lines) * (arabic_font_size + 15)
+    if current_line:
+        lines.append(current_line)
 
-        if total_height <= max_height:
-            break
+    total_height = len(lines) * (arabic_font_size + 20)
 
-        arabic_font_size -= 4
-        if arabic_font_size < 30:
-            break
+    if total_height <= max_height:
+        break
 
-    y_text = 140
+    arabic_font_size -= 4
+    if arabic_font_size < 34:
+        break
 
-    for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=arabic_font)
-        tw = bbox[2] - bbox[0]
+y_text = 140
 
-        x_pos = (width - tw)//2
-        y_pos = y_text
+for line in lines:
+    bbox = draw.textbbox((0, 0), line, font=arabic_font)
+    tw = bbox[2] - bbox[0]
 
-        # Shadow
-        draw.text((x_pos+2, y_pos+2), line, fill="#000000", font=arabic_font)
+    draw.text(
+        ((width - tw)//2, y_text),
+        line,
+        fill="#ffffff",
+        font=arabic_font
+    )
 
-        # Main text
-        draw.text((x_pos, y_pos), line, fill="#ffffff", font=arabic_font)
-
-        y_text += arabic_font_size + 15
-
+    y_text += arabic_font_size + 20
     # ===== TRANSLITERATION =====
+y_text += 25
 
-    y_text += 25
+max_translit_height = 220
 
-    while True:
-        translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+while True:
+    translit_font = ImageFont.truetype(
+        "DejaVuSans.ttf",
+        translit_font_size
+    )
 
-        words = translit.split()
-        lines = []
-        current_line = ""
+    words = translit.split()
+    lines = []
+    current_line = ""
 
-        for word in words:
-            test_line = current_line + " " + word if current_line else word
-            bbox = draw.textbbox((0, 0), test_line, font=translit_font)
-            w = bbox[2] - bbox[0]
+    for word in words:
+        test_line = current_line + " " + word if current_line else word
+        bbox = draw.textbbox((0, 0), test_line, font=translit_font)
+        w = bbox[2] - bbox[0]
 
-            if w <= max_width:
-                current_line = test_line
-            else:
-                lines.append(current_line)
-                current_line = word
-
-        if current_line:
+        if w <= max_width:
+            current_line = test_line
+        else:
             lines.append(current_line)
+            current_line = word
 
-        total_height = len(lines) * (translit_font_size + 10)
+    if current_line:
+        lines.append(current_line)
 
-        if total_height <= 200:
-            break
+    total_height = len(lines) * (translit_font_size + 12)
 
-        translit_font_size -= 2
-        if translit_font_size < 24:
-            break
+    if total_height <= max_translit_height:
+        break
 
-    for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=translit_font)
-        tw = bbox[2] - bbox[0]
+    translit_font_size -= 2
+    if translit_font_size < 24:
+        break
 
-        draw.text(
-            ((width - tw)//2, y_text),
-            line,
-            fill="#d4af37",
-            font=translit_font
-        )
+for line in lines:
+    bbox = draw.textbbox((0, 0), line, font=translit_font)
+    tw = bbox[2] - bbox[0]
 
-        y_text += translit_font_size + 10
+    # Soft shadow
+    draw.text(
+        ((width - tw)//2 + 1, y_text + 1),
+        line,
+        fill="#000000",
+        font=translit_font
+    )
 
+    draw.text(
+        ((width - tw)//2, y_text),
+        line,
+        fill="#d4af37",
+        font=translit_font
+    )
+
+    y_text += translit_font_size + 12
     img.save("card.png")
     
 # ======================
