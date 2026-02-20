@@ -131,13 +131,15 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
 
-    # Gradient
+    # Gradient fon
     for i in range(height):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font = ImageFont.truetype("ScheherazadeNew-Regular.ttf", 64)
-    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 32)
+    arabic_font_size = 64
+    arabic_font = ImageFont.truetype("KFGQPC-Uthmanic-Script-Regular.ttf", arabic_font_size)
+    translit_font_size = 30
+    translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
     title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
 
     # ===== TITLE =====
@@ -184,6 +186,7 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     if current_line:
         lines.append(current_line)
 
+    # ===== ARABIC DRAW =====
     for line in lines:
         total_line_width = sum(part[2] for part in line)
         x_cursor = (width + total_line_width) // 2
@@ -191,30 +194,22 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
 
         for rule, text_part, w, h in line:
             color = TAJWEED_COLORS.get(rule, "white")
-            draw.text((x_cursor - w, y_text),
-                      text_part,
-                      fill=color,
-                      font=arabic_font)
+            draw.text((x_cursor - w, y_text), text_part, fill=color, font=arabic_font)
             x_cursor -= w
             max_h = max(max_h, h)
 
-        y_text += max_h + 20
-            # ===== TRANSLITERATION =====
-    translit_font_size = 30
-    translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+        y_text += max_h + 15
 
-    max_text_width = width - side_margin * 2
+    # ===== TRANSLITERATION =====
+    y_text += 20
 
-    # Автоматик размер мослаш
     while True:
         bbox = draw.textbbox((0, 0), translit, font=translit_font)
         text_width = bbox[2] - bbox[0]
-        if text_width <= max_text_width:
+        if text_width <= max_width:
             break
         translit_font_size -= 2
         translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
-
-    y_text += 20
 
     bbox = draw.textbbox((0, 0), translit, font=translit_font)
     tw = bbox[2] - bbox[0]
@@ -225,47 +220,6 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
         fill="#d4af37",
         font=translit_font
     )
-
-    y_text += 50
-
-    
-    # ===== SEPARATOR =====
-    line_y = y_text + 10
-    draw.line((side_margin, line_y, width - side_margin, line_y),
-              fill="#d4af37", width=3)
-
-    # ===== TRANSLATION =====
-    y_text = line_y + 30
-    max_text_width = width - side_margin * 2
-
-    words = uzbek.split()
-    line = ""
-
-    for word in words:
-        test_line = line + " " + word if line else word
-        bbox = draw.textbbox((0, 0), test_line, font=uzbek_font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
-
-        if w <= max_text_width:
-            line = test_line
-        else:
-            bbox = draw.textbbox((0, 0), line, font=uzbek_font)
-            lw = bbox[2] - bbox[0]
-            draw.text(((width - lw)//2, y_text),
-                      line,
-                      fill="white",
-                      font=uzbek_font)
-            y_text += h + 8
-            line = word
-
-    if line:
-        bbox = draw.textbbox((0, 0), line, font=uzbek_font)
-        lw = bbox[2] - bbox[0]
-        draw.text(((width - lw)//2, y_text),
-                  line,
-                  fill="white",
-                  font=uzbek_font)
 
     img.save("card.png")
     
