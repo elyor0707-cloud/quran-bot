@@ -323,41 +323,38 @@ async def send_ayah(user_id, message):
     create_card_image(arabic_html, uzbek, surah_name, ayah)
 
     await loading.delete()
-
     await message.answer_photo(InputFile("card.png"))
 
-    # ===== AUDIO =====
-    # ===== AUDIO =====
-sura = str(surah).zfill(3)
-ayah_num = str(ayah).zfill(3)
-audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+    # ===== AUDIO (FAKAT SHU YERDA BO‘LADI) =====
+    sura = str(surah).zfill(3)
+    ayah_num = str(ayah).zfill(3)
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
 
-kb_audio = InlineKeyboardMarkup(row_width=3)
+    kb_audio = InlineKeyboardMarkup(row_width=3)
 
-nav_audio = []
+    nav_audio = []
 
-if ayah > 1:
-    nav_audio.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+    if ayah > 1:
+        nav_audio.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
 
-nav_audio.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+    nav_audio.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
-if ayah < total_ayahs:
-    nav_audio.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+    if ayah < total_ayahs:
+        nav_audio.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
 
-kb_audio.row(*nav_audio)
+    kb_audio.row(*nav_audio)
 
-async with session.get(audio_url) as audio_resp:
-    if audio_resp.status == 200:
-        import io
-        audio_bytes = await audio_resp.read()
-        await message.answer_audio(
-            types.InputFile(
-                io.BytesIO(audio_bytes),
-                filename=f"{sura}{ayah_num}.mp3"
-            ),
-            reply_markup=kb_audio
-        )
-
+    async with session.get(audio_url) as audio_resp:
+        if audio_resp.status == 200:
+            import io
+            audio_bytes = await audio_resp.read()
+            await message.answer_audio(
+                types.InputFile(
+                    io.BytesIO(audio_bytes),
+                    filename=f"{sura}{ayah_num}.mp3"
+                ),
+                reply_markup=kb_audio
+            )
     # ===== NAVIGATION =====
     kb = InlineKeyboardMarkup(row_width=3)
 
