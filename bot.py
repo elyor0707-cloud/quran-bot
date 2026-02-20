@@ -577,6 +577,20 @@ async def select_surah(callback: types.CallbackQuery):
 
     total_ayahs = SURAH_CACHE[surah_id]
 
+    surah_info = r['data']
+
+info_text = (
+    f"📖 *{surah_info['englishName']} surasi*\n\n"
+    f"• Oyatlar soni: {surah_info['numberOfAyahs']}\n"
+    f"• Nozil bo‘lgan joyi: {surah_info['revelationType']}\n\n"
+    f"Oyatni tanlang:"
+)
+
+await callback.message.edit_text(
+    info_text,
+    parse_mode="Markdown"
+)
+
     await show_ayah_page(callback, surah_id, 1, total_ayahs)
 
     await callback.answer()
