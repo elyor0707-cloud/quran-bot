@@ -126,7 +126,115 @@ def to_arabic_number(num):
     arabic_nums = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩']
     return ''.join(arabic_nums[int(d)] for d in str(num))
     
+def create_card_image(arabic_html, translit, surah_name, ayah):
 
+    width = 900
+    height = 700
+    side_margin = 110
+
+    img = Image.new("RGB", (width, height), "#0f1b2d")
+    draw = ImageDraw.Draw(img)
+
+    # Gradient
+    for i in range(height):
+        color = (15, 27 + i//8, 45 + i//10)
+        draw.line([(0, i), (width, i)], fill=color)
+
+    title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
+
+    # TITLE
+    title = "Qur’oniy oyat"
+    bbox = draw.textbbox((0, 0), title, font=title_font)
+    draw.text(((width - (bbox[2]-bbox[0]))//2, 40),
+              title, fill="#d4af37", font=title_font)
+
+    # FOOTER
+    arabic_ayah = to_arabic_number(ayah)
+    footer = f"{surah_name} surasi | {arabic_ayah}-oyat"
+    bbox = draw.textbbox((0, 0), footer, font=title_font)
+    draw.text(((width - (bbox[2]-bbox[0]))//2, height-80),
+              footer, fill="#d4af37", font=title_font)
+
+    # ===== ARABIC =====
+    segments = parse_tajweed_segments(arabic_html)
+
+    arabic_font_size = 56
+    arabic_font = ImageFont.truetype(
+        "KFGQPC-Uthmanic-Script-Regular.ttf",
+        arabic_font_size
+    )
+
+    y_text = 140
+
+    for rule, part in segments:
+
+        reshaped = arabic_reshaper.reshape(part)
+        bidi_text = get_display(reshaped)
+
+        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+        tw = bbox[2] - bbox[0]
+
+        x = (width - tw)//2
+        y = y_text
+
+        color = TAJWEED_COLORS.get(rule, "#ffffff")
+
+        # Shadow
+        draw.text((x+2, y+2), bidi_text,
+                  fill="#000000", font=arabic_font)
+
+        # Main
+        draw.text((x, y), bidi_text,
+                  fill=color, font=arabic_font)
+
+        y_text += arabic_font_size + 15
+
+    # ===== SEPARATOR =====
+    draw.line(
+        (side_margin, y_text+10, width - side_margin, y_text+10),
+        fill="#d4af37",
+        width=2
+    )
+
+    y_text += 35
+
+    # ===== TRANSLITERATION =====
+    translit_font = ImageFont.truetype("DejaVuSans.ttf", 38)
+
+    max_width = width - side_margin * 2
+
+    words = translit.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = current_line + " " + word if current_line else word
+        bbox = draw.textbbox((0, 0), test_line, font=translit_font)
+        w = bbox[2] - bbox[0]
+
+        if w <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=translit_font)
+        tw = bbox[2] - bbox[0]
+
+        draw.text(
+            ((width - tw)//2, y_text),
+            line,
+            fill="#d4af37",
+            font=translit_font
+        )
+
+        y_text += 45
+
+    img.save("card.png")
     
 # ======================
 # SURAH KEYBOARD
