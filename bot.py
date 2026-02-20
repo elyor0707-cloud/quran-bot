@@ -124,108 +124,60 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
     
 def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
-    width = 1000
-    height = 720
-    side_margin = 140
+    width = 900
+    height = 650
+    side_margin = 110
 
-    img = Image.new("RGB", (width, height), "#0b1d2a")
+    img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
 
     for i in range(height):
-        draw.line([(0, i), (width, i)],
-                  fill=(11, 29 + i // 12, 42 + i // 10))
+        color = (15, 27 + i//8, 45 + i//10)
+        draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font = ImageFont.truetype("ScheherazadeNew-Regular.ttf", 78)
+    arabic_font = ImageFont.truetype("ScheherazadeNew-Regular.ttf", 72)
     uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 34)
-    badge_font = ImageFont.truetype("DejaVuSans.ttf", 38)
+    title_font = ImageFont.truetype("DejaVuSans.ttf", 45)
 
-    # ===== SURAH BADGE =====
-    draw.rounded_rectangle(
-        [(300, 30), (700, 95)],
-        radius=30,
-        fill="#d4af37"
-    )
-
-    bbox = draw.textbbox((0, 0), surah_name.upper(), font=badge_font)
+    # ===== TITLE =====
+    title = "Qur’oniy oyat"
+    bbox = draw.textbbox((0, 0), title, font=title_font)
     tw = bbox[2] - bbox[0]
+    draw.text(((width - tw)//2, 40), title, fill="#d4af37", font=title_font)
+
+    # ===== FOOTER =====
+    footer = f"{surah_name} surasi, {ayah}-oyat"
+    bbox = draw.textbbox((0, 0), footer, font=title_font)
+    fw = bbox[2] - bbox[0]
+    fh = bbox[3] - bbox[1]
+    footer_y = height - fh - 40
+    draw.text(((width - fw)//2, footer_y), footer, fill="#d4af37", font=title_font)
+
+    # ===== ARABIC (TO‘LIQ SATR) =====
+    clean_text = re.sub(r'</?tajweed.*?>', '', arabic_html)
+
+    reshaped = arabic_reshaper.reshape(clean_text)
+    bidi_text = get_display(reshaped)
+
+    bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+    w = bbox[2] - bbox[0]
 
     draw.text(
-        ((width - tw)//2, 45),
-        surah_name.upper(),
-        fill="#0b1d2a",
-        font=badge_font
+        ((width - w)//2, 150),
+        bidi_text,
+        fill="white",
+        font=arabic_font
     )
-
-    # ===== TAJWEED SEGMENTS =====
-    segments = parse_tajweed_segments(arabic_html)
-
-    max_width = width - side_margin * 2
-    y_text = 170
-
-    lines = []
-    current_line = []
-    current_width = 0
-
-    for rule, part in segments:
-
-        reshaped = arabic_reshaper.reshape(part)
-        bidi_text = get_display(reshaped)
-
-        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
-
-        if current_width + w > max_width:
-            lines.append(current_line)
-            current_line = []
-            current_width = 0
-
-        current_line.append((rule, bidi_text, w, h))
-        current_width += w
-
-    if current_line:
-        lines.append(current_line)
-
-    for line in lines:
-
-        total_width = sum(item[2] for item in line)
-        x_cursor = (width + total_width) // 2
-        max_h = 0
-
-        for rule, text_part, w, h in line:
-
-            color = TAJWEED_COLORS.get(rule, "#ffffff")
-
-            # shadow
-            draw.text(
-                (x_cursor - w + 2, y_text + 2),
-                text_part,
-                fill="#000000",
-                font=arabic_font
-            )
-
-            draw.text(
-                (x_cursor - w, y_text),
-                text_part,
-                fill=color,
-                font=arabic_font
-            )
-
-            x_cursor -= w
-            max_h = max(max_h, h)
-
-        y_text += max_h + 32
 
     # ===== SEPARATOR =====
-    sep_y = y_text + 20
-    draw.line(
-        (side_margin, sep_y, width - side_margin, sep_y),
-        fill="#d4af37",
-        width=4
-    )
+    line_y = 280
+    draw.line((side_margin, line_y, width - side_margin, line_y),
+              fill="#d4af37", width=3)
 
-    # ===== UZBEK TARJIMA =====
-    y_text = sep_y + 35
+    # ===== TRANSLATION =====
+    y_text = line_y + 30
+    max_text_width = width - side_margin * 2
+
     words = uzbek.split()
     line = ""
 
@@ -233,52 +185,25 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
         test_line = line + " " + word if line else word
         bbox = draw.textbbox((0, 0), test_line, font=uzbek_font)
         w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
 
-        if w <= max_width:
+        if w <= max_text_width:
             line = test_line
         else:
             bbox = draw.textbbox((0, 0), line, font=uzbek_font)
             lw = bbox[2] - bbox[0]
-            draw.text(
-                ((width - lw)//2, y_text),
-                line,
-                fill="#ffffff",
-                font=uzbek_font
-            )
-            y_text += h + 10
+            draw.text(((width - lw)//2, y_text),
+                      line, fill="white", font=uzbek_font)
+            y_text += 40
             line = word
 
     if line:
         bbox = draw.textbbox((0, 0), line, font=uzbek_font)
         lw = bbox[2] - bbox[0]
-        draw.text(
-            ((width - lw)//2, y_text),
-            line,
-            fill="#ffffff",
-            font=uzbek_font
-        )
-
-    # ===== OYAT BADGE =====
-    badge_text = f"{ayah}-oyat"
-
-    draw.rounded_rectangle(
-        [(420, height-95), (580, height-45)],
-        radius=25,
-        fill="#d4af37"
-    )
-
-    bbox = draw.textbbox((0, 0), badge_text, font=badge_font)
-    tw = bbox[2] - bbox[0]
-
-    draw.text(
-        ((width - tw)//2, height-83),
-        badge_text,
-        fill="#0b1d2a",
-        font=badge_font
-    )
+        draw.text(((width - lw)//2, y_text),
+                  line, fill="white", font=uzbek_font)
 
     img.save("card.png")
+    
 # ======================
 # SURAH KEYBOARD
 # ======================
