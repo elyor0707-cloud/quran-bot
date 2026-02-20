@@ -291,59 +291,121 @@ async def send_ayah(user_id, message):
 
     
     # 🔥 ENG MUHIM QATOR
-    create_card_image(arabic_html, translit, surah_name, ayah)
+    def create_card_image(arabic_html, translit, surah_name, ayah):
 
-    await loading.delete()
-    await message.answer_photo(InputFile("card.png"))
+    width = 900
+    height = 700
+    side_margin = 110
 
-    # ===== TAFSIR =====
-    async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/uz.sodik"
-    ) as tafsir_resp:
-        tafsir_data = await tafsir_resp.json()
-        tafsir_text = tafsir_data["data"][0]["text"]
+    img = Image.new("RGB", (width, height), "#0f1b2d")
+    draw = ImageDraw.Draw(img)
 
-    await message.answer(
-        f"📚 *Tafsir:*\n\n{tafsir_text[:800]}...",
-        parse_mode="Markdown"
+    # Gradient
+    for i in range(height):
+        color = (15, 27 + i//8, 45 + i//10)
+        draw.line([(0, i), (width, i)], fill=color)
+
+    arabic_font_size = 56
+    translit_font_size = 38
+
+    title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
+
+    # ===== TITLE =====
+    title = "Qur’oniy oyat"
+    bbox = draw.textbbox((0, 0), title, font=title_font)
+    draw.text(((width - (bbox[2]-bbox[0]))//2, 40),
+              title, fill="#d4af37", font=title_font)
+
+    # ===== FOOTER =====
+    arabic_ayah = to_arabic_number(ayah)
+    footer = f"{surah_name} surasi | {arabic_ayah}-oyat"
+    bbox = draw.textbbox((0, 0), footer, font=title_font)
+    draw.text(((width - (bbox[2]-bbox[0]))//2, height-80),
+              footer, fill="#d4af37", font=title_font)
+
+    # ===== ARABIC TEXT =====
+    segments = parse_tajweed_segments(arabic_html)
+
+    y_text = 140
+
+    for rule, part in segments:
+
+        reshaped = arabic_reshaper.reshape(part)
+        bidi_text = get_display(reshaped)
+
+        arabic_font = ImageFont.truetype(
+            "KFGQPC-Uthmanic-Script-Regular.ttf",
+            arabic_font_size
+        )
+
+        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+        tw = bbox[2] - bbox[0]
+
+        x = (width - tw)//2
+        y = y_text
+
+        color = TAJWEED_COLORS.get(rule, "#ffffff")
+
+        # 🔥 SHADOW (5-қадам)
+        draw.text((x+2, y+2), text, fill="#000000", font=arabic_font)
+        draw.text((x, y), text, fill=color, font=arabic_font)
+
+        y_text += arabic_font_size + 15
+
+    # ===== SEPARATOR (4-қадам жойи) =====
+    draw.line(
+        (side_margin, y_text+10, width - side_margin, y_text+10),
+        fill="#d4af37",
+        width=2
     )
 
-    # ===== AUDIO + NAVIGATION =====
-    sura = str(surah).zfill(3)
-    ayah_num = str(ayah).zfill(3)
-    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+    y_text += 35
+draw.line(
+    (side_margin, y_text, width - side_margin, y_text),
+    fill="#d4af37",
+    width=2
+)
+y_text += 20
+    # ===== TRANSLITERATION =====
+    translit_font = ImageFont.truetype(
+        "DejaVuSans.ttf",
+        translit_font_size
+    )
 
-    async with session.get(audio_url) as audio_resp:
-        if audio_resp.status == 200:
-            import io
-            audio_bytes = await audio_resp.read()
+    words = translit.split()
+    lines = []
+    current_line = ""
 
-            kb_audio = InlineKeyboardMarkup(row_width=3)
-            nav_audio = []
+    max_width = width - side_margin * 2
 
-            if ayah > 1:
-                nav_audio.append(
-                    InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
-                )
+    for word in words:
+        test_line = current_line + " " + word if current_line else word
+        bbox = draw.textbbox((0, 0), test_line, font=translit_font)
+        w = bbox[2] - bbox[0]
 
-            nav_audio.append(
-                InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-            )
+        if w <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
 
-            if ayah < total_ayahs:
-                nav_audio.append(
-                    InlineKeyboardButton("➡ Keyingi", callback_data="next")
-                )
+    if current_line:
+        lines.append(current_line)
 
-            kb_audio.row(*nav_audio)
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=translit_font)
+        tw = bbox[2] - bbox[0]
 
-            await message.answer_audio(
-                types.InputFile(
-                    io.BytesIO(audio_bytes),
-                    filename=f"{sura}{ayah_num}.mp3"
-                ),
-                reply_markup=kb_audio
-            )
+        draw.text(
+            ((width - tw)//2, y_text),
+            line,
+            fill="#d4af37",
+            font=translit_font
+        )
+
+        y_text += translit_font_size + 10
+
+    img.save("card.png")
 # ======================
 # HANDLERS
 # ======================
