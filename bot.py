@@ -375,6 +375,26 @@ if ayah < total_ayahs:
 
 kb_audio.row(*nav_audio)
 
+kb_audio = InlineKeyboardMarkup(row_width=3)
+
+nav_audio = []
+
+if ayah > 1:
+    nav_audio.append(
+        InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
+    )
+
+nav_audio.append(
+    InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+)
+
+if ayah < total_ayahs:
+    nav_audio.append(
+        InlineKeyboardButton("➡ Keyingi", callback_data="next")
+    )
+
+kb_audio.row(*nav_audio)
+
 await message.answer_audio(
     types.InputFile(
         io.BytesIO(audio_bytes),
@@ -382,7 +402,6 @@ await message.answer_audio(
     ),
     reply_markup=kb_audio
 )
-            )
     # ===== NAVIGATION =====
     kb = InlineKeyboardMarkup(row_width=3)
 
