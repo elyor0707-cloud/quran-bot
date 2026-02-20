@@ -156,12 +156,39 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
               footer, fill="#d4af37", font=title_font)
 
     # ===== ARABIC CLEAN =====
-    clean_text = re.sub(r'<.*?>', '', arabic_html)
+    segments = parse_tajweed_segments(arabic_html)
     clean_text = re.sub(r'\[.*?\]', '', clean_text)
-    clean_text = clean_text.strip()
+    # Ayah symbol qo‘shish
+    ayah_symbol = f" ۝{to_arabic_number(ayah)}"
+    clean_text += ayah_symbol
+if ayah == 1 and surah_name.lower() != "at-tawbah":
+    clean_text = "بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيمِ  " + clean_text
 
-    reshaped = arabic_reshaper.reshape(clean_text)
+    y_text = 140
+
+for rule, part in segments:
+
+    reshaped = arabic_reshaper.reshape(part)
     bidi_text = get_display(reshaped)
+
+    arabic_font = ImageFont.truetype(
+        "KFGQPC-Uthmanic-Script-Regular.ttf",
+        arabic_font_size
+    )
+
+    bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+    w = bbox[2] - bbox[0]
+
+    color = TAJWEED_COLORS.get(rule, "#ffffff")
+
+    draw.text(
+        ((width - w)//2, y_text),
+        bidi_text,
+        fill=color,
+        font=arabic_font
+    )
+
+    y_text += arabic_font_size + 15
 
     arabic_font = ImageFont.truetype(
         "KFGQPC-Uthmanic-Script-Regular.ttf",
