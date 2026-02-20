@@ -484,13 +484,13 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     kb = InlineKeyboardMarkup(row_width=5)
 
     # ===== HEADER =====
-    title = f"📖 {surah_number}-sura | {start}-{end} oyatlar"
+    title = f"📖 {surah_number}-sura | {start}-oyat dan {end}-oyat gacha"
     
     # ===== OYATLAR =====
     for i in range(start, end + 1):
         kb.insert(
             InlineKeyboardButton(
-                f"{i}",
+                f"{i}-oyat",
                 callback_data=f"ayah_{i}"
             )
         )
