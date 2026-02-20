@@ -131,165 +131,130 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
 
-    # Gradient fon
+    # Gradient
     for i in range(height):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
     arabic_font_size = 56
-    arabic_font = ImageFont.truetype("DejaVuSans.ttf", arabic_font_size)
-    translit_font_size = 50
-    translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+    translit_font_size = 42
+
     title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
 
-    # ===== TITLE =====
+    # TITLE
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
     tw = bbox[2] - bbox[0]
     draw.text(((width - tw)//2, 40), title, fill="#d4af37", font=title_font)
 
-    # ===== FOOTER =====
+    # FOOTER
     footer = f"{surah_name} surasi | {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
     fw = bbox[2] - bbox[0]
-    fh = bbox[3] - bbox[1]
-    footer_y = height - fh - 40
-    draw.text(((width - fw)//2, footer_y), footer, fill="#d4af37", font=title_font)
+    draw.text(((width - fw)//2, height-80), footer, fill="#d4af37", font=title_font)
 
-    # ===== TAJWEED PARSE =====
-    segments = parse_tajweed_segments(arabic_html)
-
-    max_width = width - side_margin * 2
-    y_text = 140
-
-    lines = []
-    current_line = []
-    current_width = 0
-
-    for rule, part in segments:
-
-        reshaped = arabic_reshaper.reshape(part)
-        bidi_text = get_display(reshaped)
-
-        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
-
-        if current_width + w > max_width:
-            lines.append(current_line)
-            current_line = []
-            current_width = 0
-
-        current_line.append((rule, bidi_text, w, h))
-        current_width += w
-
-    if current_line:
-        lines.append(current_line)
-
-   
     # ===== ARABIC AUTO WRAP =====
 
-clean_text = re.sub(r'</?tajweed.*?>', '', arabic_html)
-reshaped = arabic_reshaper.reshape(clean_text)
-bidi_text = get_display(reshaped)
+    clean_text = re.sub(r'</?tajweed.*?>', '', arabic_html)
+    reshaped = arabic_reshaper.reshape(clean_text)
+    bidi_text = get_display(reshaped)
 
-max_width = width - side_margin * 2
-max_height = 350   # arabic uchun maksimal joy
+    max_width = width - side_margin * 2
+    max_height = 300
 
-while True:
-    arabic_font = ImageFont.truetype("DejaVuSans.ttf", arabic_font_size)
+    while True:
+        arabic_font = ImageFont.truetype("DejaVuSans.ttf", arabic_font_size)
 
-    words = bidi_text.split()
-    lines = []
-    current_line = ""
+        words = bidi_text.split()
+        lines = []
+        current_line = ""
 
-    for word in words:
-        test_line = word + " " + current_line if current_line else word
-        bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
-        w = bbox[2] - bbox[0]
+        for word in words:
+            test_line = word + " " + current_line if current_line else word
+            bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
+            w = bbox[2] - bbox[0]
 
-        if w <= max_width:
-            current_line = test_line
-        else:
+            if w <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+
+        if current_line:
             lines.append(current_line)
-            current_line = word
 
-    if current_line:
-        lines.append(current_line)
+        total_height = len(lines) * (arabic_font_size + 15)
 
-    total_height = len(lines) * (arabic_font_size + 15)
+        if total_height <= max_height:
+            break
 
-    if total_height <= max_height:
-        break
+        arabic_font_size -= 4
+        if arabic_font_size < 30:
+            break
 
-    arabic_font_size -= 4
-    if arabic_font_size < 30:
-        break
+    y_text = 140
 
-y_text = 140
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=arabic_font)
+        tw = bbox[2] - bbox[0]
 
-for line in lines:
-    bbox = draw.textbbox((0, 0), line, font=arabic_font)
-    tw = bbox[2] - bbox[0]
+        draw.text(
+            ((width - tw)//2, y_text),
+            line,
+            fill="white",
+            font=arabic_font
+        )
 
-    draw.text(
-        ((width - tw)//2, y_text),
-        line,
-        fill="white",
-        font=arabic_font
-    )
-
-    y_text += arabic_font_size + 15
+        y_text += arabic_font_size + 15
 
     # ===== TRANSLITERATION =====
-    # ===== TRANSLITERATION AUTO WRAP =====
-y_text += 25
 
-translit_font_size = 42
-max_width = width - side_margin * 2
+    y_text += 25
 
-while True:
-    translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+    while True:
+        translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
 
-    words = translit.split()
-    lines = []
-    current_line = ""
+        words = translit.split()
+        lines = []
+        current_line = ""
 
-    for word in words:
-        test_line = current_line + " " + word if current_line else word
-        bbox = draw.textbbox((0, 0), test_line, font=translit_font)
-        w = bbox[2] - bbox[0]
+        for word in words:
+            test_line = current_line + " " + word if current_line else word
+            bbox = draw.textbbox((0, 0), test_line, font=translit_font)
+            w = bbox[2] - bbox[0]
 
-        if w <= max_width:
-            current_line = test_line
-        else:
+            if w <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+
+        if current_line:
             lines.append(current_line)
-            current_line = word
 
-    if current_line:
-        lines.append(current_line)
+        total_height = len(lines) * (translit_font_size + 10)
 
-    total_height = len(lines) * (translit_font_size + 10)
+        if total_height <= 200:
+            break
 
-    if total_height < 180:
-        break
+        translit_font_size -= 2
+        if translit_font_size < 24:
+            break
 
-    translit_font_size -= 2
-    if translit_font_size < 24:
-        break
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=translit_font)
+        tw = bbox[2] - bbox[0]
 
-for line in lines:
-    bbox = draw.textbbox((0, 0), line, font=translit_font)
-    tw = bbox[2] - bbox[0]
+        draw.text(
+            ((width - tw)//2, y_text),
+            line,
+            fill="#d4af37",
+            font=translit_font
+        )
 
-    draw.text(
-        ((width - tw)//2, y_text),
-        line,
-        fill="#d4af37",
-        font=translit_font
-    )
+        y_text += translit_font_size + 10
 
-    y_text += translit_font_size + 10
+    img.save("card.png")
     
 # ======================
 # SURAH KEYBOARD
