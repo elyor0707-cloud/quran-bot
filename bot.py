@@ -155,7 +155,10 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
 
     # ===== ARABIC AUTO WRAP =====
 
-    clean_text = re.sub(r'</?tajweed.*?>', '', arabic_html)
+    # ===== ARABIC CLEAN =====
+    clean_text = re.sub(r'<.*?>', '', arabic_html)   # barcha html teglarni o‘chir
+    clean_text = re.sub(r'\[.*?\]', '', clean_text)  # ichki markerlarni o‘chir
+    clean_text = clean_text.strip()
     reshaped = arabic_reshaper.reshape(clean_text)
     bidi_text = get_display(reshaped)
 
@@ -327,7 +330,7 @@ async def send_ayah(user_id, message):
     loading = await message.answer("⏳ Yuklanmoqda...")
 
     async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik,en.transliteration"
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik,en.transliteration"
     ) as resp:
         r = await resp.json()
 
