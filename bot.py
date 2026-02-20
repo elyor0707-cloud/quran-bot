@@ -199,7 +199,37 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
             max_h = max(max_h, h)
 
         y_text += max_h + 20
+        
+   # ===== TRANSLITERATION =====
+   translit_font_size = 30
+   translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
 
+   max_text_width = width - side_margin * 2
+
+   # Автоматик размер камайтириш
+   while True:
+       bbox = draw.textbbox((0, 0), translit, font=translit_font)
+       text_width = bbox[2] - bbox[0]
+       if text_width <= max_text_width:
+           break
+       translit_font_size -= 2
+       translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+
+   y_text += 20
+
+   bbox = draw.textbbox((0, 0), translit, font=translit_font)
+   tw = bbox[2] - bbox[0]
+
+   draw.text(
+       ((width - tw)//2, y_text),
+       translit,
+       fill="#d4af37",
+       font=translit_font
+   )
+
+   y_text += 40
+
+    
     # ===== SEPARATOR =====
     line_y = y_text + 10
     draw.line((side_margin, line_y, width - side_margin, line_y),
@@ -311,16 +341,17 @@ async def send_ayah(user_id, message):
     loading = await message.answer("⏳ Yuklanmoqda...")
 
     async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik,en.transliteration"
     ) as resp:
         r = await resp.json()
 
     arabic_html = r['data'][0]['text']
     uzbek = r['data'][1]['text']
+    translit = r['data'][2]['text']
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-    create_card_image(arabic_html, uzbek, surah_name, ayah)
+    def create_card_image(arabic_html, translit, surah_name, ayah):
 
     await loading.delete()
     await message.answer_photo(InputFile("card.png"))
