@@ -330,7 +330,6 @@ async def send_ayah(user_id, message):
         f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/uz.sodik"
     ) as tafsir_resp:
         tafsir_data = await tafsir_resp.json()
-
         tafsir_text = tafsir_data["data"][0]["text"]
 
     await message.answer(
@@ -338,87 +337,42 @@ async def send_ayah(user_id, message):
         parse_mode="Markdown"
     )
 
-    # ===== AUDIO (FAKAT SHU YERDA BO‘LADI) =====
+    # ===== AUDIO + NAVIGATION =====
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
     audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
-
-    kb_audio = InlineKeyboardMarkup(row_width=3)
-
-    nav_audio = []
-
-    if ayah > 1:
-        nav_audio.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
-
-    nav_audio.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
-
-    if ayah < total_ayahs:
-        nav_audio.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
-
-    kb_audio.row(*nav_audio)
 
     async with session.get(audio_url) as audio_resp:
         if audio_resp.status == 200:
             import io
             audio_bytes = await audio_resp.read()
-kb_audio = InlineKeyboardMarkup(row_width=3)
 
-nav_audio = []
+            kb_audio = InlineKeyboardMarkup(row_width=3)
+            nav_audio = []
 
-if ayah > 1:
-    nav_audio.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+            if ayah > 1:
+                nav_audio.append(
+                    InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
+                )
 
-nav_audio.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+            nav_audio.append(
+                InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+            )
 
-if ayah < total_ayahs:
-    nav_audio.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+            if ayah < total_ayahs:
+                nav_audio.append(
+                    InlineKeyboardButton("➡ Keyingi", callback_data="next")
+                )
 
-kb_audio.row(*nav_audio)
+            kb_audio.row(*nav_audio)
 
-kb_audio = InlineKeyboardMarkup(row_width=3)
-
-nav_audio = []
-
-if ayah > 1:
-    nav_audio.append(
-        InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
-    )
-
-nav_audio.append(
-    InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-)
-
-if ayah < total_ayahs:
-    nav_audio.append(
-        InlineKeyboardButton("➡ Keyingi", callback_data="next")
-    )
-
-kb_audio.row(*nav_audio)
-
-await message.answer_audio(
-    types.InputFile(
-        io.BytesIO(audio_bytes),
-        filename=f"{sura}{ayah_num}.mp3"
-    ),
-    reply_markup=kb_audio
-)
-    # ===== NAVIGATION =====
-    kb = InlineKeyboardMarkup(row_width=3)
-
-    nav = []
-
-    if ayah > 1:
-        nav.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
-
-    nav.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
-
-    if ayah < total_ayahs:
-        nav.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
-
-    kb.row(*nav)
-
-    await message.answer(" ", reply_markup=kb)
-
+            await message.answer_audio(
+                types.InputFile(
+                    io.BytesIO(audio_bytes),
+                    filename=f"{sura}{ayah_num}.mp3"
+                ),
+                reply_markup=kb_audio
+            )
 # ======================
 # HANDLERS
 # ======================
