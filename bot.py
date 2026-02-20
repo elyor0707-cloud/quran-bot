@@ -121,10 +121,6 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
         y += h + line_spacing
 
     return y
-
-def to_arabic_number(num):
-    arabic_nums = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩']
-    return ''.join(arabic_nums[int(d)] for d in str(num))
     
 def create_card_image(arabic_html, translit, surah_name, ayah):
 
@@ -140,86 +136,113 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
+    arabic_font_size = 56
+    translit_font_size = 42
+
     title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
 
     # TITLE
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
-    draw.text(((width - (bbox[2]-bbox[0]))//2, 40),
-              title, fill="#d4af37", font=title_font)
+    tw = bbox[2] - bbox[0]
+    draw.text(((width - tw)//2, 40), title, fill="#d4af37", font=title_font)
 
     # FOOTER
-    arabic_ayah = to_arabic_number(ayah)
-    footer = f"{surah_name} surasi | {arabic_ayah}-oyat"
+    footer = f"{surah_name} surasi | {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
-    draw.text(((width - (bbox[2]-bbox[0]))//2, height-80),
-              footer, fill="#d4af37", font=title_font)
+    fw = bbox[2] - bbox[0]
+    draw.text(((width - fw)//2, height-80), footer, fill="#d4af37", font=title_font)
 
-    # ===== ARABIC =====
-    segments = parse_tajweed_segments(arabic_html)
+    # ===== ARABIC AUTO WRAP =====
 
-    arabic_font_size = 56
-    arabic_font = ImageFont.truetype(
-        "KFGQPC-Uthmanic-Script-Regular.ttf",
-        arabic_font_size
-    )
+    # ===== ARABIC CLEAN =====
+    clean_text = re.sub(r'<.*?>', '', arabic_html)   # barcha html teglarni o‘chir
+    clean_text = re.sub(r'\[.*?\]', '', clean_text)  # ichki markerlarni o‘chir
+    clean_text = clean_text.strip()
+    reshaped = arabic_reshaper.reshape(clean_text)
+    bidi_text = get_display(reshaped)
+
+    max_width = width - side_margin * 2
+    max_height = 300
+
+    while True:
+        arabic_font = ImageFont.truetype("DejaVuSans.ttf", arabic_font_size)
+
+        words = bidi_text.split()
+        lines = []
+        current_line = ""
+
+        for word in words:
+            test_line = word + " " + current_line if current_line else word
+            bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
+            w = bbox[2] - bbox[0]
+
+            if w <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+
+        if current_line:
+            lines.append(current_line)
+
+        total_height = len(lines) * (arabic_font_size + 15)
+
+        if total_height <= max_height:
+            break
+
+        arabic_font_size -= 4
+        if arabic_font_size < 30:
+            break
 
     y_text = 140
 
-    for rule, part in segments:
-
-        reshaped = arabic_reshaper.reshape(part)
-        bidi_text = get_display(reshaped)
-
-        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=arabic_font)
         tw = bbox[2] - bbox[0]
 
-        x = (width - tw)//2
-        y = y_text
-
-        color = TAJWEED_COLORS.get(rule, "#ffffff")
-
-        # Shadow
-        draw.text((x+2, y+2), bidi_text,
-                  fill="#000000", font=arabic_font)
-
-        # Main
-        draw.text((x, y), bidi_text,
-                  fill=color, font=arabic_font)
+        draw.text(
+            ((width - tw)//2, y_text),
+            line,
+            fill="white",
+            font=arabic_font
+        )
 
         y_text += arabic_font_size + 15
 
-    # ===== SEPARATOR =====
-    draw.line(
-        (side_margin, y_text+10, width - side_margin, y_text+10),
-        fill="#d4af37",
-        width=2
-    )
-
-    y_text += 35
-
     # ===== TRANSLITERATION =====
-    translit_font = ImageFont.truetype("DejaVuSans.ttf", 38)
 
-    max_width = width - side_margin * 2
+    y_text += 25
 
-    words = translit.split()
-    lines = []
-    current_line = ""
+    while True:
+        translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
 
-    for word in words:
-        test_line = current_line + " " + word if current_line else word
-        bbox = draw.textbbox((0, 0), test_line, font=translit_font)
-        w = bbox[2] - bbox[0]
+        words = translit.split()
+        lines = []
+        current_line = ""
 
-        if w <= max_width:
-            current_line = test_line
-        else:
+        for word in words:
+            test_line = current_line + " " + word if current_line else word
+            bbox = draw.textbbox((0, 0), test_line, font=translit_font)
+            w = bbox[2] - bbox[0]
+
+            if w <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+
+        if current_line:
             lines.append(current_line)
-            current_line = word
 
-    if current_line:
-        lines.append(current_line)
+        total_height = len(lines) * (translit_font_size + 10)
+
+        if total_height <= 200:
+            break
+
+        translit_font_size -= 2
+        if translit_font_size < 24:
+            break
 
     for line in lines:
         bbox = draw.textbbox((0, 0), line, font=translit_font)
@@ -232,7 +255,7 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
             font=translit_font
         )
 
-        y_text += 45
+        y_text += translit_font_size + 10
 
     img.save("card.png")
     
@@ -317,9 +340,60 @@ async def send_ayah(user_id, message):
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-    
     # 🔥 ENG MUHIM QATOR
-    
+    create_card_image(arabic_html, translit, surah_name, ayah)
+
+    await loading.delete()
+    await message.answer_photo(InputFile("card.png"))
+
+    # ===== TAFSIR =====
+    async with session.get(
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/uz.sodik"
+    ) as tafsir_resp:
+        tafsir_data = await tafsir_resp.json()
+        tafsir_text = tafsir_data["data"][0]["text"]
+
+    await message.answer(
+        f"📚 *Tafsir:*\n\n{tafsir_text[:800]}...",
+        parse_mode="Markdown"
+    )
+
+    # ===== AUDIO + NAVIGATION =====
+    sura = str(surah).zfill(3)
+    ayah_num = str(ayah).zfill(3)
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+    async with session.get(audio_url) as audio_resp:
+        if audio_resp.status == 200:
+            import io
+            audio_bytes = await audio_resp.read()
+
+            kb_audio = InlineKeyboardMarkup(row_width=3)
+            nav_audio = []
+
+            if ayah > 1:
+                nav_audio.append(
+                    InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
+                )
+
+            nav_audio.append(
+                InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+            )
+
+            if ayah < total_ayahs:
+                nav_audio.append(
+                    InlineKeyboardButton("➡ Keyingi", callback_data="next")
+                )
+
+            kb_audio.row(*nav_audio)
+
+            await message.answer_audio(
+                types.InputFile(
+                    io.BytesIO(audio_bytes),
+                    filename=f"{sura}{ayah_num}.mp3"
+                ),
+                reply_markup=kb_audio
+            )
 # ======================
 # HANDLERS
 # ======================
@@ -333,35 +407,27 @@ QORI_LINKS = {
     "zam_alijon": "Alijon_Qori_128kbps"
 }
 
-@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
-async def select_surah(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data == "zam_menu")
+async def zam_menu(callback: types.CallbackQuery):
 
-    surah_id = int(callback.data.split("_")[1])
-
-    update_user(callback.from_user.id, "current_surah", surah_id)
-    update_user(callback.from_user.id, "current_ayah", 1)
-
-    async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
-        r = await resp.json()
-
-    total_ayahs = r['data']['numberOfAyahs']
-    SURAH_CACHE[surah_id] = total_ayahs
-
-    surah_info = r['data']
-
-    info_text = (
-        f"📖 *{surah_info['englishName']} surasi*\n\n"
-        f"• Oyatlar soni: {surah_info['numberOfAyahs']}\n"
-        f"• Nozil bo‘lgan joyi: {surah_info['revelationType']}\n\n"
-        f"Oyatni tanlang:"
+    text = (
+        "🎧 *Qur’on tinglash rejimi*\n\n"
+        "Qorini tanlang:"
     )
 
+    kb = InlineKeyboardMarkup()
+
+    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="zam_badr"))
+    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="zam_alafasy"))
+    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="zam_alijon"))
+    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+
     await callback.message.edit_text(
-        info_text,
+        text,
+        reply_markup=kb,
         parse_mode="Markdown"
     )
 
-    await show_ayah_page(callback, surah_id, 1, total_ayahs)
     await callback.answer()
 
 
@@ -664,7 +730,7 @@ async def universal_handler(message: types.Message):
         response = await ai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a professional Islamic translator. Detect the language automatically. Provide clear, elegant translation. If Arabic text, explain briefly."},
+                {"role": "system", "content": "You are a real-time translator."},
                 {"role": "user", "content": message.text}
             ]
         )
@@ -678,7 +744,7 @@ async def universal_handler(message: types.Message):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a Hanafi Islamic scholar. Answer with Qur'an references, authentic hadith sources, and practical explanation. Keep tone respectful and clear."
+                    "content": "You are an Islamic scholar. Answer with hadith evidence and Uzbekistan Fatwa references."
                 },
                 {"role": "user", "content": message.text}
             ]
@@ -729,17 +795,12 @@ async def on_shutdown_webhook(dp):
     print("❌ Webhook deleted")
 
 if __name__ == "__main__":
-    start_webhook(
-        dispatcher=dp,
-        webhook_path=WEBHOOK_PATH,
-        on_startup=on_startup_webhook,
-        on_shutdown=on_shutdown_webhook,
+    executor.start_polling(
+        dp,
         skip_updates=True,
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000)),
+        on_startup=on_startup,
+        on_shutdown=on_shutdown
     )
-
-
 
 
 
