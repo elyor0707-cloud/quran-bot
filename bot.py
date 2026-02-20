@@ -122,7 +122,7 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
 
     return y
     
-def create_card_image(arabic_html, uzbek, surah_name, ayah):
+def create_card_image(arabic_html, translit, surah_name, ayah)::
 
     width = 900
     height = 700
@@ -199,35 +199,34 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
             max_h = max(max_h, h)
 
         y_text += max_h + 20
-        
-   # ===== TRANSLITERATION =====
-   translit_font_size = 30
-   translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+            # ===== TRANSLITERATION =====
+    translit_font_size = 30
+    translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
 
-   max_text_width = width - side_margin * 2
+    max_text_width = width - side_margin * 2
 
-   # Автоматик размер камайтириш
-   while True:
-       bbox = draw.textbbox((0, 0), translit, font=translit_font)
-       text_width = bbox[2] - bbox[0]
-       if text_width <= max_text_width:
-           break
-       translit_font_size -= 2
-       translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+    # Автоматик размер мослаш
+    while True:
+        bbox = draw.textbbox((0, 0), translit, font=translit_font)
+        text_width = bbox[2] - bbox[0]
+        if text_width <= max_text_width:
+            break
+        translit_font_size -= 2
+        translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
 
-   y_text += 20
+    y_text += 20
 
-   bbox = draw.textbbox((0, 0), translit, font=translit_font)
-   tw = bbox[2] - bbox[0]
+    bbox = draw.textbbox((0, 0), translit, font=translit_font)
+    tw = bbox[2] - bbox[0]
 
-   draw.text(
-       ((width - tw)//2, y_text),
-       translit,
-       fill="#d4af37",
-       font=translit_font
-   )
+    draw.text(
+        ((width - tw)//2, y_text),
+        translit,
+        fill="#d4af37",
+        font=translit_font
+    )
 
-   y_text += 40
+    y_text += 50
 
     
     # ===== SEPARATOR =====
@@ -351,7 +350,7 @@ async def send_ayah(user_id, message):
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-    def create_card_image(arabic_html, translit, surah_name, ayah):
+    def create_card_image(arabic_html, translit, surah_name, ayah)::
 
     await loading.delete()
     await message.answer_photo(InputFile("card.png"))
