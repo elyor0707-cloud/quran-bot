@@ -126,111 +126,106 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
 
     width = 1000
     height = 720
-    side_margin = 120
+    side_margin = 140
 
     img = Image.new("RGB", (width, height), "#0b1d2a")
     draw = ImageDraw.Draw(img)
 
-    # ===== Premium Gradient =====
     for i in range(height):
-        draw.line(
-            [(0, i), (width, i)],
-            fill=(11, 29 + i // 12, 42 + i // 10)
-        )
+        draw.line([(0, i), (width, i)],
+                  fill=(11, 29 + i // 12, 42 + i // 10))
 
-    arabic_font = ImageFont.truetype("ScheherazadeNew-Regular.ttf", 85)
-    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 36)
-    badge_font = ImageFont.truetype("DejaVuSans.ttf", 40)
+    arabic_font = ImageFont.truetype("ScheherazadeNew-Regular.ttf", 78)
+    uzbek_font = ImageFont.truetype("DejaVuSans.ttf", 34)
+    badge_font = ImageFont.truetype("DejaVuSans.ttf", 38)
 
-    # ===== Top Gold Panel =====
+    # ===== SURAH BADGE =====
     draw.rounded_rectangle(
-        [(250, 30), (750, 95)],
+        [(300, 30), (700, 95)],
         radius=30,
         fill="#d4af37"
     )
 
-    title = f"{surah_name.upper()}"
-    bbox = draw.textbbox((0, 0), title, font=badge_font)
+    bbox = draw.textbbox((0, 0), surah_name.upper(), font=badge_font)
     tw = bbox[2] - bbox[0]
 
     draw.text(
         ((width - tw)//2, 45),
-        title,
+        surah_name.upper(),
         fill="#0b1d2a",
         font=badge_font
     )
 
-    # ===== ARABIC (TO'LIQ MATN) =====
-    clean_text = re.sub(r'<.*?>', '', arabic_html)
-
-    reshaped = arabic_reshaper.reshape(clean_text)
-    bidi_text = get_display(reshaped)
+    # ===== TAJWEED SEGMENTS =====
+    segments = parse_tajweed_segments(arabic_html)
 
     max_width = width - side_margin * 2
     y_text = 170
 
-    words = bidi_text.split(" ")
-    line = ""
+    lines = []
+    current_line = []
+    current_width = 0
 
-    for word in words:
-        test_line = word + " " + line if line else word
-        bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
+    for rule, part in segments:
+
+        reshaped = arabic_reshaper.reshape(part)
+        bidi_text = get_display(reshaped)
+
+        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
         w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
 
-        if w <= max_width:
-            line = test_line
-        else:
-            bbox = draw.textbbox((0, 0), line, font=arabic_font)
-            lw = bbox[2] - bbox[0]
+        if current_width + w > max_width:
+            lines.append(current_line)
+            current_line = []
+            current_width = 0
 
-            # Shadow
+        current_line.append((rule, bidi_text, w, h))
+        current_width += w
+
+    if current_line:
+        lines.append(current_line)
+
+    for line in lines:
+
+        total_width = sum(item[2] for item in line)
+        x_cursor = (width + total_width) // 2
+        max_h = 0
+
+        for rule, text_part, w, h in line:
+
+            color = TAJWEED_COLORS.get(rule, "#ffffff")
+
+            # shadow
             draw.text(
-                ((width - lw)//2 + 2, y_text + 2),
-                line,
+                (x_cursor - w + 2, y_text + 2),
+                text_part,
                 fill="#000000",
                 font=arabic_font
             )
 
             draw.text(
-                ((width - lw)//2, y_text),
-                line,
-                fill="#ffffff",
+                (x_cursor - w, y_text),
+                text_part,
+                fill=color,
                 font=arabic_font
             )
 
-            y_text += 95
-            line = word
+            x_cursor -= w
+            max_h = max(max_h, h)
 
-    if line:
-        bbox = draw.textbbox((0, 0), line, font=arabic_font)
-        lw = bbox[2] - bbox[0]
+        y_text += max_h + 32
 
-        draw.text(
-            ((width - lw)//2 + 2, y_text + 2),
-            line,
-            fill="#000000",
-            font=arabic_font
-        )
-
-        draw.text(
-            ((width - lw)//2, y_text),
-            line,
-            fill="#ffffff",
-            font=arabic_font
-        )
-
-    # ===== Separator =====
-    sep_y = y_text + 40
+    # ===== SEPARATOR =====
+    sep_y = y_text + 20
     draw.line(
         (side_margin, sep_y, width - side_margin, sep_y),
         fill="#d4af37",
         width=4
     )
 
-    # ===== Uzbek Translation =====
+    # ===== UZBEK TARJIMA =====
     y_text = sep_y + 35
-    max_text_width = width - side_margin * 2
-
     words = uzbek.split()
     line = ""
 
@@ -240,7 +235,7 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
 
-        if w <= max_text_width:
+        if w <= max_width:
             line = test_line
         else:
             bbox = draw.textbbox((0, 0), line, font=uzbek_font)
@@ -251,7 +246,7 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
                 fill="#ffffff",
                 font=uzbek_font
             )
-            y_text += h + 12
+            y_text += h + 10
             line = word
 
     if line:
@@ -264,11 +259,11 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
             font=uzbek_font
         )
 
-    # ===== Ayah Badge =====
+    # ===== OYAT BADGE =====
     badge_text = f"{ayah}-oyat"
 
     draw.rounded_rectangle(
-        [(400, height-90), (600, height-40)],
+        [(420, height-95), (580, height-45)],
         radius=25,
         fill="#d4af37"
     )
@@ -277,14 +272,13 @@ def create_card_image(arabic_html, uzbek, surah_name, ayah):
     tw = bbox[2] - bbox[0]
 
     draw.text(
-        ((width - tw)//2, height-78),
+        ((width - tw)//2, height-83),
         badge_text,
         fill="#0b1d2a",
         font=badge_font
     )
 
     img.save("card.png")
-
 # ======================
 # SURAH KEYBOARD
 # ======================
@@ -362,7 +356,6 @@ async def send_ayah(user_id, message):
 
     arabic_html = r['data'][0]['text']
     uzbek = r['data'][1]['text']
-    english = r['data'][2]['text']
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
@@ -372,7 +365,7 @@ async def send_ayah(user_id, message):
     text = (
         f"📖 *{surah_name}* | {ayah}-oyat\n\n"
         f"🇺🇿 {uzbek}\n\n"
-        f"🇬🇧 {english}"
+        
     )
 
     await message.answer(text, parse_mode="Markdown")
@@ -396,11 +389,21 @@ async def send_ayah(user_id, message):
         InlineKeyboardButton("🎧 Audio", callback_data="zam_menu")
     )
 
-    kb.row(
-        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-    )
+    kb = InlineKeyboardMarkup(row_width=3)
 
-    await message.answer(" ", reply_markup=kb)
+nav = []
+
+if ayah > 1:
+    nav.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+
+nav.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+
+if ayah < total_ayahs:
+    nav.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+
+kb.row(*nav)
+
+await message.answer(" ", reply_markup=kb)
 
 
 
