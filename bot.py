@@ -121,6 +121,10 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
         y += h + line_spacing
 
     return y
+
+def to_arabic_number(num):
+    arabic_nums = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩']
+    return ''.join(arabic_nums[int(d)] for d in str(num))
     
 def create_card_image(arabic_html, translit, surah_name, ayah):
 
@@ -343,10 +347,7 @@ async def send_ayah(user_id, message):
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-    def to_arabic_number(num):
-    arabic_nums = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩']
-    return ''.join(arabic_nums[int(d)] for d in str(num))
-
+    
     # 🔥 ENG MUHIM QATOR
     create_card_image(arabic_html, translit, surah_name, ayah)
 
