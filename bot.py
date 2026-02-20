@@ -293,9 +293,9 @@ async def send_ayah(user_id, message):
     # 🔥 ENG MUHIM QATOR
     def create_card_image(arabic_html, translit, surah_name, ayah):
 
-    width = 900
-    height = 700
-    side_margin = 110
+        width = 900
+        height = 700
+        side_margin = 110
 
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
