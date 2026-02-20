@@ -122,7 +122,7 @@ def draw_multiline_text(draw, text, font, max_width, start_y, width, line_spacin
 
     return y
     
-def create_card_image(arabic_html, translit, surah_name, ayah)::
+def create_card_image(arabic_html, translit, surah_name, ayah):
 
     width = 900
     height = 700
