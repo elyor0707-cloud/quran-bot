@@ -361,7 +361,7 @@ async def send_ayah(user_id, message):
         if audio_resp.status == 200:
             import io
             audio_bytes = await audio_resp.read()
-            kb_audio = InlineKeyboardMarkup(row_width=3)
+kb_audio = InlineKeyboardMarkup(row_width=3)
 
 nav_audio = []
 
