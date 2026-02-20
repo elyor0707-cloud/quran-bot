@@ -136,7 +136,7 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    arabic_font_size = 64
+    arabic_font_size = 56
     arabic_font = ImageFont.truetype("DejaVuSans.ttf", arabic_font_size)
     translit_font_size = 50
     translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
