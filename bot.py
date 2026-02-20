@@ -350,7 +350,7 @@ async def send_ayah(user_id, message):
     await message.answer("⏳ Yuklanmoqda...")
 
     async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik,en.asad"
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik"
     ) as resp:
         r = await resp.json()
 
@@ -362,49 +362,25 @@ async def send_ayah(user_id, message):
     create_card_image(arabic_html, uzbek, surah_name, ayah)
     await message.answer_photo(InputFile("card.png"))
 
-    text = (
-        f"📖 *{surah_name}* | {ayah}-oyat\n\n"
-        f"🇺🇿 {uzbek}\n\n"
-        
-    )
-
+    text = f"📖 *{surah_name}* | {ayah}-oyat\n\n🇺🇿 {uzbek}"
     await message.answer(text, parse_mode="Markdown")
 
+    # ===== NAVIGATION =====
     kb = InlineKeyboardMarkup(row_width=3)
 
     nav = []
 
     if ayah > 1:
-        nav.append(InlineKeyboardButton("⬅", callback_data="prev"))
+        nav.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
 
-    nav.append(InlineKeyboardButton("🔖 Bookmark", callback_data="bookmark"))
+    nav.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     if ayah < total_ayahs:
-        nav.append(InlineKeyboardButton("➡", callback_data="next"))
+        nav.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
 
     kb.row(*nav)
 
-    kb.row(
-        InlineKeyboardButton("📚 Tafsir", callback_data="tafsir"),
-        InlineKeyboardButton("🎧 Audio", callback_data="zam_menu")
-    )
-
-    kb = InlineKeyboardMarkup(row_width=3)
-
-nav = []
-
-if ayah > 1:
-    nav.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
-
-nav.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
-
-if ayah < total_ayahs:
-    nav.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
-
-kb.row(*nav)
-
-await message.answer(" ", reply_markup=kb)
-
+    await message.answer(" ", reply_markup=kb)
 
 
 # ======================
