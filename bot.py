@@ -350,8 +350,7 @@ async def send_ayah(user_id, message):
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
 
-    def create_card_image(arabic_html, translit, surah_name, ayah):
-
+    
     await loading.delete()
     await message.answer_photo(InputFile("card.png"))
 
