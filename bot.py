@@ -242,27 +242,54 @@ for line in lines:
     y_text += arabic_font_size + 15
 
     # ===== TRANSLITERATION =====
-    y_text += 20
+    # ===== TRANSLITERATION AUTO WRAP =====
+y_text += 25
 
-    while True:
-        bbox = draw.textbbox((0, 0), translit, font=translit_font)
-        text_width = bbox[2] - bbox[0]
-        if text_width <= max_width:
-            break
-        translit_font_size -= 2
-        translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+translit_font_size = 42
+max_width = width - side_margin * 2
 
-    bbox = draw.textbbox((0, 0), translit, font=translit_font)
+while True:
+    translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+
+    words = translit.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = current_line + " " + word if current_line else word
+        bbox = draw.textbbox((0, 0), test_line, font=translit_font)
+        w = bbox[2] - bbox[0]
+
+        if w <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    total_height = len(lines) * (translit_font_size + 10)
+
+    if total_height < 180:
+        break
+
+    translit_font_size -= 2
+    if translit_font_size < 24:
+        break
+
+for line in lines:
+    bbox = draw.textbbox((0, 0), line, font=translit_font)
     tw = bbox[2] - bbox[0]
 
     draw.text(
         ((width - tw)//2, y_text),
-        translit,
+        line,
         fill="#d4af37",
         font=translit_font
     )
 
-    img.save("card.png")
+    y_text += translit_font_size + 10
     
 # ======================
 # SURAH KEYBOARD
