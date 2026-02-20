@@ -401,13 +401,8 @@ async def zam_play(callback: types.CallbackQuery):
 
     user = get_user(callback.from_user.id)
 
-    if not user.get("current_surah") or not user.get("current_ayah"):
-        await callback.message.answer("Avval oyat tanlang 📖")
-        await callback.answer()
-        return
-
-    surah = user["current_surah"]
-    ayah = user["current_ayah"]
+    surah = user.get("current_surah", 1)
+    ayah = 1   # 🔥 HAR DOIM BOSHDAN
 
     reciter = QORI_LINKS.get(callback.data)
 
