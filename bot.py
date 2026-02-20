@@ -545,7 +545,7 @@ async def select_surah(callback: types.CallbackQuery):
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
-async def show_ayah_page(callback, surah_number, page, total_ayahs):
+async def ayah_page_handler(callback: types.CallbackQuery):
 
     per_page = 12
 
