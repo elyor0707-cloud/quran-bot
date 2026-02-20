@@ -235,7 +235,143 @@ async def send_ayah(user_id, message):
 # ======================
 # HANDLERS
 # ======================
+# ======================
+# SURAH TANLASH
+# ======================
 
+@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
+async def select_surah(callback: types.CallbackQuery):
+
+    surah_number = int(callback.data.split("_")[1])
+
+    update_user(callback.from_user.id, "current_surah", surah_number)
+    update_user(callback.from_user.id, "current_ayah", 1)
+
+    if surah_number not in SURAH_CACHE:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_number}") as resp:
+            r = await resp.json()
+            SURAH_CACHE[surah_number] = r['data']['numberOfAyahs']
+
+    total_ayahs = SURAH_CACHE[surah_number]
+
+    await show_ayah_page(callback, surah_number, 1, total_ayahs)
+    await callback.answer()
+
+
+# ======================
+# OYAT PAGE
+# ======================
+
+async def show_ayah_page(callback, surah_number, page, total_ayahs):
+
+    per_page = 10
+    start = (page - 1) * per_page + 1
+    end = min(start + per_page - 1, total_ayahs)
+
+    kb = InlineKeyboardMarkup(row_width=5)
+
+    for i in range(start, end + 1):
+        kb.insert(
+            InlineKeyboardButton(
+                f"{i}",
+                callback_data=f"ayah_{i}"
+            )
+        )
+
+    nav = []
+
+    if page > 1:
+        nav.append(
+            InlineKeyboardButton("⬅", callback_data=f"ayahpage_{page-1}")
+        )
+
+    nav.append(
+        InlineKeyboardButton("🏠", callback_data="menu")
+    )
+
+    if end < total_ayahs:
+        nav.append(
+            InlineKeyboardButton("➡", callback_data=f"ayahpage_{page+1}")
+        )
+
+    kb.row(*nav)
+
+    await callback.message.edit_text(
+        f"📖 {surah_number}-sura | {start}-{end} oyatlar",
+        reply_markup=kb
+    )
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("ayahpage_"))
+async def ayah_page_handler(callback: types.CallbackQuery):
+
+    page = int(callback.data.split("_")[1])
+    user = get_user(callback.from_user.id)
+    surah = user["current_surah"]
+
+    total_ayahs = SURAH_CACHE.get(surah)
+
+    if not total_ayahs:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
+            r = await resp.json()
+            total_ayahs = r['data']['numberOfAyahs']
+            SURAH_CACHE[surah] = total_ayahs
+
+    await show_ayah_page(callback, surah, page, total_ayahs)
+    await callback.answer()
+
+
+# ======================
+# OYAT TANLASH
+# ======================
+
+@dp.callback_query_handler(lambda c: c.data.startswith("ayah_"))
+async def select_ayah(callback: types.CallbackQuery):
+
+    ayah = int(callback.data.split("_")[1])
+    update_user(callback.from_user.id, "current_ayah", ayah)
+
+    await send_ayah(callback.from_user.id, callback.message)
+    await callback.answer()
+
+
+# ======================
+# NAVIGATION
+# ======================
+
+@dp.callback_query_handler(lambda c: c.data in ["next", "prev", "menu"])
+async def navigation(callback: types.CallbackQuery):
+
+    user_id = callback.from_user.id
+    user = get_user(user_id)
+
+    surah = user["current_surah"]
+    ayah = user["current_ayah"]
+
+    if callback.data == "menu":
+        await callback.message.edit_text(
+            "📖 Surani tanlang:",
+            reply_markup=surah_keyboard()
+        )
+        await callback.answer()
+        return
+
+    total_ayahs = SURAH_CACHE.get(surah)
+
+    if not total_ayahs:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
+            r = await resp.json()
+            total_ayahs = r['data']['numberOfAyahs']
+            SURAH_CACHE[surah] = total_ayahs
+
+    if callback.data == "next" and ayah < total_ayahs:
+        update_user(user_id, "current_ayah", ayah + 1)
+
+    elif callback.data == "prev" and ayah > 1:
+        update_user(user_id, "current_ayah", ayah - 1)
+
+    await send_ayah(user_id, callback.message)
+    await callback.answer()
 @dp.message_handler(commands=['start'])
 async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
