@@ -649,10 +649,12 @@ async def navigation(callback: types.CallbackQuery):
     
     if callback.data == "menu":
         set_user_mode(user_id, "normal")
-        await callback.message.edit_text(
+
+        await callback.message.answer(
             "🏠 Asosiy menyu",
             reply_markup=main_menu()
         )
+
         await callback.answer()
         return
 
