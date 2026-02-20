@@ -148,7 +148,8 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     draw.text(((width - tw)//2, 40), title, fill="#d4af37", font=title_font)
 
     # FOOTER
-    footer = f"{surah_name} surasi | {ayah}-oyat"
+    arabic_ayah = to_arabic_number(ayah)
+    footer = f"{surah_name} surasi | {arabic_ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
     fw = bbox[2] - bbox[0]
     draw.text(((width - fw)//2, height-80), footer, fill="#d4af37", font=title_font)
@@ -201,12 +202,14 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
         bbox = draw.textbbox((0, 0), line, font=arabic_font)
         tw = bbox[2] - bbox[0]
 
-        draw.text(
-            ((width - tw)//2, y_text),
-            line,
-            fill="white",
-            font=arabic_font
-        )
+        x_pos = (width - tw)//2
+        y_pos = y_text
+
+        # Shadow
+        draw.text((x_pos+2, y_pos+2), line, fill="#000000", font=arabic_font)
+
+        # Main text
+        draw.text((x_pos, y_pos), line, fill="#ffffff", font=arabic_font)
 
         y_text += arabic_font_size + 15
 
@@ -339,6 +342,10 @@ async def send_ayah(user_id, message):
     translit = r['data'][2]['text']
     surah_name = r['data'][0]['surah']['englishName']
     total_ayahs = r['data'][0]['surah']['numberOfAyahs']
+
+    def to_arabic_number(num):
+    arabic_nums = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩']
+    return ''.join(arabic_nums[int(d)] for d in str(num))
 
     # 🔥 ENG MUHIM QATOR
     create_card_image(arabic_html, translit, surah_name, ayah)
@@ -730,7 +737,7 @@ async def universal_handler(message: types.Message):
         response = await ai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a real-time translator."},
+                {"role": "system", "content": "You are a professional Islamic translator. Detect the language automatically. Provide clear, elegant translation. If Arabic text, explain briefly."},
                 {"role": "user", "content": message.text}
             ]
         )
@@ -744,7 +751,7 @@ async def universal_handler(message: types.Message):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an Islamic scholar. Answer with hadith evidence and Uzbekistan Fatwa references."
+                    "content": "You are a Hanafi Islamic scholar. Answer with Qur'an references, authentic hadith sources, and practical explanation. Keep tone respectful and clear."
                 },
                 {"role": "user", "content": message.text}
             ]
