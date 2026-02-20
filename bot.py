@@ -325,6 +325,19 @@ async def send_ayah(user_id, message):
     await loading.delete()
     await message.answer_photo(InputFile("card.png"))
 
+    # ===== TAFSIR =====
+    async with session.get(
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/uz.sodik"
+    ) as tafsir_resp:
+        tafsir_data = await tafsir_resp.json()
+
+        tafsir_text = tafsir_data["data"][0]["text"]
+
+    await message.answer(
+        f"📚 *Tafsir:*\n\n{tafsir_text[:800]}...",
+        parse_mode="Markdown"
+    )
+
     # ===== AUDIO (FAKAT SHU YERDA BO‘LADI) =====
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
