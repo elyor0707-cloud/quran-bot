@@ -135,7 +135,6 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
 
-    # Gradient
     for i in range(height):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
@@ -145,135 +144,41 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
 
     title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
 
-    # TITLE
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
-    tw = bbox[2] - bbox[0]
-    draw.text(((width - tw)//2, 40), title, fill="#d4af37", font=title_font)
+    draw.text(((width - (bbox[2]-bbox[0]))//2, 40),
+              title, fill="#d4af37", font=title_font)
 
-    # FOOTER
     arabic_ayah = to_arabic_number(ayah)
     footer = f"{surah_name} surasi | {arabic_ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
-    fw = bbox[2] - bbox[0]
-    draw.text(((width - fw)//2, height-80), footer, fill="#d4af37", font=title_font)
+    draw.text(((width - (bbox[2]-bbox[0]))//2, height-80),
+              footer, fill="#d4af37", font=title_font)
 
     # ===== ARABIC CLEAN =====
-clean_text = re.sub(r'<.*?>', '', arabic_html)
-clean_text = re.sub(r'\[.*?\]', '', clean_text)
-clean_text = clean_text.strip()
+    clean_text = re.sub(r'<.*?>', '', arabic_html)
+    clean_text = re.sub(r'\[.*?\]', '', clean_text)
+    clean_text = clean_text.strip()
 
-reshaped = arabic_reshaper.reshape(clean_text)
-bidi_text = get_display(reshaped)
+    reshaped = arabic_reshaper.reshape(clean_text)
+    bidi_text = get_display(reshaped)
 
-max_width = width - side_margin * 2
-max_height = 320
-
-while True:
     arabic_font = ImageFont.truetype(
         "KFGQPC-Uthmanic-Script-Regular.ttf",
         arabic_font_size
     )
 
-    words = bidi_text.split()
-    lines = []
-    current_line = ""
+    draw.text((100, 150), bidi_text,
+              fill="white", font=arabic_font)
 
-    for word in words:
-        test_line = word + " " + current_line if current_line else word
-        bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
-        w = bbox[2] - bbox[0]
-
-        if w <= max_width:
-            current_line = test_line
-        else:
-            lines.append(current_line)
-            current_line = word
-
-    if current_line:
-        lines.append(current_line)
-
-    total_height = len(lines) * (arabic_font_size + 20)
-
-    if total_height <= max_height:
-        break
-
-    arabic_font_size -= 4
-    if arabic_font_size < 34:
-        break
-
-y_text = 140
-
-for line in lines:
-    bbox = draw.textbbox((0, 0), line, font=arabic_font)
-    tw = bbox[2] - bbox[0]
-
-    draw.text(
-        ((width - tw)//2, y_text),
-        line,
-        fill="#ffffff",
-        font=arabic_font
-    )
-
-    y_text += arabic_font_size + 20
-    # ===== TRANSLITERATION =====
-y_text += 25
-
-max_translit_height = 220
-
-while True:
     translit_font = ImageFont.truetype(
         "DejaVuSans.ttf",
         translit_font_size
     )
 
-    words = translit.split()
-    lines = []
-    current_line = ""
+    draw.text((100, 500), translit,
+              fill="#d4af37", font=translit_font)
 
-    for word in words:
-        test_line = current_line + " " + word if current_line else word
-        bbox = draw.textbbox((0, 0), test_line, font=translit_font)
-        w = bbox[2] - bbox[0]
-
-        if w <= max_width:
-            current_line = test_line
-        else:
-            lines.append(current_line)
-            current_line = word
-
-    if current_line:
-        lines.append(current_line)
-
-    total_height = len(lines) * (translit_font_size + 12)
-
-    if total_height <= max_translit_height:
-        break
-
-    translit_font_size -= 2
-    if translit_font_size < 24:
-        break
-
-for line in lines:
-    bbox = draw.textbbox((0, 0), line, font=translit_font)
-    tw = bbox[2] - bbox[0]
-
-    # Soft shadow
-    draw.text(
-        ((width - tw)//2 + 1, y_text + 1),
-        line,
-        fill="#000000",
-        font=translit_font
-    )
-
-    draw.text(
-        ((width - tw)//2, y_text),
-        line,
-        fill="#d4af37",
-        font=translit_font
-    )
-
-    y_text += translit_font_size + 12
     img.save("card.png")
     
 # ======================
@@ -425,27 +330,35 @@ QORI_LINKS = {
     "zam_alijon": "Alijon_Qori_128kbps"
 }
 
-@dp.callback_query_handler(lambda c: c.data == "zam_menu")
-async def zam_menu(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
+async def select_surah(callback: types.CallbackQuery):
 
-    text = (
-        "🎧 *Qur’on tinglash rejimi*\n\n"
-        "Qorini tanlang:"
+    surah_id = int(callback.data.split("_")[1])
+
+    update_user(callback.from_user.id, "current_surah", surah_id)
+    update_user(callback.from_user.id, "current_ayah", 1)
+
+    async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
+        r = await resp.json()
+
+    total_ayahs = r['data']['numberOfAyahs']
+    SURAH_CACHE[surah_id] = total_ayahs
+
+    surah_info = r['data']
+
+    info_text = (
+        f"📖 *{surah_info['englishName']} surasi*\n\n"
+        f"• Oyatlar soni: {surah_info['numberOfAyahs']}\n"
+        f"• Nozil bo‘lgan joyi: {surah_info['revelationType']}\n\n"
+        f"Oyatni tanlang:"
     )
 
-    kb = InlineKeyboardMarkup()
-
-    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="zam_badr"))
-    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="zam_alafasy"))
-    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="zam_alijon"))
-    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
-
     await callback.message.edit_text(
-        text,
-        reply_markup=kb,
+        info_text,
         parse_mode="Markdown"
     )
 
+    await show_ayah_page(callback, surah_id, 1, total_ayahs)
     await callback.answer()
 
 
@@ -813,11 +726,14 @@ async def on_shutdown_webhook(dp):
     print("❌ Webhook deleted")
 
 if __name__ == "__main__":
-    executor.start_polling(
-        dp,
+    start_webhook(
+        dispatcher=dp,
+        webhook_path=WEBHOOK_PATH,
+        on_startup=on_startup_webhook,
+        on_shutdown=on_shutdown_webhook,
         skip_updates=True,
-        on_startup=on_startup,
-        on_shutdown=on_shutdown
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
     )
 
 
