@@ -138,7 +138,7 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
 
     arabic_font_size = 64
     arabic_font = ImageFont.truetype("DejaVuSans.ttf", arabic_font_size)
-    translit_font_size = 30
+    translit_font_size = 50
     translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
     title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
 
@@ -186,19 +186,60 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     if current_line:
         lines.append(current_line)
 
-    # ===== ARABIC DRAW =====
-    for line in lines:
-        total_line_width = sum(part[2] for part in line)
-        x_cursor = (width + total_line_width) // 2
-        max_h = 0
+   
+    # ===== ARABIC AUTO WRAP =====
 
-        for rule, text_part, w, h in line:
-            color = TAJWEED_COLORS.get(rule, "white")
-            draw.text((x_cursor - w, y_text), text_part, fill=color, font=arabic_font)
-            x_cursor -= w
-            max_h = max(max_h, h)
+clean_text = re.sub(r'</?tajweed.*?>', '', arabic_html)
+reshaped = arabic_reshaper.reshape(clean_text)
+bidi_text = get_display(reshaped)
 
-        y_text += max_h + 15
+max_width = width - side_margin * 2
+max_height = 350   # arabic uchun maksimal joy
+
+while True:
+    arabic_font = ImageFont.truetype("DejaVuSans.ttf", arabic_font_size)
+
+    words = bidi_text.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = word + " " + current_line if current_line else word
+        bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
+        w = bbox[2] - bbox[0]
+
+        if w <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    total_height = len(lines) * (arabic_font_size + 15)
+
+    if total_height <= max_height:
+        break
+
+    arabic_font_size -= 4
+    if arabic_font_size < 30:
+        break
+
+y_text = 140
+
+for line in lines:
+    bbox = draw.textbbox((0, 0), line, font=arabic_font)
+    tw = bbox[2] - bbox[0]
+
+    draw.text(
+        ((width - tw)//2, y_text),
+        line,
+        fill="white",
+        font=arabic_font
+    )
+
+    y_text += arabic_font_size + 15
 
     # ===== TRANSLITERATION =====
     y_text += 20
