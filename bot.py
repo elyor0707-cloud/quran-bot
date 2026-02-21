@@ -432,26 +432,22 @@ async def qori_surah_list(callback: types.CallbackQuery):
 
     _, reciter = callback.data.split("|")
 
+    async with session.get("https://api.alquran.cloud/v1/surah") as resp:
+        data = await resp.json()
+
+    surahs = data["data"]
+
     kb = InlineKeyboardMarkup(row_width=4)
 
-async with session.get("https://api.alquran.cloud/v1/surah") as resp:
-    data = await resp.json()
+    for i in range(1, 115):
+        surah_name = surahs[i-1]["englishName"]
 
-surahs = data["data"]
-
-for i in range(1, 115):
-    surah_name = surahs[i-1]["englishName"]
-
-    kb.insert(
-        InlineKeyboardButton(
-            f"{i}-{surah_name}",
-            callback_data=f"play|{reciter}|{i}"
+        kb.insert(
+            InlineKeyboardButton(
+                f"{i}-{surah_name}",
+                callback_data=f"play|{reciter}|{i}"
+            )
         )
-    )
-
-    kb.row(
-        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-    )
 
     await callback.message.edit_text(
         "📖 Surani tanlang:",
