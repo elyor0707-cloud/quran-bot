@@ -413,20 +413,73 @@ QORI_LINKS = {
 @dp.callback_query_handler(lambda c: c.data == "zam_menu")
 async def zam_menu(callback: types.CallbackQuery):
 
-    text = "🎧 *Professional Qiroat*\n\nQorini tanlang:"
-
-    kb = InlineKeyboardMarkup()
+    kb = InlineKeyboardMarkup(row_width=1)
 
     kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori_badr"))
     kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori_alafasy"))
-    kb.add(InlineKeyboardButton("🎙 Shayx Alijon Qori", callback_data="qori_alijon"))
+    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="qori_alijon"))
     kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     await callback.message.edit_text(
-        text,
-        reply_markup=kb,
-        parse_mode="Markdown"
+        "🎧 Professional Qiroat\n\nQorini tanlang:",
+        reply_markup=kb
     )
+
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
+async def select_qori(callback: types.CallbackQuery):
+
+    qori_map = {
+        "qori_badr": "Badr_AlTurki_128kbps",
+        "qori_alafasy": "Alafasy_128kbps",
+        "qori_alijon": "Alijon_Qori_128kbps"
+    }
+
+    reciter = qori_map.get(callback.data)
+
+    kb = InlineKeyboardMarkup(row_width=5)
+
+    for i in range(1, 115):
+        kb.insert(
+            InlineKeyboardButton(
+                f"{i}",
+                callback_data=f"qori_surah_{reciter}_{i}"
+            )
+        )
+
+    kb.row(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+
+    await callback.message.edit_text(
+        "📖 Surani tanlang:",
+        reply_markup=kb
+    )
+
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data.startswith("qori_surah_"))
+async def qiroat_surah_handler(callback: types.CallbackQuery):
+
+    parts = callback.data.split("_")
+
+    reciter = parts[2]
+    surah_id = int(parts[3])
+
+    sura = str(surah_id).zfill(3)
+
+    audio_url = f"https://everyayah.com/data/{reciter}/{sura}001.mp3"
+
+    async with session.get(audio_url) as audio_resp:
+        if audio_resp.status == 200:
+            import io
+            audio_bytes = await audio_resp.read()
+
+            await callback.message.answer_audio(
+                types.InputFile(
+                    io.BytesIO(audio_bytes),
+                    filename=f"{sura}001.mp3"
+                )
+            )
 
     await callback.answer()
 
