@@ -1,15 +1,14 @@
 import os
 import aiohttp
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputFile
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import get_surahs, get_user, update_user
 
 # ======================
-# BOT INIT
+# INIT
 # ======================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN topilmadi!")
 
@@ -30,39 +29,21 @@ def main_menu():
         InlineKeyboardButton("🎧 Professional Qiroat", callback_data="zam_menu")
     )
 
-    kb.row(
-        InlineKeyboardButton("🌍 AI Multi-Tarjima", callback_data="ai_translate"),
-        InlineKeyboardButton("📜 Fatvo & Hadis AI", callback_data="zikir_ai")
-    )
-
-    kb.row(
-        InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="quron_read")
-    )
-
     return kb
 
 # ======================
 # START
 # ======================
 
-@dp.message_handler(commands=['start'])
+@dp.message_handler(commands=["start"])
 async def start_cmd(message: types.Message):
-
     get_user(message.from_user.id)
 
-    text = (
-        "🕌 *QUR’ON INTELLECT PLATFORM*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "📖 Tilovat & Tafakkur\n"
-        "🎧 Qiroat & Audio\n"
-        "🌍 AI Tarjima Markazi\n"
-        "📜 Fatvo va Dalil AI\n"
-        "📚 Tajvidli Mus'haf\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "_Ilm • Tafakkur • Amal_"
+    await message.answer(
+        "🕌 *QUR’ON INTELLECT PLATFORM*",
+        reply_markup=main_menu(),
+        parse_mode="Markdown"
     )
-
-    await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
 
 # ======================
 # QURON TILOVATI
@@ -92,7 +73,6 @@ async def tilovat_menu(callback: types.CallbackQuery):
 async def select_surah(callback: types.CallbackQuery):
 
     surah_id = int(callback.data.split("_")[1])
-
     update_user(callback.from_user.id, "current_surah", surah_id)
     update_user(callback.from_user.id, "current_ayah", 1)
 
@@ -100,7 +80,7 @@ async def select_surah(callback: types.CallbackQuery):
     await callback.answer()
 
 # ======================
-# SEND AYAH
+# SEND AYAH (ARABCHA KATTA + LOTINCHA)
 # ======================
 
 async def send_ayah(user_id, message):
@@ -110,22 +90,26 @@ async def send_ayah(user_id, message):
     ayah = user["current_ayah"]
 
     async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/quran-uthmani"
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,en.transliteration"
     ) as resp:
         r = await resp.json()
 
-    arabic_text = r['data']['text']
-    surah_name = r['data']['surah']['englishName']
-    total_ayahs = r['data']['surah']['numberOfAyahs']
+    arabic_text = r["data"][0]["text"]
+    translit = r["data"][1]["text"]
+    surah_name = r["data"][0]["surah"]["englishName"]
+    total_ayahs = r["data"][0]["surah"]["numberOfAyahs"]
 
-    await message.answer(
-        f"📖 *{surah_name} surasi | {ayah}-oyat*\n\n{arabic_text}",
-        parse_mode="Markdown"
+    text = (
+        f"📖 *{surah_name} | {ayah}-oyat*\n\n"
+        f"{arabic_text}\n\n"
+        f"_{translit}_"
     )
 
+    await message.answer(text, parse_mode="Markdown")
+
+    # AUDIO
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
-
     audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
 
     kb_audio = InlineKeyboardMarkup(row_width=3)
@@ -154,7 +138,7 @@ async def navigation(callback: types.CallbackQuery):
     if surah not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
             r = await resp.json()
-            SURAH_CACHE[surah] = r['data']['numberOfAyahs']
+            SURAH_CACHE[surah] = r["data"]["numberOfAyahs"]
 
     total_ayahs = SURAH_CACHE[surah]
 
@@ -168,7 +152,7 @@ async def navigation(callback: types.CallbackQuery):
     await callback.answer()
 
 # ======================
-# PROFESSIONAL QIROAT (TO'LIQ SURA + NAV)
+# PROFESSIONAL QIROAT (TO'LIQ SURA)
 # ======================
 
 RECITER_FULL = {
@@ -182,9 +166,9 @@ async def zam_menu(callback: types.CallbackQuery):
 
     kb = InlineKeyboardMarkup(row_width=1)
 
-    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori|Alafasy_128kbps|1"))
-    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori|Badr_AlTurki_128kbps|1"))
-    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="qori|Alijon_Qori_128kbps|1"))
+    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori|Alafasy_128kbps"))
+    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori|Badr_AlTurki_128kbps"))
+    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="qori|Alijon_Qori_128kbps"))
     kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     await callback.message.edit_text("🎧 Qorini tanlang:", reply_markup=kb)
@@ -192,66 +176,46 @@ async def zam_menu(callback: types.CallbackQuery):
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("qori|"))
-async def qori_surah_list(callback: types.CallbackQuery):
+async def play_full_surah(callback: types.CallbackQuery):
 
-    _, reciter, page = callback.data.split("|")
-    page = int(page)
+    await callback.answer("⏳ Yuklanmoqda...")
+
+    _, reciter = callback.data.split("|")
 
     async with session.get("https://api.alquran.cloud/v1/surah") as resp:
         data = await resp.json()
 
     surahs = data["data"]
 
-    per_page = 20
-    start = (page - 1) * per_page
-    end = start + per_page
-
     kb = InlineKeyboardMarkup(row_width=4)
 
-    for surah in surahs[start:end]:
+    for surah in surahs:
         kb.insert(
             InlineKeyboardButton(
                 f"{surah['number']}-{surah['englishName']}",
-                callback_data=f"play|{reciter}|{surah['number']}|{page}"
+                callback_data=f"play|{reciter}|{surah['number']}"
             )
         )
 
-    nav = []
-
-    if page > 1:
-        nav.append(InlineKeyboardButton("⬅ Orqaga", callback_data=f"qori|{reciter}|{page-1}"))
-
-    nav.append(InlineKeyboardButton("🎙 Qorilar", callback_data="zam_menu"))
-    nav.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
-
-    if end < 114:
-        nav.append(InlineKeyboardButton("➡ Oldinga", callback_data=f"qori|{reciter}|{page+1}"))
-
-    kb.row(*nav)
-
-    await callback.message.edit_text("📖 Surani tanlang:", reply_markup=kb)
-    await callback.answer()
-
-
-@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
-async def play_surah(callback: types.CallbackQuery):
-
-    await callback.answer("⏳ Yuklanmoqda...")
-
-    _, reciter, surah_id, page = callback.data.split("|")
-    surah_id = int(surah_id)
-
-    sura = str(surah_id).zfill(3)
-    folder = RECITER_FULL.get(reciter)
-
-    full_url = f"https://download.quranicaudio.com/qdc/{folder}/{sura}.mp3"
-
-    kb = InlineKeyboardMarkup(row_width=3)
     kb.row(
-        InlineKeyboardButton("⬅ Orqaga", callback_data=f"qori|{reciter}|{page}"),
         InlineKeyboardButton("🎙 Qorilar", callback_data="zam_menu"),
         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
     )
+
+    await callback.message.edit_text("📖 Surani tanlang:", reply_markup=kb)
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
+async def send_full_surah(callback: types.CallbackQuery):
+
+    _, reciter, surah_id = callback.data.split("|")
+    sura = str(int(surah_id)).zfill(3)
+
+    folder = RECITER_FULL.get(reciter)
+    full_url = f"https://download.quranicaudio.com/qdc/{folder}/{sura}.mp3"
+
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     await callback.message.answer_audio(
         audio=full_url,
@@ -264,7 +228,7 @@ async def play_surah(callback: types.CallbackQuery):
 # ======================
 
 @dp.callback_query_handler(lambda c: c.data == "menu")
-async def back_to_menu(callback: types.CallbackQuery):
+async def back_menu(callback: types.CallbackQuery):
     await callback.message.edit_text(
         "🕌 *QUR’ON INTELLECT PLATFORM*",
         reply_markup=main_menu(),
