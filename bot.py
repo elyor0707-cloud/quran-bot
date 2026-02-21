@@ -1,12 +1,8 @@
 import os
 import aiohttp
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputFile
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import get_surahs, get_user, update_user
-from PIL import Image, ImageDraw, ImageFont
-import arabic_reshaper
-from bidi.algorithm import get_display
-import re
 
 # ======================
 # BOT INIT
@@ -36,12 +32,7 @@ def main_menu():
     )
 
     kb.row(
-        InlineKeyboardButton("🌍 AI Multi-Tarjima", callback_data="ai_translate"),
-        InlineKeyboardButton("📜 Fatvo & Hadis AI", callback_data="zikir_ai")
-    )
-
-    kb.row(
-        InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="quron_read")
+        InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="pdf")
     )
 
     return kb
@@ -59,12 +50,8 @@ async def start_cmd(message: types.Message):
         "🕌 *QUR’ON INTELLECT PLATFORM*\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "📖 Tilovat & Tafakkur\n"
-        "🎧 Qiroat & Audio\n"
-        "🌍 AI Tarjima Markazi\n"
-        "📜 Fatvo va Dalil AI\n"
-        "📚 Tajvidli Mus'haf\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "_Ilm • Tafakkur • Amal_"
+        "🎧 Qiroat & Audio\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━"
     )
 
     await message.answer(
@@ -110,7 +97,6 @@ async def select_surah(callback: types.CallbackQuery):
     update_user(callback.from_user.id, "current_ayah", 1)
 
     await send_ayah(callback.from_user.id, callback.message)
-
     await callback.answer()
 
 # ======================
@@ -123,18 +109,14 @@ async def send_ayah(user_id, message):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    loading = await message.answer("⏳ Yuklanmoqda...")
-
     async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani"
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/quran-uthmani"
     ) as resp:
         r = await resp.json()
 
-    arabic_text = r['data'][0]['text']
-    surah_name = r['data'][0]['surah']['englishName']
-    total_ayahs = r['data'][0]['surah']['numberOfAyahs']
-
-    await loading.delete()
+    arabic_text = r['data']['text']
+    surah_name = r['data']['surah']['englishName']
+    total_ayahs = r['data']['surah']['numberOfAyahs']
 
     await message.answer(
         f"📖 *{surah_name} surasi | {ayah}-oyat*\n\n{arabic_text}",
@@ -190,6 +172,12 @@ async def navigation(callback: types.CallbackQuery):
 # ======================
 # PROFESSIONAL QIROAT
 # ======================
+
+RECITER_FULL = {
+    "Alafasy_128kbps": "mishaari_raashid_al_3afaasee",
+    "Badr_AlTurki_128kbps": "badr_al_turki",
+    "Alijon_Qori_128kbps": "alijon_qori"
+}
 
 @dp.callback_query_handler(lambda c: c.data == "zam_menu")
 async def zam_menu(callback: types.CallbackQuery):
@@ -252,15 +240,25 @@ async def play_surah(callback: types.CallbackQuery):
 
     sura = str(surah_id).zfill(3)
 
-    async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
-        data = await resp.json()
+    folder = RECITER_FULL.get(reciter)
 
-    total_ayahs = data["data"]["numberOfAyahs"]
+    if not folder:
+        await callback.message.answer("Qori topilmadi ❌")
+        return
 
-    for ayah in range(1, total_ayahs + 1):
-        ayah_str = str(ayah).zfill(3)
-        audio_url = f"https://everyayah.com/data/{reciter}/{sura}{ayah_str}.mp3"
-        await callback.message.answer_audio(audio=audio_url)
+    full_url = f"https://download.quranicaudio.com/qdc/{folder}/{sura}.mp3"
+
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.row(
+        InlineKeyboardButton("🎙 Qorilar", callback_data="zam_menu"),
+        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+    )
+
+    await callback.message.answer_audio(
+        audio=full_url,
+        caption=f"{surah_id}-sura",
+        reply_markup=kb
+    )
 
 # ======================
 # MENU
