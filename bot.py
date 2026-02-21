@@ -478,40 +478,28 @@ async def play_surah(callback: types.CallbackQuery):
     _, reciter, surah_id = callback.data.split("|")
     surah_id = int(surah_id)
 
-    # MP3QURAN reciter ID mapping
-    RECITER_IDS = {
-        "Badr_AlTurki_128kbps": "124",   # Badr Al Turki
-        "Alafasy_128kbps": "13",        # Mishary Alafasy
-        "Alijon_Qori_128kbps": "190"    # Shayx Alijon (agar ishlamasa алмаштирамиз)
+    # MP3QURAN working servers
+    RECITERS = {
+        "Badr_AlTurki_128kbps": "bader",
+        "Alafasy_128kbps": "afs",
+        "Alijon_Qori_128kbps": "husary"
     }
 
-    reciter_id = RECITER_IDS.get(reciter)
+    folder = RECITERS.get(reciter)
 
-    if not reciter_id:
+    if not folder:
         await callback.message.answer("Qori topilmadi ❌")
         await callback.answer()
         return
 
     sura = str(surah_id).zfill(3)
 
-    audio_url = f"https://server8.mp3quran.net/{reciter_id}/{sura}.mp3"
+    # 🔥 MUHIM: Telegram URL ni o‘zi yuklaydi
+    audio_url = f"https://server10.mp3quran.net/{folder}/{sura}.mp3"
 
-    async with session.get(audio_url) as audio_resp:
-        if audio_resp.status == 200:
-            import io
-            audio_bytes = await audio_resp.read()
-
-            await callback.message.answer_audio(
-                types.InputFile(
-                    io.BytesIO(audio_bytes),
-                    filename=f"{sura}.mp3"
-                )
-            )
-        else:
-            await callback.message.answer("Audio topilmadi ❌")
+    await callback.message.answer_audio(audio=audio_url)
 
     await callback.answer()
-
 
 @dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
 async def select_qori(callback: types.CallbackQuery):
