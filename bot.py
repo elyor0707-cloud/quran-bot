@@ -437,7 +437,7 @@ async def qori_page(callback: types.CallbackQuery):
     start = (page - 1) * per_page + 1
     end = min(start + per_page - 1, 114)
 
-    kb = InlineKeyboardMarkup(row_width=5)
+    kb = InlineKeyboardMarkup(row_width=2)
 
     # 🔥 Сура номларини API орқали оламиз
     async with session.get("https://api.alquran.cloud/v1/surah") as resp:
@@ -495,23 +495,10 @@ async def play_surah(callback: types.CallbackQuery):
     _, reciter, surah_id = callback.data.split("|")
     surah_id = int(surah_id)
 
-    # 🔥 everyayah папкалари (ишлайдиган)
-    FOLDERS = {
-        "Alafasy_128kbps": "Alafasy_128kbps",
-        "Badr_AlTurki_128kbps": "Badr_AlTurki_128kbps",
-        "Alijon_Qori_128kbps": "Alijon_Qori_128kbps"
-    }
-
-    folder = FOLDERS.get(reciter)
-
-    if not folder:
-        await callback.message.answer("Qori topilmadi ❌")
-        return
-
     sura = str(surah_id).zfill(3)
 
-    # 🔥 Тўлиқ сура mp3
-    audio_url = f"https://download.quranicaudio.com/quran/{folder.lower()}/{sura}.mp3"
+    # 🔥 Фақат Mishary ишлайдиган сервер
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}001.mp3"
 
     await callback.message.answer_audio(audio=audio_url)
     
@@ -606,7 +593,7 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     start = (page - 1) * per_page + 1
     end = min(start + per_page - 1, total_ayahs)
 
-    kb = InlineKeyboardMarkup(row_width=3)
+    kb = InlineKeyboardMarkup(row_width=2)
 
     # ===== HEADER =====
     title = f"📖 {surah_number}-sura | {start}-oyat dan {end}-oyat gacha"
