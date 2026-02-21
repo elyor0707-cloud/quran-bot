@@ -487,23 +487,40 @@ async def play_surah(callback: types.CallbackQuery):
     _, reciter, surah_id = callback.data.split("|")
     surah_id = int(surah_id)
 
-    # 🔥 ИШЛАЙДИГАН mp3quran серверлари
-    SERVERS = {
-        "Badr_AlTurki_128kbps": "https://server10.mp3quran.net/badr/",
-        "Alafasy_128kbps": "https://server8.mp3quran.net/afs/",
-        "Alijon_Qori_128kbps": "https://server10.mp3quran.net/ali_jaber/"
+    # 🔥 MP3QURAN RECITER IDS (rasmiy)
+    RECITER_IDS = {
+        "Badr_AlTurki_128kbps": 124,
+        "Alafasy_128kbps": 13,
+        "Alijon_Qori_128kbps": 50
     }
 
-    base_url = SERVERS.get(reciter)
+    reciter_id = RECITER_IDS.get(reciter)
 
-    if not base_url:
+    if not reciter_id:
         await callback.message.answer("Qori topilmadi ❌")
         return
 
-    sura = str(surah_id).zfill(3)
-    audio_url = f"{base_url}{sura}.mp3"
+    # 🔥 API орқали ҳақиқий серверни оламиз
+    api_url = "https://api.mp3quran.net/reciters?language=eng"
 
-    # 🔥 Telegram ўзи юклайди
+    async with session.get(api_url) as resp:
+        data = await resp.json()
+
+    server_url = None
+
+    for r in data["reciters"]:
+        if r["id"] == reciter_id:
+            server_url = r["moshaf"][0]["server"]
+            break
+
+    if not server_url:
+        await callback.message.answer("Server topilmadi ❌")
+        return
+
+    sura = str(surah_id).zfill(3)
+    audio_url = f"{server_url}{sura}.mp3"
+
+    # 🔥 Telegram тўғридан-тўғри юклайди
     await callback.message.answer_audio(audio=audio_url)
     
 @dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
