@@ -453,33 +453,32 @@ async def qori_surah_list(callback: types.CallbackQuery):
 
     await callback.answer()
 
-    @dp.callback_query_handler(lambda c: c.data.startswith("play|"))
-    async def play_surah(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
+async def play_surah(callback: types.CallbackQuery):
 
-        await callback.answer("⏳ Yuklanmoqda...")
+    await callback.answer("⏳ Yuklanmoqda...")
 
-        _, reciter, surah_id = callback.data.split("|")
-        surah_id = int(surah_id)
+    _, reciter, surah_id = callback.data.split("|")
+    surah_id = int(surah_id)
 
-        sura = str(surah_id).zfill(3)
+    sura = str(surah_id).zfill(3)
 
-        FOLDERS = {
-            "Alafasy_128kbps": "Alafasy_128kbps",
-            "Badr_AlTurki_128kbps": "Badr_AlTurki_128kbps",
-            "Alijon_Qori_128kbps": "Alijon_Qori_128kbps"
-        }
+    # 🔥 100% ишлайдиган тўлиқ сура сервер
+    RECITER_FULL = {
+        "Alafasy_128kbps": "mishaari_raashid_al_3afaasee",
+        "Badr_AlTurki_128kbps": "badr_al_turki",
+        "Alijon_Qori_128kbps": "alijon_qori"
+    }
 
-        folder = FOLDERS.get(reciter)
+    folder = RECITER_FULL.get(reciter)
 
-        if not folder:
-            await callback.message.answer("Qori topilmadi ❌")
-            return
+    if not folder:
+        await callback.message.answer("Qori topilmadi ❌")
+        return
 
-        audio_url = f"https://everyayah.com/data/{folder}/{sura}001.mp3"
+    audio_url = f"https://server8.mp3quran.net/{folder}/{sura}.mp3"
 
-        await callback.message.answer_audio(audio=audio_url)
-
-        await callback.message.answer_audio(audio=audio_url)
+    await callback.message.answer_audio(audio=audio_url)
     
 @dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
 async def select_qori(callback: types.CallbackQuery):
