@@ -410,92 +410,48 @@ QORI_LINKS = {
     "zam_alijon": "Alijon_Qori_128kbps"
 }
 
-@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
-async def play_surah(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data == "zam_menu")
+async def zam_menu(callback: types.CallbackQuery):
 
-    await callback.answer("⏳ Yuklanmoqda...")
+    kb = InlineKeyboardMarkup(row_width=1)
 
-    _, reciter, surah_id = callback.data.split("|")
-    surah_id = int(surah_id)
+    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori|Alafasy_128kbps"))
+    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori|Badr_AlTurki_128kbps"))
+    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="qori|Alijon_Qori_128kbps"))
+    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
-    sura = str(surah_id).zfill(3)
+    await callback.message.edit_text(
+        "🎧 Professional Qiroat\n\nQorini tanlang:",
+        reply_markup=kb
+    )
 
-    RECITERS = {
-        "Alafasy_128kbps": "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/",
-        "Badr_AlTurki_128kbps": "https://download.quranicaudio.com/quran/badr_al_turki/",
-        "Alijon_Qori_128kbps": "https://download.quranicaudio.com/quran/alijon_qori/"
-    }
-
-    base_url = RECITERS.get(reciter)
-
-    if not base_url:
-        await callback.message.answer("Qori topilmadi ❌")
-        return
-
-    audio_url = f"{base_url}{sura}.mp3"
-
-    await callback.message.answer_audio(audio=audio_url)
+    await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data.startswith("qori|"))
-async def qori_page(callback: types.CallbackQuery):
+async def qori_surah_list(callback: types.CallbackQuery):
 
-    _, reciter, page = callback.data.split("|")
-    page = int(page)
+    _, reciter = callback.data.split("|")
 
-    per_page = 50
-    start = (page - 1) * per_page + 1
-    end = min(start + per_page - 1, 114)
+    kb = InlineKeyboardMarkup(row_width=4)
 
-    kb = InlineKeyboardMarkup(row_width=2)
-
-    # 🔥 Сура номларини API орқали оламиз
-    async with session.get("https://api.alquran.cloud/v1/surah") as resp:
-        surah_data = await resp.json()
-
-    surahs = surah_data["data"]
-
-    for i in range(start, end + 1):
-        surah_name = surahs[i-1]["englishName"]
-
+    for i in range(1, 115):
         kb.insert(
             InlineKeyboardButton(
-                f"{i}. {surah_name}",
+                f"{i}-sura",
                 callback_data=f"play|{reciter}|{i}"
             )
         )
 
-    nav = []
-
-    # 1️⃣ Orqaga
-    if page > 1:
-        nav.append(
-            InlineKeyboardButton("⬅ Orqaga", callback_data=f"qori|{reciter}|{page-1}")
-        )
-
-    # 2️⃣ Qorilar
-    nav.append(
-        InlineKeyboardButton("🎙 Qorilar", callback_data="zam_menu")
-    )
-
-    # 3️⃣ Bosh menyu
-    nav.append(
+    kb.row(
         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
     )
 
-    # 4️⃣ Oldinga
-    if end < 114:
-        nav.append(
-            InlineKeyboardButton("➡ Oldinga", callback_data=f"qori|{reciter}|{page+1}")
-        )
-
-    kb.row(*nav)
     await callback.message.edit_text(
         "📖 Surani tanlang:",
         reply_markup=kb
     )
 
     await callback.answer()
-
 
     @dp.callback_query_handler(lambda c: c.data.startswith("play|"))
     async def play_surah(callback: types.CallbackQuery):
