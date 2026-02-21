@@ -449,25 +449,27 @@ async def qori_page(callback: types.CallbackQuery):
 
     nav = []
 
+    # 1️⃣ Orqaga
     if page > 1:
         nav.append(
-            InlineKeyboardButton("⬅", callback_data=f"qori|{reciter}|{page-1}")
+            InlineKeyboardButton("⬅ Orqaga", callback_data=f"qori|{reciter}|{page-1}")
         )
 
-    if end < 114:
-        nav.append(
-            InlineKeyboardButton("➡", callback_data=f"qori|{reciter}|{page+1}")
-        )
-
-    # 🔥 4-чи тугма — Qorilar
+    # 2️⃣ Qorilar
     nav.append(
         InlineKeyboardButton("🎙 Qorilar", callback_data="zam_menu")
     )
 
-    # 🔥 5-чи тугма — Bosh menyu
+    # 3️⃣ Bosh menyu
     nav.append(
         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
     )
+
+    # 4️⃣ Oldinga
+    if end < 114:
+        nav.append(
+            InlineKeyboardButton("➡ Oldinga", callback_data=f"qori|{reciter}|{page+1}")
+        )
 
     kb.row(*nav)
     await callback.message.edit_text(
@@ -480,31 +482,30 @@ async def qori_page(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data.startswith("play|"))
 async def play_surah(callback: types.CallbackQuery):
 
+    await callback.answer("⏳ Yuklanmoqda...")
+
     _, reciter, surah_id = callback.data.split("|")
     surah_id = int(surah_id)
 
-    # MP3QURAN working servers
-    RECITERS = {
-        "Badr_AlTurki_128kbps": "bader",
-        "Alafasy_128kbps": "afs",
-        "Alijon_Qori_128kbps": "husary"
+    # 🔥 ИШЛАЙДИГАН mp3quran серверлари
+    SERVERS = {
+        "Badr_AlTurki_128kbps": "https://server8.mp3quran.net/bader/",
+        "Alafasy_128kbps": "https://server8.mp3quran.net/afs/",
+        "Alijon_Qori_128kbps": "https://server8.mp3quran.net/husr/"
     }
 
-    folder = RECITERS.get(reciter)
+    base_url = SERVERS.get(reciter)
 
-    if not folder:
+    if not base_url:
         await callback.message.answer("Qori topilmadi ❌")
-        await callback.answer()
         return
 
     sura = str(surah_id).zfill(3)
+    audio_url = f"{base_url}{sura}.mp3"
 
-    # 🔥 MUHIM: Telegram URL ni o‘zi yuklaydi
-    audio_url = f"https://server10.mp3quran.net/{folder}/{sura}.mp3"
-
+    # 🔥 Telegram ўзи юклайди
     await callback.message.answer_audio(audio=audio_url)
-
-    await callback.answer()
+    
 @dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
 async def select_qori(callback: types.CallbackQuery):
 
