@@ -435,7 +435,7 @@ async def qori_surah_list(callback: types.CallbackQuery):
     kb = InlineKeyboardMarkup(row_width=4)
 
 async with session.get("https://api.alquran.cloud/v1/surah") as resp:
-data = await resp.json()
+    data = await resp.json()
 
 surahs = data["data"]
 
@@ -504,7 +504,7 @@ async def play_surah(callback: types.CallbackQuery):
         await callback.message.answer("Qori topilmadi ❌")
         return
 
-    audio_url = f"https://server8.mp3quran.net/{folder}/{sura}.mp3"
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}001.mp3"
 
     await callback.message.answer_audio(audio=audio_url)
     
