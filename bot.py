@@ -410,22 +410,32 @@ QORI_LINKS = {
     "zam_alijon": "Alijon_Qori_128kbps"
 }
 
-@dp.callback_query_handler(lambda c: c.data == "zam_menu")
-async def zam_menu(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
+async def play_surah(callback: types.CallbackQuery):
 
-    kb = InlineKeyboardMarkup(row_width=1)
+    await callback.answer("⏳ Yuklanmoqda...")
 
-    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori|Badr_AlTurki_128kbps|1"))
-    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori|Alafasy_128kbps|1"))
-    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="qori|Alijon_Qori_128kbps|1"))
-    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+    _, reciter, surah_id = callback.data.split("|")
+    surah_id = int(surah_id)
 
-    await callback.message.edit_text(
-        "🎧 Professional Qiroat\n\nQorini tanlang:",
-        reply_markup=kb
-    )
+    sura = str(surah_id).zfill(3)
 
-    await callback.answer()
+    # 🔥 ТЎЛИҚ СУРА MP3 (ишлайдиган сервер)
+    RECITER_FULL = {
+        "Alafasy_128kbps": "mishaari_raashid_al_3afaasee",
+        "Badr_AlTurki_128kbps": "badr_al_turki",
+        "Alijon_Qori_128kbps": "alijon_qori"
+    }
+
+    folder = RECITER_FULL.get(reciter)
+
+    if not folder:
+        await callback.message.answer("Qori topilmadi ❌")
+        return
+
+    audio_url = f"https://server8.mp3quran.net/{folder}/{sura}.mp3"
+
+    await callback.message.answer_audio(audio=audio_url)
 
 @dp.callback_query_handler(lambda c: c.data.startswith("qori|"))
 async def qori_page(callback: types.CallbackQuery):
@@ -694,9 +704,11 @@ async def select_surah(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     surah_id = int(callback.data.split("_")[1])
     print("SURAH BOSILDI")
-
+    
     update_user(callback.from_user.id, "current_surah", surah_id)
     update_user(callback.from_user.id, "current_ayah", 1)
+    async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
+    r = await resp.json()
 
     if surah_id not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
@@ -825,6 +837,16 @@ async def navigation(callback: types.CallbackQuery):
             reply_markup=main_menu(),
             parse_mode="Markdown"
         )
+
+    await callback.answer()
+    if callback.data == "menu":
+    set_user_mode(user_id, "normal")
+
+    await callback.message.answer(
+        "🕌 *QUR’ON INTELLECT PLATFORM*",
+        reply_markup=main_menu(),
+        parse_mode="Markdown"
+    )
 
     await callback.answer()
     return
