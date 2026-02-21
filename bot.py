@@ -497,34 +497,22 @@ async def play_surah(callback: types.CallbackQuery):
 
     sura = str(surah_id).zfill(3)
 
-    # 🔥 Фақат Mishary ишлайдиган сервер
-    @dp.callback_query_handler(lambda c: c.data.startswith("play|"))
-    async def play_surah(callback: types.CallbackQuery):
+    RECITER_URLS = {
+        "Alafasy_128kbps": "mishari_al_afasy",
+        "Badr_AlTurki_128kbps": "badr_al_turki",
+        "Alijon_Qori_128kbps": "alijon_qori"
+    }
 
-        await callback.answer("⏳ Yuklanmoqda...")
+    reciter_folder = RECITER_URLS.get(reciter)
 
-        _, reciter, surah_id = callback.data.split("|")
-        surah_id = int(surah_id)
+    if not reciter_folder:
+        await callback.message.answer("Qori topilmadi ❌")
+        return
 
-        sura = str(surah_id).zfill(3)
+    # 🔥 ТЎЛИҚ СУРА MP3 (ИШЛАЙДИГАН СЕРВЕР)
+    audio_url = f"https://server8.mp3quran.net/{reciter_folder}/{sura}.mp3"
 
-        FOLDERS = {
-            "Alafasy_128kbps": "Alafasy_128kbps",
-            "Badr_AlTurki_128kbps": "Badr_AlTurki_128kbps",
-            "Alijon_Qori_128kbps": "Alijon_Qori_128kbps"
-        }
-
-        folder = FOLDERS.get(reciter)
-
-        if not folder:
-            await callback.message.answer("Qori topilmadi ❌")
-            return
-
-        audio_url = f"https://everyayah.com/data/{folder}/{sura}001.mp3"
-
-        await callback.message.answer_audio(audio=audio_url)
-
-        await callback.message.answer_audio(audio=audio_url)
+    await callback.message.answer_audio(audio=audio_url)
     
 @dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
 async def select_qori(callback: types.CallbackQuery):
@@ -623,13 +611,20 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     title = f"📖 {surah_number}-sura | {start}-oyat dan {end}-oyat gacha"
     
     # ===== OYATLAR =====
-    for i in range(start, end + 1):
-        kb.insert(
-            InlineKeyboardButton(
-                f"{i}-oyat",
-                callback_data=f"ayah_{i}"
-            )
+    buttons = []
+
+for i in range(start, end + 1):
+    surah_name = SURAH_NAMES[i-1]
+    buttons.append(
+        InlineKeyboardButton(
+            f"{i}. {surah_name}",
+            callback_data=f"play|{reciter}|{i}"
         )
+    )
+
+# 🔥 4 УСТУНГА БЎЛИШ
+for i in range(0, len(buttons), 4):
+    kb.row(*buttons[i:i+4])
 
     # ===== NAVIGATION =====
     nav_buttons = []
