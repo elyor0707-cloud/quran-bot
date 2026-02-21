@@ -300,17 +300,17 @@ def main_menu():
     kb = InlineKeyboardMarkup(row_width=2)
 
     kb.row(
-        InlineKeyboardButton("📖 O‘qish", callback_data="back_to_surah"),
-        InlineKeyboardButton("🎧 Tinglash", callback_data="zam_menu")
+        InlineKeyboardButton("📖 Qur'on Tilovati", callback_data="back_to_surah"),
+        InlineKeyboardButton("🎧 Professional Qiroat", callback_data="zam_menu")
     )
 
     kb.row(
-        InlineKeyboardButton("🌍 Tarjima AI", callback_data="ai_translate"),
-        InlineKeyboardButton("🕌 Fatvo AI", callback_data="zikir_ai")
+        InlineKeyboardButton("🌍 AI Multi-Tarjima", callback_data="ai_translate"),
+        InlineKeyboardButton("📜 Fatvo & Hadis AI", callback_data="zikir_ai")
     )
 
     kb.row(
-        InlineKeyboardButton("📚 Mus'haf PDF", callback_data="quron_read")
+        InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="quron_read")
     )
 
     return kb
@@ -417,7 +417,12 @@ async def zam_menu(callback: types.CallbackQuery):
 
     kb = InlineKeyboardMarkup()
 
-    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="zam_badr"))
+    kb.add(
+        InlineKeyboardButton(
+            "🎙 Badr At-Turkiy (Telegram)",
+            url="https://t.me/BADRTURKY222"
+        )
+    )
     kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="zam_alafasy"))
     kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="zam_alijon"))
     kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
@@ -476,14 +481,15 @@ async def start_cmd(message: types.Message):
     get_user(message.from_user.id)
 
     text = (
-        "📖 *Qur’on Platform*\n\n"
-        "Assalomu alaykum.\n\n"
-        "Bu platformada siz:\n"
-        "• Qur’onni o‘qishingiz\n"
-        "• Qori bilan tinglashingiz\n"
-        "• AI orqali tarjima qilishingiz\n"
-        "• Fatvo AI’dan savol so‘rashingiz mumkin\n\n"
-        "_Professional tajriba_"
+        "🕌 *QUR’ON INTELLECT PLATFORM*\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "📖 Tilovat & Tafakkur\n"
+        "🎧 Qiroat & Audio\n"
+        "🌍 AI Tarjima Markazi\n"
+        "📜 Fatvo va Dalil AI\n"
+        "📚 Tajvidli Mus'haf\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "_Ilm • Tafakkur • Amal_"
     )
 
     await message.answer(
@@ -688,13 +694,13 @@ async def navigation(callback: types.CallbackQuery):
         set_user_mode(user_id, "normal")
 
         await callback.message.answer(
-            "🏠 Asosiy menyu",
-            reply_markup=main_menu()
+            "🕌 *QUR’ON INTELLECT PLATFORM*",
+            reply_markup=main_menu(),
+            parse_mode="Markdown"
         )
 
-        await callback.answer()
-        return
-
+    await callback.answer()
+    return
 
     # ===== CACHE =====
     if surah not in SURAH_CACHE:
