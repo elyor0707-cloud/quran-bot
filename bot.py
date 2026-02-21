@@ -411,21 +411,36 @@ QORI_LINKS = {
 async def zam_menu(callback: types.CallbackQuery):
 
     text = (
-        "🎧 *Qur’on tinglash rejimi*\n\n"
-        "Qorini tanlang:"
+        "🎧 *Professional Qiroat Bo‘limi*\n\n"
+        "Qorini tanlang va Telegram kanaliga o‘ting:"
     )
 
     kb = InlineKeyboardMarkup()
 
     kb.add(
         InlineKeyboardButton(
-            "🎙 Badr At-Turkiy (Telegram)",
-            url="https://t.me/BADRTURKY222"
+            "🎙 Badr At-Turkiy",
+            url="https://t.me/+sfqwkicQDXE1MWEy"
         )
     )
-    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="zam_alafasy"))
-    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="zam_alijon"))
-    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+
+    kb.add(
+        InlineKeyboardButton(
+            "🎙 Mishary Rashid Alafasy",
+            url="https://t.me/+RnE2ffb-uE9kNjUy"
+        )
+    )
+
+    kb.add(
+        InlineKeyboardButton(
+            "🎙 Shayx Alijon Qori",
+            url="https://t.me/+8OusVPEAMbViZjVi"
+        )
+    )
+
+    kb.add(
+        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+    )
 
     await callback.message.edit_text(
         text,
