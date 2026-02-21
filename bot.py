@@ -20,10 +20,6 @@ if not BOT_TOKEN:
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
-# ======================
-# GLOBALS
-# ======================
-
 SURAH_CACHE = {}
 USER_QORI = {}
 
@@ -39,6 +35,15 @@ def main_menu():
         InlineKeyboardButton("🎧 Professional Qiroat", callback_data="zam_menu")
     )
 
+    kb.row(
+        InlineKeyboardButton("🌍 AI Multi-Tarjima", callback_data="ai_translate"),
+        InlineKeyboardButton("📜 Fatvo & Hadis AI", callback_data="zikir_ai")
+    )
+
+    kb.row(
+        InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="quron_read")
+    )
+
     return kb
 
 # ======================
@@ -50,11 +55,137 @@ async def start_cmd(message: types.Message):
 
     get_user(message.from_user.id)
 
+    text = (
+        "🕌 *QUR’ON INTELLECT PLATFORM*\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "📖 Tilovat & Tafakkur\n"
+        "🎧 Qiroat & Audio\n"
+        "🌍 AI Tarjima Markazi\n"
+        "📜 Fatvo va Dalil AI\n"
+        "📚 Tajvidli Mus'haf\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "_Ilm • Tafakkur • Amal_"
+    )
+
     await message.answer(
-        "🕌 *QUR’ON INTELLECT PLATFORM*",
+        text,
         reply_markup=main_menu(),
         parse_mode="Markdown"
     )
+
+# ======================
+# QURON TILOVATI
+# ======================
+
+@dp.callback_query_handler(lambda c: c.data == "tilovat")
+async def tilovat_menu(callback: types.CallbackQuery):
+
+    surahs = get_surahs()
+    kb = InlineKeyboardMarkup(row_width=4)
+
+    for surah in surahs:
+        kb.insert(
+            InlineKeyboardButton(
+                f"{surah['number']}-{surah['name']}",
+                callback_data=f"surah_{surah['number']}"
+            )
+        )
+
+    kb.row(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+
+    await callback.message.edit_text(
+        "📖 Surani tanlang:",
+        reply_markup=kb
+    )
+
+    await callback.answer()
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
+async def select_surah(callback: types.CallbackQuery):
+
+    surah_id = int(callback.data.split("_")[1])
+
+    update_user(callback.from_user.id, "current_surah", surah_id)
+    update_user(callback.from_user.id, "current_ayah", 1)
+
+    await send_ayah(callback.from_user.id, callback.message)
+
+    await callback.answer()
+
+# ======================
+# SEND AYAH
+# ======================
+
+async def send_ayah(user_id, message):
+
+    user = get_user(user_id)
+    surah = user["current_surah"]
+    ayah = user["current_ayah"]
+
+    loading = await message.answer("⏳ Yuklanmoqda...")
+
+    async with session.get(
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani"
+    ) as resp:
+        r = await resp.json()
+
+    arabic_text = r['data'][0]['text']
+    surah_name = r['data'][0]['surah']['englishName']
+    total_ayahs = r['data'][0]['surah']['numberOfAyahs']
+
+    await loading.delete()
+
+    await message.answer(
+        f"📖 *{surah_name} surasi | {ayah}-oyat*\n\n{arabic_text}",
+        parse_mode="Markdown"
+    )
+
+    sura = str(surah).zfill(3)
+    ayah_num = str(ayah).zfill(3)
+
+    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+
+    kb_audio = InlineKeyboardMarkup(row_width=3)
+
+    if ayah > 1:
+        kb_audio.insert(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
+
+    kb_audio.insert(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+
+    if ayah < total_ayahs:
+        kb_audio.insert(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
+
+    await message.answer_audio(audio=audio_url, reply_markup=kb_audio)
+
+# ======================
+# NAVIGATION
+# ======================
+
+@dp.callback_query_handler(lambda c: c.data in ["next", "prev"])
+async def navigation(callback: types.CallbackQuery):
+
+    user_id = callback.from_user.id
+    user = get_user(user_id)
+
+    surah = user["current_surah"]
+    ayah = user["current_ayah"]
+
+    if surah not in SURAH_CACHE:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
+            r = await resp.json()
+            SURAH_CACHE[surah] = r['data']['numberOfAyahs']
+
+    total_ayahs = SURAH_CACHE[surah]
+
+    if callback.data == "next" and ayah < total_ayahs:
+        update_user(user_id, "current_ayah", ayah + 1)
+
+    elif callback.data == "prev" and ayah > 1:
+        update_user(user_id, "current_ayah", ayah - 1)
+
+    await send_ayah(user_id, callback.message)
+    await callback.answer()
 
 # ======================
 # PROFESSIONAL QIROAT
@@ -132,34 +263,7 @@ async def play_surah(callback: types.CallbackQuery):
         await callback.message.answer_audio(audio=audio_url)
 
 # ======================
-# QURON TILOVATI
-# ======================
-
-@dp.callback_query_handler(lambda c: c.data == "tilovat")
-async def tilovat_menu(callback: types.CallbackQuery):
-
-    surahs = get_surahs()
-    kb = InlineKeyboardMarkup(row_width=4)
-
-    for surah in surahs:
-        kb.insert(
-            InlineKeyboardButton(
-                f"{surah['number']}-{surah['name']}",
-                callback_data=f"surah_{surah['number']}"
-            )
-        )
-
-    kb.row(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
-
-    await callback.message.edit_text(
-        "📖 Surani tanlang:",
-        reply_markup=kb
-    )
-
-    await callback.answer()
-
-# ======================
-# MENU NAVIGATION
+# MENU
 # ======================
 
 @dp.callback_query_handler(lambda c: c.data == "menu")
