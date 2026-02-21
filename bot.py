@@ -487,17 +487,7 @@ async def qori_page(callback: types.CallbackQuery):
 
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
-async def play_surah(callback: types.CallbackQuery):
 
-    await callback.answer("⏳ Yuklanmoqda...")
-
-    _, reciter, surah_id = callback.data.split("|")
-    surah_id = int(surah_id)
-
-    sura = str(surah_id).zfill(3)
-
-    # 🔥 Фақат Mishary ишлайдиган сервер
     @dp.callback_query_handler(lambda c: c.data.startswith("play|"))
     async def play_surah(callback: types.CallbackQuery):
 
