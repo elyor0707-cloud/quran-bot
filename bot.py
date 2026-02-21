@@ -415,9 +415,9 @@ async def zam_menu(callback: types.CallbackQuery):
 
     kb = InlineKeyboardMarkup(row_width=1)
 
-    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori_badr"))
-    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori_alafasy"))
-    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="qori_alijon"))
+    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori|Badr_AlTurki_128kbps|1"))
+    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori|Alafasy_128kbps|1"))
+    kb.add(InlineKeyboardButton("🎙 Shayx Alijon", callback_data="qori|Alijon_Qori_128kbps|1"))
     kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     await callback.message.edit_text(
@@ -427,28 +427,43 @@ async def zam_menu(callback: types.CallbackQuery):
 
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
-async def select_qori(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data.startswith("qori|"))
+async def qori_page(callback: types.CallbackQuery):
 
-    qori_map = {
-        "qori_badr": "Badr_AlTurki_128kbps",
-        "qori_alafasy": "Alafasy_128kbps",
-        "qori_alijon": "Alijon_Qori_128kbps"
-    }
+    _, reciter, page = callback.data.split("|")
+    page = int(page)
 
-    reciter = qori_map.get(callback.data)
+    per_page = 50
+    start = (page - 1) * per_page + 1
+    end = min(start + per_page - 1, 114)
 
     kb = InlineKeyboardMarkup(row_width=5)
 
-    for i in range(1, 115):
+    for i in range(start, end + 1):
         kb.insert(
             InlineKeyboardButton(
                 f"{i}",
-                callback_data=f"qori_surah_{reciter}_{i}"
+                callback_data=f"play|{reciter}|{i}"
             )
         )
 
-    kb.row(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
+    nav = []
+
+    if page > 1:
+        nav.append(
+            InlineKeyboardButton("⬅", callback_data=f"qori|{reciter}|{page-1}")
+        )
+
+    nav.append(
+        InlineKeyboardButton("🏠", callback_data="menu")
+    )
+
+    if end < 114:
+        nav.append(
+            InlineKeyboardButton("➡", callback_data=f"qori|{reciter}|{page+1}")
+        )
+
+    kb.row(*nav)
 
     await callback.message.edit_text(
         "📖 Surani tanlang:",
@@ -457,13 +472,11 @@ async def select_qori(callback: types.CallbackQuery):
 
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("qori_surah_"))
-async def qiroat_surah_handler(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
+async def play_surah(callback: types.CallbackQuery):
 
-    parts = callback.data.split("_")
-
-    reciter = parts[2]
-    surah_id = int(parts[3])
+    _, reciter, surah_id = callback.data.split("|")
+    surah_id = int(surah_id)
 
     sura = str(surah_id).zfill(3)
 
@@ -480,8 +493,11 @@ async def qiroat_surah_handler(callback: types.CallbackQuery):
                     filename=f"{sura}001.mp3"
                 )
             )
+        else:
+            await callback.message.answer("Audio topilmadi ❌")
 
     await callback.answer()
+
 
 @dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
 async def select_qori(callback: types.CallbackQuery):
