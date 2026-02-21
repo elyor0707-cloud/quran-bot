@@ -450,7 +450,7 @@ async def qori_page(callback: types.CallbackQuery):
 
         kb.insert(
             InlineKeyboardButton(
-                f"{i}-{surah_name}",
+                f"{i}. {surah_name}",
                 callback_data=f"play|{reciter}|{i}"
             )
         )
@@ -495,37 +495,23 @@ async def play_surah(callback: types.CallbackQuery):
     _, reciter, surah_id = callback.data.split("|")
     surah_id = int(surah_id)
 
-    # 🔥 MP3QURAN API орқали қори серверини оламиз
-    api_url = "https://api.mp3quran.net/reciters?language=eng"
-
-    async with session.get(api_url) as resp:
-        data = await resp.json()
-
-    server_url = None
-
-    # 🔥 Qori ID mapping (ишлайдиганлари)
-    RECITER_IDS = {
-        "Alafasy_128kbps": 13,
-        "Badr_AlTurki_128kbps": 124
+    # 🔥 everyayah папкалари (ишлайдиган)
+    FOLDERS = {
+        "Alafasy_128kbps": "Alafasy_128kbps",
+        "Badr_AlTurki_128kbps": "Badr_AlTurki_128kbps",
+        "Alijon_Qori_128kbps": "Alijon_Qori_128kbps"
     }
 
-    reciter_id = RECITER_IDS.get(reciter)
+    folder = FOLDERS.get(reciter)
 
-    if not reciter_id:
-        await callback.message.answer("Bu qori hozircha mavjud emas ❌")
-        return
-
-    for r in data["reciters"]:
-        if r["id"] == reciter_id:
-            server_url = r["moshaf"][0]["server"]
-            break
-
-    if not server_url:
-        await callback.message.answer("Server topilmadi ❌")
+    if not folder:
+        await callback.message.answer("Qori topilmadi ❌")
         return
 
     sura = str(surah_id).zfill(3)
-    audio_url = f"{server_url}{sura}.mp3"
+
+    # 🔥 Тўлиқ сура mp3
+    audio_url = f"https://download.quranicaudio.com/quran/{folder.lower()}/{sura}.mp3"
 
     await callback.message.answer_audio(audio=audio_url)
     
@@ -620,7 +606,7 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     start = (page - 1) * per_page + 1
     end = min(start + per_page - 1, total_ayahs)
 
-    kb = InlineKeyboardMarkup(row_width=5)
+    kb = InlineKeyboardMarkup(row_width=3)
 
     # ===== HEADER =====
     title = f"📖 {surah_number}-sura | {start}-oyat dan {end}-oyat gacha"
