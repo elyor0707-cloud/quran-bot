@@ -708,7 +708,7 @@ async def select_surah(callback: types.CallbackQuery):
     update_user(callback.from_user.id, "current_surah", surah_id)
     update_user(callback.from_user.id, "current_ayah", 1)
     async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
-    r = await resp.json()
+        r = await resp.json()
 
     if surah_id not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
