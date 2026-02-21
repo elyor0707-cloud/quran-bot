@@ -454,17 +454,22 @@ async def qori_page(callback: types.CallbackQuery):
             InlineKeyboardButton("⬅", callback_data=f"qori|{reciter}|{page-1}")
         )
 
-    nav.append(
-        InlineKeyboardButton("🏠", callback_data="menu")
-    )
-
     if end < 114:
         nav.append(
             InlineKeyboardButton("➡", callback_data=f"qori|{reciter}|{page+1}")
         )
 
-    kb.row(*nav)
+    # 🔥 4-чи тугма — Qorilar
+    nav.append(
+        InlineKeyboardButton("🎙 Qorilar", callback_data="zam_menu")
+    )
 
+    # 🔥 5-чи тугма — Bosh menyu
+    nav.append(
+        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+    )
+
+    kb.row(*nav)
     await callback.message.edit_text(
         "📖 Surani tanlang:",
         reply_markup=kb
@@ -500,7 +505,6 @@ async def play_surah(callback: types.CallbackQuery):
     await callback.message.answer_audio(audio=audio_url)
 
     await callback.answer()
-
 @dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
 async def select_qori(callback: types.CallbackQuery):
 
