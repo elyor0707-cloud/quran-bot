@@ -840,16 +840,16 @@ async def navigation(callback: types.CallbackQuery):
 
     await callback.answer()
     if callback.data == "menu":
-    set_user_mode(user_id, "normal")
+        set_user_mode(user_id, "normal")
 
-    await callback.message.answer(
-        "🕌 *QUR’ON INTELLECT PLATFORM*",
-        reply_markup=main_menu(),
-        parse_mode="Markdown"
-    )
+        await callback.message.answer(
+            "🕌 *QUR’ON INTELLECT PLATFORM*",
+            reply_markup=main_menu(),
+            parse_mode="Markdown"
+        )  
 
-    await callback.answer()
-    return
+        await callback.answer()
+        return
 
     # ===== CACHE =====
     if surah not in SURAH_CACHE:
