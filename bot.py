@@ -442,7 +442,7 @@ async def qori_page(callback: types.CallbackQuery):
     for i in range(start, end + 1):
         kb.insert(
             InlineKeyboardButton(
-                f"{i}",
+                f"{i}-sura",
                 callback_data=f"play|{reciter}|{i}"
             )
         )
@@ -480,7 +480,7 @@ async def play_surah(callback: types.CallbackQuery):
 
     sura = str(surah_id).zfill(3)
 
-    audio_url = f"https://everyayah.com/data/{reciter}/{sura}001.mp3"
+    audio_url = f"https://everyayah.com/data/{reciter}/{sura}.mp3"
 
     async with session.get(audio_url) as audio_resp:
         if audio_resp.status == 200:
