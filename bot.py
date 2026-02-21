@@ -439,13 +439,21 @@ async def qori_page(callback: types.CallbackQuery):
 
     kb = InlineKeyboardMarkup(row_width=5)
 
-    for i in range(start, end + 1):
-        kb.insert(
-            InlineKeyboardButton(
-                f"{i}-sura",
-                callback_data=f"play|{reciter}|{i}"
-            )
+    # 🔥 Сура номларини API орқали оламиз
+async with session.get("https://api.alquran.cloud/v1/surah") as resp:
+    surah_data = await resp.json()
+
+surahs = surah_data["data"]
+
+for i in range(start, end + 1):
+    surah_name = surahs[i-1]["englishName"]
+
+    kb.insert(
+        InlineKeyboardButton(
+            f"{i}-{surah_name}",
+            callback_data=f"play|{reciter}|{i}"
         )
+    )
 
     nav = []
 
@@ -487,34 +495,39 @@ async def play_surah(callback: types.CallbackQuery):
     _, reciter, surah_id = callback.data.split("|")
     surah_id = int(surah_id)
 
-    # everyayah папкалари
-    QORI_LINKS = {
-        "Badr_AlTurki_128kbps": "Badr_AlTurki_128kbps",
-        "Alafasy_128kbps": "Alafasy_128kbps",
-        "Alijon_Qori_128kbps": "Alijon_Qori_128kbps"
-    }
+    # 🔥 MP3QURAN API орқали қори серверини оламиз
+    api_url = "https://api.mp3quran.net/reciters?language=eng"
 
-    folder = QORI_LINKS.get(reciter)
-
-    if not folder:
-        await callback.message.answer("Qori topilmadi ❌")
-        return
-
-    # 🔥 Сурада нечта оят борлигини оламиз
-    async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
+    async with session.get(api_url) as resp:
         data = await resp.json()
 
-    total_ayahs = data["data"]["numberOfAyahs"]
+    server_url = None
+
+    # 🔥 Qori ID mapping (ишлайдиганлари)
+    RECITER_IDS = {
+        "Alafasy_128kbps": 13,
+        "Badr_AlTurki_128kbps": 124
+    }
+
+    reciter_id = RECITER_IDS.get(reciter)
+
+    if not reciter_id:
+        await callback.message.answer("Bu qori hozircha mavjud emas ❌")
+        return
+
+    for r in data["reciters"]:
+        if r["id"] == reciter_id:
+            server_url = r["moshaf"][0]["server"]
+            break
+
+    if not server_url:
+        await callback.message.answer("Server topilmadi ❌")
+        return
 
     sura = str(surah_id).zfill(3)
+    audio_url = f"{server_url}{sura}.mp3"
 
-    # 🔥 Ҳар бир оят аудиосини кетма-кет юбориш
-    for ayah in range(1, total_ayahs + 1):
-
-        ayah_num = str(ayah).zfill(3)
-        audio_url = f"https://everyayah.com/data/{folder}/{sura}{ayah_num}.mp3"
-
-        await callback.message.answer_audio(audio=audio_url)
+    await callback.message.answer_audio(audio=audio_url)
     
 @dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
 async def select_qori(callback: types.CallbackQuery):
