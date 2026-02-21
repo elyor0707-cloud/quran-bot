@@ -36,6 +36,8 @@ else:
 # ===== SURAH CACHE =====
 SURAH_CACHE = {}
 USER_QORI = {}
+USER_QIROAT_MODE = {}
+
 # ======================
 # USER MODE MANAGER
 # ======================
@@ -438,6 +440,7 @@ async def select_qori(callback: types.CallbackQuery):
     }
 
     USER_QORI[callback.from_user.id] = qori_map[callback.data]
+    USER_QIROAT_MODE[callback.from_user.id] = True
 
     await callback.message.edit_text(
         "📖 Surani tanlang:",
@@ -575,7 +578,34 @@ async def surah_page(callback: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
 async def select_surah(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
 
+    if USER_QIROAT_MODE.get(user_id):
+
+        surah_id = int(callback.data.split("_")[1])
+        USER_QIROAT_MODE[user_id] = False
+
+        reciter = USER_QORI.get(user_id, "Alafasy_128kbps")
+
+        sura = str(surah_id).zfill(3)
+        audio_url = f"https://everyayah.com/data/{reciter}/{sura}001.mp3"
+
+        async with session.get(audio_url) as audio_resp:
+            if audio_resp.status == 200:
+                import io
+                audio_bytes = await audio_resp.read()
+
+                await callback.message.answer_audio(
+                    types.InputFile(
+                        io.BytesIO(audio_bytes),
+                        filename=f"{sura}001.mp3"
+                    )
+                )
+
+        await callback.answer()
+        return
+
+    user_id = callback.from_user.id
     surah_id = int(callback.data.split("_")[1])
     print("SURAH BOSILDI")
 
