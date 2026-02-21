@@ -613,18 +613,18 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     # ===== OYATLAR =====
     buttons = []
 
-for i in range(start, end + 1):
-    surah_name = SURAH_NAMES[i-1]
-    buttons.append(
-        InlineKeyboardButton(
-            f"{i}. {surah_name}",
-            callback_data=f"play|{reciter}|{i}"
+    for i in range(start, end + 1):
+        surah_name = SURAH_NAMES[i-1]
+        buttons.append(
+            InlineKeyboardButton(
+                f"{i}. {surah_name}",
+                callback_data=f"play|{reciter}|{i}"
+            )
         )
-    )
 
-# 🔥 4 УСТУНГА БЎЛИШ
-for i in range(0, len(buttons), 4):
-    kb.row(*buttons[i:i+4])
+    # 🔥 4 УСТУНГА БЎЛИШ
+    for i in range(0, len(buttons), 4):
+        kb.row(*buttons[i:i+4])
 
     # ===== NAVIGATION =====
     nav_buttons = []
