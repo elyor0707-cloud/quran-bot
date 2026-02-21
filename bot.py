@@ -440,20 +440,20 @@ async def qori_page(callback: types.CallbackQuery):
     kb = InlineKeyboardMarkup(row_width=5)
 
     # 🔥 Сура номларини API орқали оламиз
-async with session.get("https://api.alquran.cloud/v1/surah") as resp:
-    surah_data = await resp.json()
+    async with session.get("https://api.alquran.cloud/v1/surah") as resp:
+        surah_data = await resp.json()
 
-surahs = surah_data["data"]
+    surahs = surah_data["data"]
 
-for i in range(start, end + 1):
-    surah_name = surahs[i-1]["englishName"]
+    for i in range(start, end + 1):
+        surah_name = surahs[i-1]["englishName"]
 
-    kb.insert(
-        InlineKeyboardButton(
-            f"{i}-{surah_name}",
-            callback_data=f"play|{reciter}|{i}"
+        kb.insert(
+            InlineKeyboardButton(
+                f"{i}-{surah_name}",
+                callback_data=f"play|{reciter}|{i}"
+            )
         )
-    )
 
     nav = []
 
