@@ -489,9 +489,9 @@ async def play_surah(callback: types.CallbackQuery):
 
     # 🔥 ИШЛАЙДИГАН mp3quran серверлари
     SERVERS = {
-        "Badr_AlTurki_128kbps": "https://server8.mp3quran.net/bader/",
+        "Badr_AlTurki_128kbps": "https://server10.mp3quran.net/badr/",
         "Alafasy_128kbps": "https://server8.mp3quran.net/afs/",
-        "Alijon_Qori_128kbps": "https://server8.mp3quran.net/husr/"
+        "Alijon_Qori_128kbps": "https://server10.mp3quran.net/ali_jaber/"
     }
 
     base_url = SERVERS.get(reciter)
