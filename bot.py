@@ -35,7 +35,7 @@ else:
 
 # ===== SURAH CACHE =====
 SURAH_CACHE = {}
-
+USER_QORI = {}
 # ======================
 # USER MODE MANAGER
 # ======================
@@ -361,7 +361,8 @@ async def send_ayah(user_id, message):
     # ===== AUDIO + NAVIGATION =====
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
-    audio_url = f"https://everyayah.com/data/Alafasy_128kbps/{sura}{ayah_num}.mp3"
+    reciter = USER_QORI.get(user_id, "Alafasy_128kbps")
+    audio_url = f"https://everyayah.com/data/{reciter}/{sura}{ayah_num}.mp3"
 
     async with session.get(audio_url) as audio_resp:
         if audio_resp.status == 200:
@@ -410,42 +411,37 @@ QORI_LINKS = {
 @dp.callback_query_handler(lambda c: c.data == "zam_menu")
 async def zam_menu(callback: types.CallbackQuery):
 
-    text = (
-        "🎧 *Professional Qiroat Bo‘limi*\n\n"
-        "Qorini tanlang va Telegram kanaliga o‘ting:"
-    )
+    text = "🎧 *Professional Qiroat*\n\nQorini tanlang:"
 
     kb = InlineKeyboardMarkup()
 
-    kb.add(
-        InlineKeyboardButton(
-            "🎙 Badr At-Turkiy",
-            url="https://t.me/+sfqwkicQDXE1MWEy"
-        )
-    )
-
-    kb.add(
-        InlineKeyboardButton(
-            "🎙 Mishary Rashid Alafasy",
-            url="https://t.me/+RnE2ffb-uE9kNjUy"
-        )
-    )
-
-    kb.add(
-        InlineKeyboardButton(
-            "🎙 Shayx Alijon Qori",
-            url="https://t.me/+8OusVPEAMbViZjVi"
-        )
-    )
-
-    kb.add(
-        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-    )
+    kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori_badr"))
+    kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori_alafasy"))
+    kb.add(InlineKeyboardButton("🎙 Shayx Alijon Qori", callback_data="qori_alijon"))
+    kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
     await callback.message.edit_text(
         text,
         reply_markup=kb,
         parse_mode="Markdown"
+    )
+
+    await callback.answer()
+
+@dp.callback_query_handler(lambda c: c.data.startswith("qori_"))
+async def select_qori(callback: types.CallbackQuery):
+
+    qori_map = {
+        "qori_badr": "Badr_AlTurki_128kbps",
+        "qori_alafasy": "Alafasy_128kbps",
+        "qori_alijon": "Alijon_Qori_128kbps"
+    }
+
+    USER_QORI[callback.from_user.id] = qori_map[callback.data]
+
+    await callback.message.edit_text(
+        "📖 Surani tanlang:",
+        reply_markup=surah_keyboard()
     )
 
     await callback.answer()
