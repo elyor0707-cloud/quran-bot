@@ -434,13 +434,20 @@ async def qori_surah_list(callback: types.CallbackQuery):
 
     kb = InlineKeyboardMarkup(row_width=4)
 
-    for i in range(1, 115):
-        kb.insert(
-            InlineKeyboardButton(
-                f"{i}-sura",
-                callback_data=f"play|{reciter}|{i}"
-            )
+async with session.get("https://api.alquran.cloud/v1/surah") as resp:
+data = await resp.json()
+
+surahs = data["data"]
+
+for i in range(1, 115):
+    surah_name = surahs[i-1]["englishName"]
+
+    kb.insert(
+        InlineKeyboardButton(
+            f"{i}-{surah_name}",
+            callback_data=f"play|{reciter}|{i}"
         )
+    )
 
     kb.row(
         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
@@ -452,6 +459,27 @@ async def qori_surah_list(callback: types.CallbackQuery):
     )
 
     await callback.answer()
+nav = []
+
+if page > 1:
+    nav.append(
+        InlineKeyboardButton("⬅ Orqaga", callback_data=f"qori|{reciter}|{page-1}")
+    )
+
+nav.append(
+    InlineKeyboardButton("🎙 Qorilar", callback_data="zam_menu")
+)
+
+nav.append(
+    InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
+)
+
+if end < 114:
+    nav.append(
+        InlineKeyboardButton("➡ Oldinga", callback_data=f"qori|{reciter}|{page+1}")
+    )
+
+kb.row(*nav)
 
 @dp.callback_query_handler(lambda c: c.data.startswith("play|"))
 async def play_surah(callback: types.CallbackQuery):
@@ -571,7 +599,7 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     start = (page - 1) * per_page + 1
     end = min(start + per_page - 1, total_ayahs)
 
-    kb = InlineKeyboardMarkup(row_width=2)
+    kb = InlineKeyboardMarkup(row_width=4)
 
     # ===== HEADER =====
     title = f"📖 {surah_number}-sura | {start}-oyat dan {end}-oyat gacha"
