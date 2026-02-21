@@ -420,20 +420,19 @@ async def play_surah(callback: types.CallbackQuery):
 
     sura = str(surah_id).zfill(3)
 
-    # 🔥 ТЎЛИҚ СУРА MP3 (ишлайдиган сервер)
-    RECITER_FULL = {
-        "Alafasy_128kbps": "mishaari_raashid_al_3afaasee",
-        "Badr_AlTurki_128kbps": "badr_al_turki",
-        "Alijon_Qori_128kbps": "alijon_qori"
+    RECITERS = {
+        "Alafasy_128kbps": "https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/",
+        "Badr_AlTurki_128kbps": "https://download.quranicaudio.com/quran/badr_al_turki/",
+        "Alijon_Qori_128kbps": "https://download.quranicaudio.com/quran/alijon_qori/"
     }
 
-    folder = RECITER_FULL.get(reciter)
+    base_url = RECITERS.get(reciter)
 
-    if not folder:
+    if not base_url:
         await callback.message.answer("Qori topilmadi ❌")
         return
 
-    audio_url = f"https://server8.mp3quran.net/{folder}/{sura}.mp3"
+    audio_url = f"{base_url}{sura}.mp3"
 
     await callback.message.answer_audio(audio=audio_url)
 
