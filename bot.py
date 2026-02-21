@@ -1,7 +1,7 @@
 import os
 import aiohttp
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputFile
 from database import get_surahs, get_user, update_user
 
 # ======================
@@ -17,7 +17,6 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
 SURAH_CACHE = {}
-USER_QORI = {}
 
 # ======================
 # MAIN MENU
@@ -32,7 +31,12 @@ def main_menu():
     )
 
     kb.row(
-        InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="pdf")
+        InlineKeyboardButton("🌍 AI Multi-Tarjima", callback_data="ai_translate"),
+        InlineKeyboardButton("📜 Fatvo & Hadis AI", callback_data="zikir_ai")
+    )
+
+    kb.row(
+        InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="quron_read")
     )
 
     return kb
@@ -50,15 +54,15 @@ async def start_cmd(message: types.Message):
         "🕌 *QUR’ON INTELLECT PLATFORM*\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "📖 Tilovat & Tafakkur\n"
-        "🎧 Qiroat & Audio\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━"
+        "🎧 Qiroat & Audio\n"
+        "🌍 AI Tarjima Markazi\n"
+        "📜 Fatvo va Dalil AI\n"
+        "📚 Tajvidli Mus'haf\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n"
+        "_Ilm • Tafakkur • Amal_"
     )
 
-    await message.answer(
-        text,
-        reply_markup=main_menu(),
-        parse_mode="Markdown"
-    )
+    await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
 
 # ======================
 # QURON TILOVATI
@@ -80,11 +84,7 @@ async def tilovat_menu(callback: types.CallbackQuery):
 
     kb.row(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
-    await callback.message.edit_text(
-        "📖 Surani tanlang:",
-        reply_markup=kb
-    )
-
+    await callback.message.edit_text("📖 Surani tanlang:", reply_markup=kb)
     await callback.answer()
 
 
@@ -147,9 +147,7 @@ async def send_ayah(user_id, message):
 @dp.callback_query_handler(lambda c: c.data in ["next", "prev"])
 async def navigation(callback: types.CallbackQuery):
 
-    user_id = callback.from_user.id
-    user = get_user(user_id)
-
+    user = get_user(callback.from_user.id)
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
@@ -161,12 +159,12 @@ async def navigation(callback: types.CallbackQuery):
     total_ayahs = SURAH_CACHE[surah]
 
     if callback.data == "next" and ayah < total_ayahs:
-        update_user(user_id, "current_ayah", ayah + 1)
+        update_user(callback.from_user.id, "current_ayah", ayah + 1)
 
     elif callback.data == "prev" and ayah > 1:
-        update_user(user_id, "current_ayah", ayah - 1)
+        update_user(callback.from_user.id, "current_ayah", ayah - 1)
 
-    await send_ayah(user_id, callback.message)
+    await send_ayah(callback.from_user.id, callback.message)
     await callback.answer()
 
 # ======================
@@ -222,11 +220,7 @@ async def qori_surah_list(callback: types.CallbackQuery):
         InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
     )
 
-    await callback.message.edit_text(
-        "📖 Surani tanlang:",
-        reply_markup=kb
-    )
-
+    await callback.message.edit_text("📖 Surani tanlang:", reply_markup=kb)
     await callback.answer()
 
 
@@ -282,7 +276,6 @@ async def back_to_menu(callback: types.CallbackQuery):
 async def on_startup(dp):
     global session
     session = aiohttp.ClientSession()
-    print("✅ Bot ishga tushdi")
 
 async def on_shutdown(dp):
     await session.close()
