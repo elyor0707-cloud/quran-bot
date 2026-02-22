@@ -57,6 +57,9 @@ TAJWEED_COLORS = {
     "ikhfa": "#9b59b6",
     "qalqalah": "#e74c3c",
     "iqlab": "#f39c12",
+    "madd": "#f1c40f",
+    "waqf": "#95a5a6",
+    "hamza-wasl": "#1abc9c",
 }
 
 def clean_tajweed_text(text):
@@ -66,29 +69,34 @@ def clean_tajweed_text(text):
 
 
 def parse_tajweed_segments(text):
-    text = clean_tajweed_text(text)
 
     segments = []
-    pattern = r'<tajweed class="(.*?)">(.*?)</tajweed>'
+
+    pattern = r'<span class="[^"]*tajweed-([^"]+)[^"]*">(.*?)</span>'
 
     pos = 0
+
     for match in re.finditer(pattern, text):
         start, end = match.span()
 
         if start > pos:
-            segments.append(("normal", text[pos:start]))
+            clean = re.sub(r'<.*?>', '', text[pos:start])
+            if clean.strip():
+                segments.append(("normal", clean))
 
         rule = match.group(1)
-        content = match.group(2)
+        content = re.sub(r'<.*?>', '', match.group(2))
+
         segments.append((rule, content))
 
         pos = end
 
     if pos < len(text):
-        segments.append(("normal", text[pos:]))
+        clean = re.sub(r'<.*?>', '', text[pos:])
+        if clean.strip():
+            segments.append(("normal", clean))
 
     return segments
-
 # ======================
 # IMAGE CARD GENERATOR
 # ======================
@@ -334,42 +342,43 @@ async def send_ayah(user_id, message):
     loading = await message.answer("⏳ Yuklanmoqda...")
 
     try:
+
+        # 1️⃣ TAJWEED
         async with session.get(
             f"https://api.quran.com/api/v4/quran/verses/tajweed?verse_key={surah}:{ayah}"
         ) as resp:
-            data = await resp.json()
+            tajweed_data = await resp.json()
 
-        if "verses" not in data or not data["verses"]:
-            await loading.edit_text("❌ API javob bermadi")
-            return
+        arabic_html = tajweed_data["verses"][0]["text_uthmani_tajweed"]
 
-        arabic_html = data["verses"][0].get("text_uthmani_tajweed")
+        # 2️⃣ TRANSLITERATION
+        async with session.get(
+            f"https://api.quran.com/api/v4/verses/by_key/{surah}:{ayah}?translations=131"
+        ) as resp2:
+            translit_data = await resp2.json()
 
-        if not arabic_html:
-            arabic_html = data["verses"][0].get("text_uthmani")
+        translit = translit_data["translations"][0]["text"]
 
-        if not arabic_html:
-            await loading.edit_text("❌ Oyat topilmadi")
-            return
+        # 3️⃣ SURAH INFO
+        async with session.get(
+            f"https://api.quran.com/api/v4/chapters/{surah}"
+        ) as resp3:
+            chapter_data = await resp3.json()
+
+        surah_name = chapter_data["chapter"]["name_simple"]
+
+        total_ayahs = chapter_data["chapter"]["verses_count"]
 
     except Exception as e:
         await loading.edit_text(f"❌ Xatolik: {e}")
         return
 
-    # Surah nomini alquran.cloud dan olamiz
-    async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp2:
-        surah_info = await resp2.json()
-
-    surah_name = f"{surah}-{surah_info['data']['englishName']}"
-    translit = ""
-
     create_card_image(arabic_html, translit, surah_name, ayah)
 
     await loading.delete()
     await message.answer_photo(InputFile("card.png"))
-    total_ayahs = 286  # vaqtincha (navigation ishlashi uchun)
 
-    # ===== AUDIO =====
+    # AUDIO
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
     reciter = USER_QORI.get(user_id, "Alafasy_128kbps")
@@ -392,9 +401,10 @@ async def send_ayah(user_id, message):
                 InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
             )
 
-            nav_audio.append(
-                InlineKeyboardButton("➡ Keyingi", callback_data="next")
-            )
+            if ayah < total_ayahs:
+                nav_audio.append(
+                    InlineKeyboardButton("➡ Keyingi", callback_data="next")
+                )
 
             kb_audio.row(*nav_audio)
 
