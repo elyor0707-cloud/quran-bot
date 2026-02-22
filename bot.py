@@ -697,16 +697,17 @@ async def select_surah(callback: types.CallbackQuery):
 
     update_user(callback.from_user.id, "current_surah", surah_id)
     update_user(callback.from_user.id, "current_ayah", 1)
+    if surah_id not in SURAH_CACHE:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
+            r = await resp.json()
+            SURAH_CACHE[surah_id] = r['data']['numberOfAyahs']
+            surah_info = r['data']
+    else:
+        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
+            r = await resp.json()
+            surah_info = r['data']
 
-   if surah_id not in SURAH_CACHE:
-       async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
-           r = await resp.json()
-           SURAH_CACHE[surah_id] = r['data']['numberOfAyahs']
-           surah_info = r['data']
-   else:
-       async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
-           r = await resp.json()
-           surah_info = r['data']
+    
 
     info_text = (
         f"📖 *{surah_info['englishName']} surasi*\n\n"
