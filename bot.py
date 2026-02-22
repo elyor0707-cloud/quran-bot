@@ -259,7 +259,7 @@ def surah_keyboard(page=1):
     kb = InlineKeyboardMarkup(row_width=4)
 
     surahs = get_surahs()
-    per_page = 12
+    per_page = 20   # 🔥 20 ta chiqaradi
 
     total_pages = (len(surahs) + per_page - 1) // per_page
     start = (page - 1) * per_page
@@ -284,9 +284,7 @@ def surah_keyboard(page=1):
         nav.append(InlineKeyboardButton("➡", callback_data=f"surahpage_{page+1}"))
 
     kb.row(*nav)
-
     return kb
-
 
 def main_menu():
     kb = InlineKeyboardMarkup(row_width=4)
@@ -320,29 +318,29 @@ async def send_ayah(user_id, message):
 
     loading = await message.answer("⏳ Yuklanmoqda...")
 
-    # ===== QURAN.COM TAJWEED API =====
-    async with session.get(
-        f"https://api.quran.com/api/v4/quran/verses/tajweed?verse_key={surah}:{ayah}"
-    ) as resp:
-        data = await resp.json()
+    try:
+        async with session.get(
+            f"https://api.quran.com/api/v4/quran/verses/tajweed?verse_key={surah}:{ayah}"
+        ) as resp:
+            data = await resp.json()
 
-    arabic_html = data["verses"][0]["text_uthmani_tajweed"]
+        if "verses" not in data or not data["verses"]:
+            await loading.edit_text("❌ API javob bermadi")
+            return
 
-    # ===== SURAH INFO =====
-    async with session.get(
-        f"https://api.quran.com/api/v4/verses/by_key/{surah}:{ayah}?fields=chapter_id,verse_number&translations=131"
-    ) as info_resp:
-        info_data = await info_resp.json()
+        arabic_html = data["verses"][0]["text_uthmani_tajweed"]
 
-    surah_name = f"Surah {surah}"
-    translit = ""  # transliteration hozircha bo'sh qoldiramiz
+    except Exception as e:
+        await loading.edit_text(f"❌ Xatolik: {e}")
+        return
 
-    # ===== IMAGE GENERATE =====
+    surah_name = f"{surah}-sura"
+    translit = ""
+
     create_card_image(arabic_html, translit, surah_name, ayah)
 
     await loading.delete()
     await message.answer_photo(InputFile("card.png"))
-
     total_ayahs = 286  # vaqtincha (navigation ishlashi uchun)
 
     # ===== AUDIO =====
@@ -596,26 +594,23 @@ async def start_cmd(message: types.Message):
 
 async def show_ayah_page(callback, surah_number, page, total_ayahs):
 
-    per_page = 10   # 🔥 50 эмас — professional 10
+    per_page = 20   # 🔥 20 ta
 
     start = (page - 1) * per_page + 1
     end = min(start + per_page - 1, total_ayahs)
 
-    kb = InlineKeyboardMarkup(row_width=2)
+    kb = InlineKeyboardMarkup(row_width=4)
 
-    # ===== HEADER =====
-    title = f"📖 {surah_number}-sura | {start}-oyat dan {end}-oyat gacha"
-    
-    # ===== OYATLAR =====
+    title = f"📖 {surah_number}-sura | {start}-{end}-oyatlar"
+
     for i in range(start, end + 1):
         kb.insert(
             InlineKeyboardButton(
-                f"{i}-oyat",
+                f"{i}",
                 callback_data=f"ayah_{i}"
             )
         )
 
-    # ===== NAVIGATION =====
     nav_buttons = []
 
     if page > 1:
@@ -640,7 +635,6 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     )
 
     await callback.answer()
-
 
 @dp.callback_query_handler(lambda c: c.data.startswith("surahpage_"))
 async def surah_page(callback: types.CallbackQuery):
