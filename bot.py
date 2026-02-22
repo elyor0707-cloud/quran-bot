@@ -648,7 +648,6 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     await callback.answer()
 
 
-
 @dp.callback_query_handler(lambda c: c.data.startswith("surahpage_"))
 async def surah_page(callback: types.CallbackQuery):
 
@@ -689,7 +688,7 @@ async def select_surah(callback: types.CallbackQuery):
                 )
 
         await callback.answer()
-        return
+        
 
     user_id = callback.from_user.id
     surah_id = int(callback.data.split("_")[1])
