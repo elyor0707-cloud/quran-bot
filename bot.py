@@ -332,10 +332,10 @@ async def send_ayah(user_id, message):
         return
 
     # Surah nomini alquran.cloud dan olamiz
-async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp2:
-    surah_info = await resp2.json()
+    async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp2:
+        surah_info = await resp2.json()
 
-surah_name = f"{surah}-{surah_info['data']['englishName']}"
+    surah_name = f"{surah}-{surah_info['data']['englishName']}"
     translit = ""
 
     create_card_image(arabic_html, translit, surah_name, ayah)
