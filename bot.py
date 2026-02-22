@@ -343,35 +343,9 @@ async def send_ayah(user_id, message):
     loading = await message.answer("⏳ Yuklanmoqda...")
 
     try:
-
-        # 1️⃣ TAJWEED
-        async with session.get(
-            f"https://api.quran.com/api/v4/quran/verses/tajweed?verse_key={surah}:{ayah}"
-        ) as resp:
-            tajweed_data = await resp.json()
-
-        arabic_html = tajweed_data["verses"][0]["text_uthmani_tajweed"]
-
-        # 2️⃣ TRANSLITERATION
-        async with session.get(
-            f"https://api.quran.com/api/v4/verses/by_key/{surah}:{ayah}?translations=131"
-        ) as resp2:
-            translit_data = await resp2.json()
-
-        translit = translit_data["translations"][0]["text"]
-
-        # 3️⃣ SURAH INFO
-        async with session.get(
-            f"https://api.quran.com/api/v4/chapters/{surah}"
-        ) as resp3:
-            chapter_data = await resp3.json()
-
-        surah_name = chapter_data["chapter"]["name_simple"]
-
-        total_ayahs = chapter_data["chapter"]["verses_count"]
-
+        arabic_html, translit, surah_name, total_ayahs = await get_full_ayah_data(surah, ayah)
     except Exception as e:
-        await loading.edit_text(f"❌ Xatolik: {e}")
+        await loading.edit_text(f"❌ API Xatolik: {e}")
         return
 
     create_card_image(arabic_html, translit, surah_name, ayah)
@@ -391,23 +365,18 @@ async def send_ayah(user_id, message):
             audio_bytes = await audio_resp.read()
 
             kb_audio = InlineKeyboardMarkup(row_width=3)
-            nav_audio = []
+
+            nav = []
 
             if ayah > 1:
-                nav_audio.append(
-                    InlineKeyboardButton("⬅ Oldingi", callback_data="prev")
-                )
+                nav.append(InlineKeyboardButton("⬅ Oldingi", callback_data="prev"))
 
-            nav_audio.append(
-                InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-            )
+            nav.append(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
 
             if ayah < total_ayahs:
-                nav_audio.append(
-                    InlineKeyboardButton("➡ Keyingi", callback_data="next")
-                )
+                nav.append(InlineKeyboardButton("➡ Keyingi", callback_data="next"))
 
-            kb_audio.row(*nav_audio)
+            kb_audio.row(*nav)
 
             await message.answer_audio(
                 types.InputFile(
