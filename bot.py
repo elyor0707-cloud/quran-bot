@@ -133,46 +133,49 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
 
-    # ===== Gradient =====
+    # Gradient
     for i in range(height):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
     title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
 
-    # ===== TITLE =====
+    # TITLE
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
     draw.text(((width - (bbox[2]-bbox[0]))//2, 50),
               title, fill="#d4af37", font=title_font)
 
-    # ===== ARABIC CLEAN =====
-    clean_text = re.sub(r'<.*?>', '', arabic_html).strip()
+    # ===== TAJWID PARSE =====
+    segments = parse_tajweed_segments(arabic_html)
 
     max_width = width - side_margin * 2
-    max_height = 280
-    arabic_font_size = 110
+    max_height = 300
+    arabic_font_size = 100
 
-    # ===== AUTO RESIZE LOOP =====
     while arabic_font_size > 45:
 
         arabic_font = ImageFont.truetype("Amiri-Regular.ttf", arabic_font_size)
 
-        reshaped = arabic_reshaper.reshape(clean_text)
-        bidi_text = get_display(reshaped)
-
-        words = bidi_text.split()
         lines = []
-        current_line = ""
+        current_line = []
+        line_width = 0
 
-        for word in words:
-            test_line = word + " " + current_line if current_line else word
-            bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
-            if bbox[2] - bbox[0] <= max_width:
-                current_line = test_line
-            else:
+        for rule, segment in segments:
+
+            reshaped = arabic_reshaper.reshape(segment)
+            bidi_text = get_display(reshaped)
+
+            bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+            seg_width = bbox[2] - bbox[0]
+
+            if line_width + seg_width > max_width:
                 lines.append(current_line)
-                current_line = word
+                current_line = []
+                line_width = 0
+
+            current_line.append((rule, bidi_text, seg_width))
+            line_width += seg_width
 
         if current_line:
             lines.append(current_line)
@@ -184,52 +187,31 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
 
         arabic_font_size -= 5
 
-    # ===== DRAW ARABIC =====
+    # DRAW ARABIC
     y_text = 150
+    line_height = arabic_font_size + 25
 
     for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=arabic_font)
-        draw.text(
-            ((width - (bbox[2]-bbox[0]))//2, y_text),
-            line,
-            fill="white",
-            font=arabic_font
-        )
-        y_text += arabic_font_size + 20
 
-    # ===== TRANSLITERATION =====
-    if translit:
-        y_text += 20
-        translit_font_size = 38
-        translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+        total_line_width = sum(seg[2] for seg in line)
+        x_cursor = (width + total_line_width) // 2
 
-        words = translit.split()
-        lines = []
-        current_line = ""
+        for rule, text_part, seg_width in line:
 
-        for word in words:
-            test_line = current_line + " " + word if current_line else word
-            bbox = draw.textbbox((0, 0), test_line, font=translit_font)
-            if bbox[2] - bbox[0] <= max_width:
-                current_line = test_line
-            else:
-                lines.append(current_line)
-                current_line = word
+            color = TAJWEED_COLORS.get(rule, "white")
 
-        if current_line:
-            lines.append(current_line)
-
-        for line in lines:
-            bbox = draw.textbbox((0, 0), line, font=translit_font)
             draw.text(
-                ((width - (bbox[2]-bbox[0]))//2, y_text),
-                line,
-                fill="#d4af37",
-                font=translit_font
+                (x_cursor - seg_width, y_text),
+                text_part,
+                font=arabic_font,
+                fill=color
             )
-            y_text += translit_font_size + 8
 
-    # ===== FOOTER =====
+            x_cursor -= seg_width
+
+        y_text += line_height
+
+    # FOOTER
     footer = f"{surah_name} | {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
     draw.text(
