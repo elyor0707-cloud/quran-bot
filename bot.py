@@ -137,6 +137,7 @@ async def get_full_ayah_data(surah, ayah):
     total_ayahs = chapter_data["chapter"]["verses_count"]
 
     return arabic_html, translit, surah_name, total_ayahs
+    
 # ======================
 # IMAGE CARD GENERATOR
 # ======================
