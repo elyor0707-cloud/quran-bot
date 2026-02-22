@@ -10,6 +10,7 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 import re
 from openai import AsyncOpenAI
+from bs4 import BeautifulSoup
 
 # ======================
 # BOT INIT
@@ -68,33 +69,33 @@ def clean_tajweed_text(text):
     return text
 
 
-def parse_tajweed_segments(text):
+def parse_tajweed_segments(html):
 
+    soup = BeautifulSoup(html, "html.parser")
     segments = []
 
-    pattern = r'<span class="[^"]*tajweed-([^"]+)[^"]*">(.*?)</span>'
+    for element in soup.recursiveChildGenerator():
 
-    pos = 0
+        if element.name == "span" and element.get("class"):
+            classes = element.get("class")
+            tajweed_class = None
 
-    for match in re.finditer(pattern, text):
-        start, end = match.span()
+            for c in classes:
+                if "tajweed-" in c:
+                    tajweed_class = c.replace("tajweed-", "")
+                    break
 
-        if start > pos:
-            clean = re.sub(r'<.*?>', '', text[pos:start])
-            if clean.strip():
-                segments.append(("normal", clean))
+            text = element.get_text()
 
-        rule = match.group(1)
-        content = re.sub(r'<.*?>', '', match.group(2))
+            if tajweed_class:
+                segments.append((tajweed_class, text))
+            else:
+                segments.append(("normal", text))
 
-        segments.append((rule, content))
-
-        pos = end
-
-    if pos < len(text):
-        clean = re.sub(r'<.*?>', '', text[pos:])
-        if clean.strip():
-            segments.append(("normal", clean))
+        elif element.string and element.parent.name != "span":
+            text = element.string.strip()
+            if text:
+                segments.append(("normal", text))
 
     return segments
 # ======================
