@@ -258,7 +258,7 @@ def surah_keyboard(page=1):
     for surah in surahs[start:end]:
         kb.insert(
             InlineKeyboardButton(
-                f"{surah['number']}-sura | {surah['name']}",
+                f"{surah['number']}-{surah['name']}",
                 callback_data=f"surah_{surah['number']}"
             )
         )
@@ -331,7 +331,11 @@ async def send_ayah(user_id, message):
         await loading.edit_text(f"❌ Xatolik: {e}")
         return
 
-    surah_name = f"{surah}-{r['data'][0]['surah']['englishName']}"
+    # Surah nomini alquran.cloud dan olamiz
+async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp2:
+    surah_info = await resp2.json()
+
+surah_name = f"{surah}-{surah_info['data']['englishName']}"
     translit = ""
 
     create_card_image(arabic_html, translit, surah_name, ayah)
