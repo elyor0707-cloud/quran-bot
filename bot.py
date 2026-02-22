@@ -706,7 +706,7 @@ async def select_surah(callback: types.CallbackQuery):
             r = await resp.json()
             surah_info = r['data']
 
-    
+    total_ayahs = SURAH_CACHE[surah_id]
 
     info_text = (
         f"📖 *{surah_info['englishName']} surasi*\n\n"
