@@ -128,11 +128,12 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
 
     width = 900
     height = 700
-    side_margin = 100
+    side_margin = 110
 
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
 
+    # ===== Gradient =====
     for i in range(height):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
@@ -142,46 +143,36 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     # ===== TITLE =====
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
-    draw.text(((width - (bbox[2]-bbox[0]))//2, 40),
+    draw.text(((width - (bbox[2]-bbox[0]))//2, 50),
               title, fill="#d4af37", font=title_font)
 
-    footer = f"{surah_name} surasi | {ayah}-oyat"
-    bbox = draw.textbbox((0, 0), footer, font=title_font)
-    draw.text(((width - (bbox[2]-bbox[0]))//2, height-70),
-              footer, fill="#d4af37", font=title_font)
-
-    # ===== TAJWID PARSE =====
-    segments = parse_tajweed_segments(arabic_html)
+    # ===== ARABIC CLEAN =====
+    clean_text = re.sub(r'<.*?>', '', arabic_html).strip()
 
     max_width = width - side_margin * 2
-    max_height = 320
+    max_height = 280
+    arabic_font_size = 110
 
-    arabic_font_size = 95
-
-    # 🔥 AUTO RESIZE LOOP
+    # ===== AUTO RESIZE LOOP =====
     while arabic_font_size > 45:
 
         arabic_font = ImageFont.truetype("Amiri-Regular.ttf", arabic_font_size)
 
+        reshaped = arabic_reshaper.reshape(clean_text)
+        bidi_text = get_display(reshaped)
+
+        words = bidi_text.split()
         lines = []
-        current_line = []
-        line_width = 0
+        current_line = ""
 
-        for rule, segment in segments:
-
-            reshaped = arabic_reshaper.reshape(segment)
-            bidi_text = get_display(reshaped)
-
-            bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
-            seg_width = bbox[2] - bbox[0]
-
-            if line_width + seg_width > max_width:
+        for word in words:
+            test_line = word + " " + current_line if current_line else word
+            bbox = draw.textbbox((0, 0), test_line, font=arabic_font)
+            if bbox[2] - bbox[0] <= max_width:
+                current_line = test_line
+            else:
                 lines.append(current_line)
-                current_line = []
-                line_width = 0
-
-            current_line.append((rule, bidi_text, seg_width))
-            line_width += seg_width
+                current_line = word
 
         if current_line:
             lines.append(current_line)
@@ -194,60 +185,59 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
         arabic_font_size -= 5
 
     # ===== DRAW ARABIC =====
-    y_text = 140
-    line_height = arabic_font_size + 25
+    y_text = 150
 
     for line in lines:
-
-        total_line_width = sum(seg[2] for seg in line)
-        x_cursor = (width + total_line_width) // 2
-
-        for rule, text_part, seg_width in line:
-
-            color = TAJWEED_COLORS.get(rule, "white")
-
-            draw.text(
-                (x_cursor - seg_width, y_text),
-                text_part,
-                font=arabic_font,
-                fill=color
-            )
-
-            x_cursor -= seg_width
-
-        y_text += line_height
-
-    # ===== TRANSLITERATION AUTO WRAP =====
-    translit_font_size = 38
-    translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
-
-    y_text += 35
-
-    words = translit.split()
-    lines = []
-    current_line = ""
-
-    for word in words:
-        test_line = current_line + " " + word if current_line else word
-        bbox = draw.textbbox((0, 0), test_line, font=translit_font)
-        if bbox[2] - bbox[0] <= max_width:
-            current_line = test_line
-        else:
-            lines.append(current_line)
-            current_line = word
-
-    if current_line:
-        lines.append(current_line)
-
-    for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=translit_font)
+        bbox = draw.textbbox((0, 0), line, font=arabic_font)
         draw.text(
             ((width - (bbox[2]-bbox[0]))//2, y_text),
             line,
-            fill="#d4af37",
-            font=translit_font
+            fill="white",
+            font=arabic_font
         )
-        y_text += translit_font_size + 10
+        y_text += arabic_font_size + 20
+
+    # ===== TRANSLITERATION =====
+    if translit:
+        y_text += 20
+        translit_font_size = 38
+        translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+
+        words = translit.split()
+        lines = []
+        current_line = ""
+
+        for word in words:
+            test_line = current_line + " " + word if current_line else word
+            bbox = draw.textbbox((0, 0), test_line, font=translit_font)
+            if bbox[2] - bbox[0] <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+
+        if current_line:
+            lines.append(current_line)
+
+        for line in lines:
+            bbox = draw.textbbox((0, 0), line, font=translit_font)
+            draw.text(
+                ((width - (bbox[2]-bbox[0]))//2, y_text),
+                line,
+                fill="#d4af37",
+                font=translit_font
+            )
+            y_text += translit_font_size + 8
+
+    # ===== FOOTER =====
+    footer = f"{surah_name} | {ayah}-oyat"
+    bbox = draw.textbbox((0, 0), footer, font=title_font)
+    draw.text(
+        ((width - (bbox[2]-bbox[0]))//2, height-80),
+        footer,
+        fill="#d4af37",
+        font=title_font
+    )
 
     img.save("card.png")
     
@@ -341,7 +331,7 @@ async def send_ayah(user_id, message):
         await loading.edit_text(f"❌ Xatolik: {e}")
         return
 
-    surah_name = f"{surah}-sura"
+    surah_name = f"{surah}-{r['data'][0]['surah']['englishName']}"
     translit = ""
 
     create_card_image(arabic_html, translit, surah_name, ayah)
