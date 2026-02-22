@@ -293,7 +293,7 @@ async def send_ayah(user_id, message):
     loading = await message.answer("⏳ Yuklanmoqda...")
 
     async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani,uz.sodik,en.transliteration"
+        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik,en.transliteration"
     ) as resp:
         r = await resp.json()
 
