@@ -312,7 +312,6 @@ def main_menu():
 # ======================
 # SEND AYAH
 # ======================
-
 async def send_ayah(user_id, message):
 
     user = get_user(user_id)
@@ -321,36 +320,32 @@ async def send_ayah(user_id, message):
 
     loading = await message.answer("⏳ Yuklanmoqda...")
 
+    # ===== QURAN.COM TAJWEED API =====
     async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-tajweed,uz.sodik,en.transliteration"
+        f"https://api.quran.com/api/v4/quran/verses/tajweed?verse_key={surah}:{ayah}"
     ) as resp:
-        r = await resp.json()
+        data = await resp.json()
 
-    arabic_html = r['data'][0]['text']
-    uzbek = r['data'][1]['text']
-    translit = r['data'][2]['text']
-    surah_name = r['data'][0]['surah']['englishName']
-    total_ayahs = r['data'][0]['surah']['numberOfAyahs']
+    arabic_html = data["verses"][0]["text_uthmani_tajweed"]
 
-    # 🔥 ENG MUHIM QATOR
+    # ===== SURAH INFO =====
+    async with session.get(
+        f"https://api.quran.com/api/v4/verses/by_key/{surah}:{ayah}?fields=chapter_id,verse_number&translations=131"
+    ) as info_resp:
+        info_data = await info_resp.json()
+
+    surah_name = f"Surah {surah}"
+    translit = ""  # transliteration hozircha bo'sh qoldiramiz
+
+    # ===== IMAGE GENERATE =====
     create_card_image(arabic_html, translit, surah_name, ayah)
 
     await loading.delete()
     await message.answer_photo(InputFile("card.png"))
 
-    # ===== TAFSIR =====
-    async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/uz.sodik"
-    ) as tafsir_resp:
-        tafsir_data = await tafsir_resp.json()
-        tafsir_text = tafsir_data["data"][0]["text"]
+    total_ayahs = 286  # vaqtincha (navigation ishlashi uchun)
 
-    await message.answer(
-        f"📚 *Tafsir:*\n\n{tafsir_text[:800]}...",
-        parse_mode="Markdown"
-    )
-
-    # ===== AUDIO + NAVIGATION =====
+    # ===== AUDIO =====
     sura = str(surah).zfill(3)
     ayah_num = str(ayah).zfill(3)
     reciter = USER_QORI.get(user_id, "Alafasy_128kbps")
@@ -373,10 +368,9 @@ async def send_ayah(user_id, message):
                 InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
             )
 
-            if ayah < total_ayahs:
-                nav_audio.append(
-                    InlineKeyboardButton("➡ Keyingi", callback_data="next")
-                )
+            nav_audio.append(
+                InlineKeyboardButton("➡ Keyingi", callback_data="next")
+            )
 
             kb_audio.row(*nav_audio)
 
