@@ -268,7 +268,7 @@ def surah_keyboard(page=1):
     for surah in surahs[start:end]:
         kb.insert(
             InlineKeyboardButton(
-                f"{surah['number']}. {surah['name']}",
+                f"{surah['number']}-sura | {surah['name']}",
                 callback_data=f"surah_{surah['number']}"
             )
         )
@@ -328,7 +328,14 @@ async def send_ayah(user_id, message):
             await loading.edit_text("❌ API javob bermadi")
             return
 
-        arabic_html = data["verses"][0]["text_uthmani_tajweed"]
+        arabic_html = data["verses"][0].get("text_uthmani_tajweed")
+
+        if not arabic_html:
+            arabic_html = data["verses"][0].get("text_uthmani")
+
+        if not arabic_html:
+            await loading.edit_text("❌ Oyat topilmadi")
+            return
 
     except Exception as e:
         await loading.edit_text(f"❌ Xatolik: {e}")
@@ -606,7 +613,7 @@ async def show_ayah_page(callback, surah_number, page, total_ayahs):
     for i in range(start, end + 1):
         kb.insert(
             InlineKeyboardButton(
-                f"{i}",
+                f"{i}-oyat",
                 callback_data=f"ayah_{i}"
             )
         )
