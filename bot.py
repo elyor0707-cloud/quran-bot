@@ -98,6 +98,45 @@ def parse_tajweed_segments(html):
                 segments.append(("normal", text))
 
     return segments
+
+async def get_full_ayah_data(surah, ayah):
+
+    # ===== TAJWEED =====
+    async with session.get(
+        f"https://api.quran.com/api/v4/quran/verses/tajweed?verse_key={surah}:{ayah}"
+    ) as r:
+        tajweed_data = await r.json()
+
+    verse = tajweed_data.get("verses", [{}])[0]
+
+    arabic_html = verse.get("text_uthmani_tajweed")
+
+    if not arabic_html:
+        arabic_html = verse.get("text_uthmani")
+
+    if not arabic_html:
+        raise Exception("Arabic text topilmadi")
+
+    # ===== TRANSLITERATION =====
+    async with session.get(
+        f"https://api.quran.com/api/v4/verses/by_key/{surah}:{ayah}?fields=text_uthmani&transliteration=en"
+    ) as r2:
+        translit_data = await r2.json()
+
+    translit = ""
+    if "verse" in translit_data:
+        translit = translit_data["verse"].get("transliteration", {}).get("text", "")
+
+    # ===== SURAH INFO =====
+    async with session.get(
+        f"https://api.quran.com/api/v4/chapters/{surah}"
+    ) as r3:
+        chapter_data = await r3.json()
+
+    surah_name = chapter_data["chapter"]["name_simple"]
+    total_ayahs = chapter_data["chapter"]["verses_count"]
+
+    return arabic_html, translit, surah_name, total_ayahs
 # ======================
 # IMAGE CARD GENERATOR
 # ======================
@@ -401,7 +440,7 @@ QORI_LINKS = {
 @dp.callback_query_handler(lambda c: c.data == "zam_menu")
 async def zam_menu(callback: types.CallbackQuery):
 
-    kb = InlineKeyboardMarkup(row_width=1)
+    kb = InlineKeyboardMarkup(row_width=4)
 
     kb.add(InlineKeyboardButton("🎙 Badr At-Turkiy", callback_data="qori|Badr_AlTurki_128kbps|1"))
     kb.add(InlineKeyboardButton("🎙 Mishary Alafasy", callback_data="qori|Alafasy_128kbps|1"))
@@ -425,7 +464,7 @@ async def qori_page(callback: types.CallbackQuery):
     start = (page - 1) * per_page + 1
     end = min(start + per_page - 1, 114)
 
-    kb = InlineKeyboardMarkup(row_width=2)
+    kb = InlineKeyboardMarkup(row_width=4)
 
     # 🔥 Сура номларини API орқали оламиз
     async with session.get("https://api.alquran.cloud/v1/surah") as resp:
@@ -475,17 +514,6 @@ async def qori_page(callback: types.CallbackQuery):
 
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
-async def play_surah(callback: types.CallbackQuery):
-
-    await callback.answer("⏳ Yuklanmoqda...")
-
-    _, reciter, surah_id = callback.data.split("|")
-    surah_id = int(surah_id)
-
-    sura = str(surah_id).zfill(3)
-
-    # 🔥 Фақат Mishary ишлайдиган сервер
     @dp.callback_query_handler(lambda c: c.data.startswith("play|"))
     async def play_surah(callback: types.CallbackQuery):
 
