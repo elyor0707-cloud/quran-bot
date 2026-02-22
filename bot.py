@@ -133,66 +133,95 @@ def create_card_image(arabic_html, translit, surah_name, ayah):
     img = Image.new("RGB", (width, height), "#0f1b2d")
     draw = ImageDraw.Draw(img)
 
-    # ===== Gradient Background =====
     for i in range(height):
         color = (15, 27 + i//8, 45 + i//10)
         draw.line([(0, i), (width, i)], fill=color)
 
-    # ===== Fonts =====
     title_font = ImageFont.truetype("DejaVuSans.ttf", 42)
-    arabic_font_size = 95
-    translit_font_size = 40
 
-    # 🔥 MUHIM: Qur'onic font
-    arabic_font = ImageFont.truetype("Amiri-Regular.ttf", arabic_font_size)
-
-    # ===== Title =====
+    # ===== TITLE =====
     title = "Qur’oniy oyat"
     bbox = draw.textbbox((0, 0), title, font=title_font)
     draw.text(((width - (bbox[2]-bbox[0]))//2, 40),
               title, fill="#d4af37", font=title_font)
 
-    # ===== Footer =====
     footer = f"{surah_name} surasi | {ayah}-oyat"
     bbox = draw.textbbox((0, 0), footer, font=title_font)
     draw.text(((width - (bbox[2]-bbox[0]))//2, height-70),
               footer, fill="#d4af37", font=title_font)
 
-    # ===== TAJWID SEGMENTS =====
+    # ===== TAJWID PARSE =====
     segments = parse_tajweed_segments(arabic_html)
 
     max_width = width - side_margin * 2
-    y_text = 150
-    x_cursor = width - side_margin
+    max_height = 320
 
+    arabic_font_size = 95
+
+    # 🔥 AUTO RESIZE LOOP
+    while arabic_font_size > 45:
+
+        arabic_font = ImageFont.truetype("Amiri-Regular.ttf", arabic_font_size)
+
+        lines = []
+        current_line = []
+        line_width = 0
+
+        for rule, segment in segments:
+
+            reshaped = arabic_reshaper.reshape(segment)
+            bidi_text = get_display(reshaped)
+
+            bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
+            seg_width = bbox[2] - bbox[0]
+
+            if line_width + seg_width > max_width:
+                lines.append(current_line)
+                current_line = []
+                line_width = 0
+
+            current_line.append((rule, bidi_text, seg_width))
+            line_width += seg_width
+
+        if current_line:
+            lines.append(current_line)
+
+        total_height = len(lines) * (arabic_font_size + 25)
+
+        if total_height <= max_height:
+            break
+
+        arabic_font_size -= 5
+
+    # ===== DRAW ARABIC =====
+    y_text = 140
     line_height = arabic_font_size + 25
 
-    for rule, segment in segments:
+    for line in lines:
 
-        reshaped = arabic_reshaper.reshape(segment)
-        bidi_text = get_display(reshaped)
+        total_line_width = sum(seg[2] for seg in line)
+        x_cursor = (width + total_line_width) // 2
 
-        bbox = draw.textbbox((0, 0), bidi_text, font=arabic_font)
-        text_width = bbox[2] - bbox[0]
+        for rule, text_part, seg_width in line:
 
-        if x_cursor - text_width < side_margin:
-            y_text += line_height
-            x_cursor = width - side_margin
+            color = TAJWEED_COLORS.get(rule, "white")
 
-        color = TAJWEED_COLORS.get(rule, "white")
+            draw.text(
+                (x_cursor - seg_width, y_text),
+                text_part,
+                font=arabic_font,
+                fill=color
+            )
 
-        draw.text(
-            (x_cursor - text_width, y_text),
-            bidi_text,
-            font=arabic_font,
-            fill=color
-        )
+            x_cursor -= seg_width
 
-        x_cursor -= text_width
+        y_text += line_height
 
-    # ===== Transliteration =====
-    y_text += line_height + 40
+    # ===== TRANSLITERATION AUTO WRAP =====
+    translit_font_size = 38
     translit_font = ImageFont.truetype("DejaVuSans.ttf", translit_font_size)
+
+    y_text += 35
 
     words = translit.split()
     lines = []
@@ -669,14 +698,15 @@ async def select_surah(callback: types.CallbackQuery):
     update_user(callback.from_user.id, "current_surah", surah_id)
     update_user(callback.from_user.id, "current_ayah", 1)
 
-    if surah_id not in SURAH_CACHE:
-        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
-            r = await resp.json()
-            SURAH_CACHE[surah_id] = r['data']['numberOfAyahs']
-
-    total_ayahs = SURAH_CACHE[surah_id]
-
-    surah_info = r['data']
+   if surah_id not in SURAH_CACHE:
+       async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
+           r = await resp.json()
+           SURAH_CACHE[surah_id] = r['data']['numberOfAyahs']
+           surah_info = r['data']
+   else:
+       async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
+           r = await resp.json()
+           surah_info = r['data']
 
     info_text = (
         f"📖 *{surah_info['englishName']} surasi*\n\n"
@@ -786,21 +816,16 @@ async def navigation(callback: types.CallbackQuery):
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    # ===== MENU =====
-    
     if callback.data == "menu":
         set_user_mode(user_id, "normal")
-
         await callback.message.answer(
             "🕌 *QUR’ON INTELLECT PLATFORM*",
             reply_markup=main_menu(),
             parse_mode="Markdown"
         )
+        await callback.answer()
+        return
 
-    await callback.answer()
-    return
-
-    # ===== CACHE =====
     if surah not in SURAH_CACHE:
         async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
             r = await resp.json()
@@ -808,17 +833,14 @@ async def navigation(callback: types.CallbackQuery):
 
     total_ayahs = SURAH_CACHE[surah]
 
-    # ===== NEXT =====
     if callback.data == "next" and ayah < total_ayahs:
         update_user(user_id, "current_ayah", ayah + 1)
 
-    # ===== PREV =====
     elif callback.data == "prev" and ayah > 1:
         update_user(user_id, "current_ayah", ayah - 1)
 
     await callback.answer()
     await send_ayah(user_id, callback.message)
-
 
 
 @dp.message_handler()
