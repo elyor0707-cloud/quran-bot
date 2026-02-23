@@ -64,3 +64,24 @@ def get_page_progress(user_id):
     user = get_user(user_id)
     return user.get("last_page")
 
+
+def get_user(user_id):
+    if user_id not in USERS:
+        USERS[user_id] = {
+            "user_id": user_id,
+            "current_surah": 1,
+            "current_ayah": 1,
+            "is_premium": False
+        }
+    return USERS[user_id]
+
+def update_user(user_id, key, value):
+    user = get_user(user_id)
+    user[key] = value
+    USERS[user_id] = user
+
+def get_surahs():
+    return SURAH_LIST
+
+def get_premium_users():
+    return [u for u in USERS.values() if u.get("is_premium", False)]
