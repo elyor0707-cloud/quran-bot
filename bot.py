@@ -1,10 +1,57 @@
-import os
+hereimport os
 import aiohttp
+import asyncio
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from database import get_surahs, get_user, update_user, get_premium_users
 import arabic_reshaper
 from bidi.algorithm import get_display
+
+# ======================
+# DATABASE (ichida)
+# ======================
+
+USERS = {}
+
+SURAH_LIST = [
+    {"number": i + 1, "name": name} for i, name in enumerate([
+        "Fatiha","Baqara","Ali Imran","Nisa","Maida","Anam","Araf","Anfal","Tawba","Yunus",
+        "Hud","Yusuf","Rad","Ibrahim","Hijr","Nahl","Isra","Kahf","Maryam","Taha",
+        "Anbiya","Hajj","Muminun","Nur","Furqan","Shuara","Naml","Qasas","Ankabut","Rum",
+        "Luqman","Sajda","Ahzab","Saba","Fatir","Yasin","Saffat","Sad","Zumar","Ghafir",
+        "Fussilat","Shura","Zukhruf","Dukhan","Jathiya","Ahqaf","Muhammad","Fath","Hujurat","Qaf",
+        "Dhariyat","Tur","Najm","Qamar","Rahman","Waqia","Hadid","Mujadila","Hashr","Mumtahana",
+        "Saff","Jumuah","Munafiqun","Taghabun","Talaq","Tahrim","Mulk","Qalam","Haqqa","Maarij",
+        "Nuh","Jinn","Muzzammil","Muddathir","Qiyamah","Insan","Mursalat","Naba","Naziat","Abasa",
+        "Takwir","Infitar","Mutaffifin","Inshiqaq","Buruj","Tariq","Ala","Ghashiya","Fajr","Balad",
+        "Shams","Layl","Duha","Sharh","Tin","Alaq","Qadr","Bayyina","Zalzala","Adiyat",
+        "Qaria","Takathur","Asr","Humaza","Fil","Quraysh","Maun","Kawthar","Kafirun","Nasr",
+        "Masad","Ikhlas","Falaq","Nas"
+    ])
+]
+
+def get_surahs():
+    return SURAH_LIST
+
+def get_user(user_id):
+    if user_id not in USERS:
+        USERS[user_id] = {
+            "user_id": user_id,
+            "current_surah": 1,
+            "current_ayah": 1,
+            "is_premium": False,
+            "last_surah": None,
+            "last_ayah": None,
+            "last_page": None
+        }
+    return USERS[user_id]
+
+def update_user(user_id, key, value):
+    user = get_user(user_id)
+    user[key] = value
+    USERS[user_id] = user
+
+def get_premium_users():
+    return [u for u in USERS.values() if u.get("is_premium", False)]
 
 # ======================
 # BOT INIT
@@ -18,7 +65,6 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
 SURAH_CACHE = {}
-USER_QORI = {}
 ALLOWED_USERS = [444536792]  # Sen va ruxsat bergan user ID lar
 
 def check_access(user_id):
@@ -42,7 +88,6 @@ def main_menu(user_id=None):
     kb.row(
         InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="quron_read")
     )
-    # Premium menyu faqat premium foydalanuvchilar uchun
     if user_id and check_access(user_id):
         kb.row(
             InlineKeyboardButton("🌍 AI Kengaytirilgan Tarjima", callback_data="ai_premium_translate"),
@@ -76,34 +121,43 @@ async def start_cmd(message: types.Message):
     await message.answer(text, reply_markup=main_menu(message.from_user.id), parse_mode="Markdown")
 
 # ======================
-# SEND AYAH
+# SURAH CACHE
 # ======================
+
+async def load_surah(surah_number):
+    if surah_number in SURAH_CACHE:
+        return SURAH_CACHE[surah_number]
+    try:
+        async with session.get(
+            f"https://api.alquran.cloud/v1/surah/{surah_number}/quran-uthmani", timeout=10
+        ) as resp:
+            r = await resp.json()
+            ayahs = r['data']['ayahs']
+            SURAH_CACHE[surah_number] = ayahs
+            return ayahs
+    except Exception as e:
+        print("Xato:", e)
+        return None
 
 async def send_ayah(user_id, message):
     user = get_user(user_id)
     surah = user["current_surah"]
     ayah = user["current_ayah"]
 
-    loading = await message.answer("⏳ Yuklanmoqda...")
-    try:
-        async with session.get(
-            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani"
-        ) as resp:
-            r = await resp.json()
-    except Exception:
-        await loading.delete()
-        await message.answer("❌ Xatolik yuz berdi, keyinroq urinib ko‘ring.")
+    ayahs = await load_surah(surah)
+    if not ayahs:
+        await message.answer("❌ Surani yuklab bo‘lmadi.")
         return
 
-    arabic_text = r['data'][0]['text']
-    surah_name = r['data'][0]['surah']['englishName']
-    total_ayahs = r['data'][0]['surah']['numberOfAyahs']
+    data = ayahs[ayah - 1]
+    arabic_text = data['text']
+    surah_name = data['surah']['englishName']
+    total_ayahs = data['surah']['numberOfAyahs']
 
     reshaped_text = arabic_reshaper.reshape(arabic_text)
     bidi_text = get_display(reshaped_text)
     translit = transliterate(arabic_text)
 
-    await loading.delete()
     await message.answer(
         f"📖 *{surah_name} surasi | {ayah}-oyat*\n\n{bidi_text}\n\n_{translit}_",
         parse_mode="Markdown"
@@ -144,7 +198,8 @@ async def ai_premium_translate(callback: types.CallbackQuery):
     await callback.message.edit_text(
         "🌍 Premium AI Tarjima rejimi.\n\n"
         "Matn yuboring, biz uni kengaytirilgan tarjima qilamiz."
-    )
+
+)
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "premium_pdf")
@@ -152,6 +207,7 @@ async def premium_pdf(callback: types.CallbackQuery):
     if not check_access(callback.from_user.id):
         await callback.answer("❌ Premium foydalanuvchilar uchun.")
         return
+    # Faylni o'zing yuklab qo'yasan (tajvidli_mushaf.pdf)
     await callback.message.answer_document(
         open("tajvidli_mushaf.pdf", "rb"),
         caption="📚 Tajvidli Mus'haf PDF (Premium)"
@@ -215,13 +271,12 @@ async def list_premium_cmd(message: types.Message):
         else:
             text = "👑 Premium foydalanuvchilar:\n\n"
             text += "\n".join([str(u["user_id"]) for u in premium_users])
-            awaittext += "\n".join([str(u["user_id"]) for u in premium_users])
             await message.answer(text)
     except Exception as e:
         await message.answer(f"❌ Xato: {e}")
 
 # ======================
-# MENU
+# MENU HANDLER
 # ======================
 
 @dp.callback_query_handler(lambda c: c.data == "menu")
@@ -251,4 +306,4 @@ if __name__ == "__main__":
         skip_updates=True,
         on_startup=on_startup,
         on_shutdown=on_shutdown
-    )
+    ) 
