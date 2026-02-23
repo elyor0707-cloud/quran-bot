@@ -2,7 +2,7 @@ import os
 import aiohttp
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from database import get_surahs, get_user, update_user
+from database import get_surahs, get_user, update_user, get_premium_users
 import arabic_reshaper
 from bidi.algorithm import get_display
 
@@ -22,13 +22,14 @@ USER_QORI = {}
 ALLOWED_USERS = [444536792]  # Sen va ruxsat bergan user ID lar
 
 def check_access(user_id):
-    return user_id in ALLOWED_USERS
+    user = get_user(user_id)
+    return user.get("is_premium", False) or user_id in ALLOWED_USERS
 
 # ======================
 # MAIN MENU
 # ======================
 
-def main_menu():
+def main_menu(user_id=None):
     kb = InlineKeyboardMarkup(row_width=2)
     kb.row(
         InlineKeyboardButton("📖 Qur'on Tilovati", callback_data="tilovat"),
@@ -41,6 +42,13 @@ def main_menu():
     kb.row(
         InlineKeyboardButton("📚 Tajvidli Mus'haf PDF", callback_data="quron_read")
     )
+    # Premium menyu faqat premium foydalanuvchilar uchun
+    if user_id and check_access(user_id):
+        kb.row(
+            InlineKeyboardButton("🌍 AI Kengaytirilgan Tarjima", callback_data="ai_premium_translate"),
+            InlineKeyboardButton("🎙 Maxsus Qorilar", callback_data="premium_qori"),
+            InlineKeyboardButton("📚 Tajvidli Mus'haf (Premium)", callback_data="premium_pdf")
+        )
     return kb
 
 # ======================
@@ -65,34 +73,7 @@ async def start_cmd(message: types.Message):
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "_Ilm • Tafakkur • Amal_"
     )
-    await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
-
-# ======================
-# QURON TILOVATI
-# ======================
-
-@dp.callback_query_handler(lambda c: c.data == "tilovat")
-async def tilovat_menu(callback: types.CallbackQuery):
-    surahs = get_surahs()
-    kb = InlineKeyboardMarkup(row_width=4)
-    for surah in surahs:
-        kb.insert(
-            InlineKeyboardButton(
-                f"{surah['number']}-{surah['name']}",
-                callback_data=f"surah_{surah['number']}"
-            )
-        )
-    kb.row(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
-    await callback.message.edit_text("📖 Surani tanlang:", reply_markup=kb)
-    await callback.answer()
-
-@dp.callback_query_handler(lambda c: c.data.startswith("surah_"))
-async def select_surah(callback: types.CallbackQuery):
-    surah_id = int(callback.data.split("_")[1])
-    update_user(callback.from_user.id, "current_surah", surah_id)
-    update_user(callback.from_user.id, "current_ayah", 1)
-    await send_ayah(callback.from_user.id, callback.message)
-    await callback.answer()
+    await message.answer(text, reply_markup=main_menu(message.from_user.id), parse_mode="Markdown")
 
 # ======================
 # SEND AYAH
@@ -104,10 +85,15 @@ async def send_ayah(user_id, message):
     ayah = user["current_ayah"]
 
     loading = await message.answer("⏳ Yuklanmoqda...")
-    async with session.get(
-        f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani"
-    ) as resp:
-        r = await resp.json()
+    try:
+        async with session.get(
+            f"https://api.alquran.cloud/v1/ayah/{surah}:{ayah}/editions/quran-uthmani"
+        ) as resp:
+            r = await resp.json()
+    except Exception:
+        await loading.delete()
+        await message.answer("❌ Xatolik yuz berdi, keyinroq urinib ko‘ring.")
+        return
 
     arabic_text = r['data'][0]['text']
     surah_name = r['data'][0]['surah']['englishName']
@@ -136,125 +122,103 @@ async def send_ayah(user_id, message):
     await message.answer_audio(audio=audio_url, reply_markup=kb_audio)
 
 def transliterate(arabic_text):
-    # Arabcha harflarni lotincha o‘qilishi qoidalari
-    return "Lotincha o‘qilishi (demo)"
+    rules = {
+        "ب": "b", "س": "s", "م": "m", "ا": "a",
+        "ل": "l", "ه": "h", "ر": "r", "ح": "h",
+        "ن": "n", "ي": "y", "ق": "q", "د": "d"
+    }
+    result = ""
+    for ch in arabic_text:
+        result += rules.get(ch, ch)
+    return result
 
 # ======================
-# NAVIGATION
+# PREMIUM HANDLERS
 # ======================
 
-@dp.callback_query_handler(lambda c: c.data in ["next", "prev"])
-async def navigation(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    user = get_user(user_id)
-    surah = user["current_surah"]
-    ayah = user["current_ayah"]
-
-    if surah not in SURAH_CACHE:
-        async with session.get(f"https://api.alquran.cloud/v1/surah/{surah}") as resp:
-            r = await resp.json()
-            SURAH_CACHE[surah] = r['data']['numberOfAyahs']
-
-    total_ayahs = SURAH_CACHE[surah]
-    if callback.data == "next" and ayah < total_ayahs:
-        update_user(user_id, "current_ayah", ayah + 1)
-    elif callback.data == "prev" and ayah > 1:
-        update_user(user_id, "current_ayah", ayah - 1)
-
-    await send_ayah(user_id, callback.message)
+@dp.callback_query_handler(lambda c: c.data == "ai_premium_translate")
+async def ai_premium_translate(callback: types.CallbackQuery):
+    if not check_access(callback.from_user.id):
+        await callback.answer("❌ Premium foydalanuvchilar uchun.")
+        return
+    await callback.message.edit_text(
+        "🌍 Premium AI Tarjima rejimi.\n\n"
+        "Matn yuboring, biz uni kengaytirilgan tarjima qilamiz."
+    )
     await callback.answer()
 
-# ======================
-# PROFESSIONAL QIROAT
-# ======================
+@dp.callback_query_handler(lambda c: c.data == "premium_pdf")
+async def premium_pdf(callback: types.CallbackQuery):
+    if not check_access(callback.from_user.id):
+        await callback.answer("❌ Premium foydalanuvchilar uchun.")
+        return
+    await callback.message.answer_document(
+        open("tajvidli_mushaf.pdf", "rb"),
+        caption="📚 Tajvidli Mus'haf PDF (Premium)"
+    )
+    await callback.answer()
 
-RECITERS = [
-    ("🎙 Mishary Alafasy", "Alafasy_128kbps"),
-    ("🎙 Abdul Rahman Sudais", "Sudais_128kbps"),
-    ("🎙 Saad Al-Ghamdi", "Ghamdi_128kbps"),
-    ("🎙 Minshawi", "Minshawi_128kbps"),
-    ("🎙 Shayx Alijon", "Alijon_Qori_128kbps"),
+PREMIUM_RECITERS = [
+    ("🎙 Shayx Alijon (Premium)", "Alijon_Qori_128kbps"),
+    ("🎙 Maxsus Qori 2", "Special_Qori_128kbps")
 ]
 
-@dp.callback_query_handler(lambda c: c.data == "zam_menu")
-async def zam_menu(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data == "premium_qori")
+async def premium_qori(callback: types.CallbackQuery):
+    if not check_access(callback.from_user.id):
+        await callback.answer("❌ Premium foydalanuvchilar uchun.")
+        return
     kb = InlineKeyboardMarkup(row_width=1)
-    for name, reciter in RECITERS:
+    for name, reciter in PREMIUM_RECITERS:
         kb.add(InlineKeyboardButton(name, callback_data=f"qori|{reciter}"))
-    kb.add(InlineKeyboardButton("🔎 Qidiruv", callback_data="search_qiroat"))
     kb.add(InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu"))
-    await callback.message.edit_text("🎧 Professional Qiroat\n\nQorini tanlang:", reply_markup=kb)
+    await callback.message.edit_text("🎧 Premium Qorilar\n\nQorini tanlang:", reply_markup=kb)
     await callback.answer()
-
-@dp.callback_query_handler(lambda c: c.data.startswith("qori|"))
-async def qori_surah_list(callback: types.CallbackQuery):
-    _, reciter = callback.data.split("|")
-    async with session.get("https://api.alquran.cloud/v1/surah") as resp:
-        data = await resp.json()
-    surahs = data["data"]
-
-    kb = InlineKeyboardMarkup(row_width=4)
-    for surah in surahs:
-        kb.insert(
-            InlineKeyboardButton(
-                f"{surah['number']}-{surah['englishName']}",
-                callback_data=f"play|{reciter}|{surah['number']}"
-            )
-        )
-    kb.row(
-        InlineKeyboardButton("🎙 Qorilar", callback_data="zam_menu"),
-        InlineKeyboardButton("🏠 Bosh menyu", callback_data="menu")
-    )
-    await callback.message.edit_text("📖 Surani tanlang:", reply_markup=kb)
-    await callback.answer()
-
-@dp.callback_query_handler(lambda c: c.data.startswith("play|"))
-async def play_surah(callback: types.CallbackQuery):
-    await callback.answer("⏳ Yuklanmoqda...")
-    _, reciter, surah_id = callback.data.split("|")
-    surah_id = int(surah_id)
-    sura = str(surah_id).zfill(3)
-
-    async with session.get(f"https://api.alquran.cloud/v1/surah/{surah_id}") as resp:
-        data = await resp.json()
-    total_ayahs = data
-    total_ayahs = data["data"]["numberOfAyahs"]
-
-    for ayah in range(1, total_ayahs + 1):
-        ayah_str = str(ayah).zfill(3)
-        audio_url = f"https://everyayah.com/data/{reciter}/{sura}{ayah_str}.mp3"
-        await callback.message.answer_audio(audio=audio_url)
 
 # ======================
-# QIROAT QIDIRUV
+# ADMIN COMMANDS
 # ======================
 
-@dp.callback_query_handler(lambda c: c.data == "search_qiroat")
-async def search_qiroat(callback: types.CallbackQuery):
-    await callback.message.edit_text(
-        "🔎 Qiroat qidiruv rejimi.\n\n"
-        "Format: `qiroat <reciter> <surah>:<start>-<end>`\n"
-        "Masalan: `qiroat Alafasy_128kbps 2:1-200`",
-        parse_mode="Markdown"
-    )
-    await callback.answer()
-
-@dp.message_handler(lambda m: m.text.startswith("qiroat "))
-async def qiroat_search(message: types.Message):
+@dp.message_handler(commands=['addpremium'])
+async def add_premium_cmd(message: types.Message):
+    if message.from_user.id not in ALLOWED_USERS:
+        await message.answer("❌ Siz admin emassiz.")
+        return
     try:
-        _, reciter, range_str = message.text.split(" ", 2)
-        surah_id, ayah_range = range_str.split(":")
-        surah_id = int(surah_id)
-        start, end = map(int, ayah_range.split("-"))
-
-        sura = str(surah_id).zfill(3)
-        for ayah in range(start, end + 1):
-            ayah_str = str(ayah).zfill(3)
-            audio_url = f"https://everyayah.com/data/{reciter}/{sura}{ayah_str}.mp3"
-            await message.answer_audio(audio=audio_url)
-
+        user_id = int(message.get_args())
+        update_user(user_id, "is_premium", True)
+        await message.answer(f"✅ Foydalanuvchi {user_id} premiumga qo‘shildi.")
     except Exception as e:
-        await message.answer(f"❌ Xato format: {e}")
+        await message.answer(f"❌ Xato: {e}")
+
+@dp.message_handler(commands=['delpremium'])
+async def del_premium_cmd(message: types.Message):
+    if message.from_user.id not in ALLOWED_USERS:
+        await message.answer("❌ Siz admin emassiz.")
+        return
+    try:
+        user_id = int(message.get_args())
+        update_user(user_id, "is_premium", False)
+        await message.answer(f"✅ Foydalanuvchi {user_id} premiumdan olib tashlandi.")
+    except Exception as e:
+        await message.answer(f"❌ Xato: {e}")
+
+@dp.message_handler(commands=['listpremium'])
+async def list_premium_cmd(message: types.Message):
+    if message.from_user.id not in ALLOWED_USERS:
+        await message.answer("❌ Siz admin emassiz.")
+        return
+    try:
+        premium_users = get_premium_users()
+        if not premium_users:
+            await message.answer("📭 Premium foydalanuvchilar yo‘q.")
+        else:
+            text = "👑 Premium foydalanuvchilar:\n\n"
+            text += "\n".join([str(u["user_id"]) for u in premium_users])
+            awaittext += "\n".join([str(u["user_id"]) for u in premium_users])
+            await message.answer(text)
+    except Exception as e:
+        await message.answer(f"❌ Xato: {e}")
 
 # ======================
 # MENU
@@ -264,13 +228,13 @@ async def qiroat_search(message: types.Message):
 async def back_to_menu(callback: types.CallbackQuery):
     await callback.message.edit_text(
         "🕌 *QUR’ON INTELLECT PLATFORM*",
-        reply_markup=main_menu(),
+        reply_markup=main_menu(callback.from_user.id),
         parse_mode="Markdown"
     )
     await callback.answer()
 
 # ======================
-# STARTUP
+# STARTUP / SHUTDOWN
 # ======================
 
 async def on_startup(dp):
