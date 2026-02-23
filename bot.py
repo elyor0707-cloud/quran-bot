@@ -19,7 +19,7 @@ dp = Dispatcher(bot)
 
 SURAH_CACHE = {}
 USER_QORI = {}
-ALLOWED_USERS = [123456789]  # Sen va ruxsat bergan user ID lar
+ALLOWED_USERS = [444536792]  # Sen va ruxsat bergan user ID lar
 
 def check_access(user_id):
     return user_id in ALLOWED_USERS
