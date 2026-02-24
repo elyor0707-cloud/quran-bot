@@ -5,6 +5,7 @@ Qori: Mishary Rashid al-Afasy
 
 import asyncio
 import logging
+import os
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
@@ -14,7 +15,8 @@ from handlers import start, alphabet, grammar, tajwid, quran, test, progress
 
 logging.basicConfig(level=logging.INFO)
 
-BOT_TOKEN = "8482587837:AAGTFwZaf-a2ptn-vgqj0-XCRQKVcIqhY5g"  # @BotFather dan oling
+# Railway environment variable dan olish
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8482587837:AAGTFwZaf-a2ptn-vgqj0-XCRQKVcIqhY5g")
 
 async def main():
     bot = Bot(
@@ -33,6 +35,9 @@ async def main():
     dp.include_router(quran.router)
     dp.include_router(test.router)
     dp.include_router(progress.router)
+    
+    # Telegram webhook tozalash (polling oldidan)
+    await bot.delete_webhook(drop_pending_updates=True)
     
     print("🕌 Bot ishga tushdi!")
     await dp.start_polling(bot)
