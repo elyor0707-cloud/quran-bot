@@ -4,12 +4,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 router = Router()
 
-# Mishary Rashid Alafasy - ID: 1 (alafasy)
-# API: https://api.alquran.cloud/v1/
-QARI_ID = "ar.alafasy"
-AUDIO_BASE_URL = "https://cdn.islamic.network/quran/audio/128/ar.alafasy"
-
-# Barcha 114 sura
 SURAHS = [
     (1, "Al-Fotiha", "الفاتحة", 7, "Makkiy"),
     (2, "Al-Baqara", "البقرة", 286, "Madiniy"),
@@ -131,30 +125,20 @@ def get_surah_list_page(page: int = 0):
     per_page = 10
     start = page * per_page
     end = min(start + per_page, len(SURAHS))
-    
     builder = InlineKeyboardBuilder()
-    
     for i in range(start, end):
         s = SURAHS[i]
         builder.button(
             text=f"{s[0]}. {s[1]} ({s[3]} oyat)",
             callback_data=f"surah_{s[0]}"
         )
-    
-    # Navigatsiya
-    nav_buttons = []
     if page > 0:
         builder.button(text="⬅️ Oldingi", callback_data=f"surah_page_{page - 1}")
-    
     builder.button(text=f"{page + 1}/{(len(SURAHS) - 1) // per_page + 1}", callback_data="menu_quran")
-    
     if end < len(SURAHS):
         builder.button(text="Keyingi ➡️", callback_data=f"surah_page_{page + 1}")
-    
     builder.button(text="⬅️ Asosiy menyu", callback_data="menu_main")
-    
     builder.adjust(*([1] * (end - start)), 3, 1)
-    
     return builder.as_markup()
 
 @router.callback_query(F.data == "menu_quran")
@@ -165,7 +149,6 @@ async def quran_menu(callback: CallbackQuery):
     builder.button(text="🎵 Qori haqida", callback_data="quran_qari_info")
     builder.button(text="⬅️ Asosiy menyu", callback_data="menu_main")
     builder.adjust(2, 1, 1)
-    
     await callback.message.edit_text(
         "🎵 <b>Qur'on audiolari</b>\n\n"
         "🎤 <b>Qori:</b> Mishary Rashid al-Afasy\n"
@@ -178,7 +161,6 @@ async def quran_menu(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("surah_page_"))
 async def surah_page(callback: CallbackQuery):
     page = int(callback.data.split("_")[2])
-    
     await callback.message.edit_text(
         "📖 <b>Suralar ro'yxati</b>\n\nSurani tanlang:",
         reply_markup=get_surah_list_page(page)
@@ -188,28 +170,19 @@ async def surah_page(callback: CallbackQuery):
 @router.callback_query(F.data == "quran_popular")
 async def popular_surahs(callback: CallbackQuery):
     popular = [1, 2, 18, 36, 55, 56, 67, 78, 112, 113, 114]
-    
     builder = InlineKeyboardBuilder()
     for num in popular:
         s = SURAHS[num - 1]
-        builder.button(
-            text=f"{s[0]}. {s[1]} - {s[2]}",
-            callback_data=f"surah_{s[0]}"
-        )
+        builder.button(text=f"{s[0]}. {s[1]} - {s[2]}", callback_data=f"surah_{s[0]}")
     builder.button(text="⬅️ Orqaga", callback_data="menu_quran")
     builder.adjust(1)
-    
-    await callback.message.edit_text(
-        "⭐ <b>Mashhur suralar:</b>",
-        reply_markup=builder.as_markup()
-    )
+    await callback.message.edit_text("⭐ <b>Mashhur suralar:</b>", reply_markup=builder.as_markup())
     await callback.answer()
 
 @router.callback_query(F.data == "quran_qari_info")
 async def qari_info(callback: CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.button(text="⬅️ Orqaga", callback_data="menu_quran")
-    
     await callback.message.edit_text(
         "🎤 <b>Mishary Rashid al-Afasy</b>\n\n"
         "📍 Vatan: Quvayt\n"
@@ -219,45 +192,37 @@ async def qari_info(callback: CallbackQuery):
         "qalb tubiga yetadigan ovozi bilan jahon musulmonlarining "
         "yuragida chuqur o'rin egallagan.\n\n"
         "🏆 Ko'plab xalqaro Qur'on musobaqalari g'olibi\n"
-        "🎵 100+ million muxlislar\n"
-        "🕌 Imom va qori sifatida xizmat qiladi",
+        "🎵 100+ million muxlislar",
         reply_markup=builder.as_markup()
     )
     await callback.answer()
 
-@router.callback_query(F.data.startswith("surah_") and ~F.data.startswith("surah_page_"))
+@router.callback_query(F.data.regexp(r"^surah_\d+$"))
 async def show_surah(callback: CallbackQuery, bot: Bot):
     try:
         surah_num = int(callback.data.split("_")[1])
     except (ValueError, IndexError):
+        await callback.answer()
         return
-    
+
     surah = SURAHS[surah_num - 1]
-    
-    # Audio URL
-    # Format: 001.mp3, 002.mp3, ...
     surah_str = str(surah_num).zfill(3)
     audio_url = f"https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/{surah_str}.mp3"
-    
+
     builder = InlineKeyboardBuilder()
-    
     if surah_num > 1:
         builder.button(text="⬅️", callback_data=f"surah_{surah_num - 1}")
-    
     builder.button(text=f"{surah_num}/114", callback_data="surah_page_0")
-    
     if surah_num < 114:
         builder.button(text="➡️", callback_data=f"surah_{surah_num + 1}")
-    
-    if surah_num > 1 and surah_num < 114:
-        builder.adjust(3)
-    else:
-        builder.adjust(2)
-    
     builder.button(text="⬅️ Suralar ro'yxati", callback_data="surah_page_0")
     builder.button(text="⬅️ Qur'on menyusi", callback_data="menu_quran")
-    builder.adjust(*([3 if (surah_num > 1 and surah_num < 114) else 2]), 2)
-    
+
+    if surah_num > 1 and surah_num < 114:
+        builder.adjust(3, 2)
+    else:
+        builder.adjust(2, 2)
+
     caption = (
         f"🎵 <b>{surah[0]}. {surah[1]}</b>\n"
         f"<i>{surah[2]}</i>\n\n"
@@ -265,7 +230,7 @@ async def show_surah(callback: CallbackQuery, bot: Bot):
         f"📍 Nozil bo'lgan joy: {surah[4]}\n"
         f"🎤 Qori: Mishary Rashid al-Afasy"
     )
-    
+
     try:
         await callback.message.answer_audio(
             audio=URLInputFile(audio_url, filename=f"{surah[1]}.mp3"),
@@ -274,16 +239,13 @@ async def show_surah(callback: CallbackQuery, bot: Bot):
         )
         await callback.message.delete()
     except Exception:
-        # Agar audio yuklanmasa - link berish
         builder2 = InlineKeyboardBuilder()
         builder2.button(text="🔗 Audio havolasi", url=audio_url)
         builder2.button(text="⬅️ Orqaga", callback_data="menu_quran")
         builder2.adjust(1)
-        
         await callback.message.edit_text(
-            f"{caption}\n\n"
-            f"⚠️ Audio to'g'ridan-to'g'ri yuklash uchun pastdagi havolani bosing:",
+            f"{caption}\n\n⚠️ Audio yuklash uchun pastdagi havolani bosing:",
             reply_markup=builder2.as_markup()
         )
-    
+
     await callback.answer()
