@@ -14,7 +14,7 @@ from handlers import start, alphabet, grammar, tajwid, quran, test, progress
 
 logging.basicConfig(level=logging.INFO)
 
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # @BotFather dan oling
+BOT_TOKEN = "8482587837:AAGTFwZaf-a2ptn-vgqj0-XCRQKVcIqhY5g"  # @BotFather dan oling
 
 async def main():
     bot = Bot(
