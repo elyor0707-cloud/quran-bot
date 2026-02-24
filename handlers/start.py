@@ -1,9 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-import json
-import os
 
 router = Router()
 
@@ -13,41 +11,54 @@ def get_main_menu():
     builder.button(text="📚 Arab grammatikasi", callback_data="menu_grammar")
     builder.button(text="📖 Tajvid kitobi", callback_data="menu_tajwid")
     builder.button(text="🎵 Qur'on audiolari", callback_data="menu_quran")
+    builder.button(text="📗 Qur'on o'qish", callback_data="menu_quran_read")
     builder.button(text="✅ Test", callback_data="menu_test")
     builder.button(text="📊 Mening progressim", callback_data="menu_progress")
     builder.button(text="ℹ️ Bot haqida", callback_data="menu_about")
-    builder.adjust(2, 2, 2, 1)
+    builder.adjust(2, 2, 2, 2)
     return builder.as_markup()
+
+WELCOME_TEXT = (
+    "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ\n\n"
+    "Assalomu alaykum, <b>{name}</b>! 🌙\n\n"
+    "🕌 <b>Qur'on va Arab tili o'rganish botiga xush kelibsiz!</b>\n\n"
+    "Bu bot orqali siz:\n"
+    "• Arab harflarini o'rganasiz\n"
+    "• Tajvid qoidalarini bilasiz\n"
+    "• Qur'on suralarini tinglaysiz (Mishary Rashid)\n"
+    "• Qur'on suralarini tajvidli o'qiysiz\n"
+    "• Bilimingizni test orqali tekshirasiz\n"
+    "• O'z progressingizni kuzatasiz\n\n"
+    "Quyidan kerakli bo'limni tanlang 👇"
+)
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
-    user_name = message.from_user.first_name
     await message.answer(
-        f"بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ\n\n"
-        f"Assalomu alaykum, <b>{user_name}</b>! 🌙\n\n"
-        f"🕌 <b>Qur'on va Arab tili o'rganish botiga xush kelibsiz!</b>\n\n"
-        f"Bu bot orqali siz:\n"
-        f"• Arab harflarini o'rganasiz\n"
-        f"• Tajvid qoidalarini bilasiz\n"
-        f"• Qur'on suralarini tinglaysiz (Mishary Rashid)\n"
-        f"• Bilimingizni test orqali tekshirasiz\n"
-        f"• O'z progressingizni kuzatasiz\n\n"
-        f"Quyidan kerakli bo'limni tanlang 👇",
+        WELCOME_TEXT.format(name=message.from_user.first_name),
+        reply_markup=get_main_menu()
+    )
+
+@router.message(Command("menu"))
+async def cmd_menu(message: Message):
+    await message.answer(
+        "🕌 <b>Asosiy menyu</b>\n\nQuyidan kerakli bo'limni tanlang 👇",
         reply_markup=get_main_menu()
     )
 
 @router.callback_query(F.data == "menu_main")
 async def back_to_main(callback: CallbackQuery):
     await callback.message.edit_text(
-        f"🕌 <b>Asosiy menyu</b>\n\nQuyidan kerakli bo'limni tanlang 👇",
+        "🕌 <b>Asosiy menyu</b>\n\nQuyidan kerakli bo'limni tanlang 👇",
         reply_markup=get_main_menu()
     )
+    await callback.answer()
 
 @router.callback_query(F.data == "menu_about")
 async def about_bot(callback: CallbackQuery):
     builder = InlineKeyboardBuilder()
-    builder.button(text="⬅️ Orqaga", callback_data="menu_main")
-    
+    builder.button(text="🏠 Bosh menyu", callback_data="menu_main")
+
     await callback.message.edit_text(
         "ℹ️ <b>Bot haqida</b>\n\n"
         "🕌 Bu bot arab tili va Qur'on o'rganish uchun yaratilgan\n\n"
@@ -56,6 +67,7 @@ async def about_bot(callback: CallbackQuery):
         "• Arab grammatikasi - bosqichma-bosqich\n"
         "• Tajvid qoidalari - batafsil\n"
         "• Qur'on suralari (Mishary Rashid al-Afasy)\n"
+        "• Qur'on tajvidli o'qish bo'limi\n"
         "• Interaktiv testlar\n"
         "• Progress kuzatish\n\n"
         "<b>Qori:</b> Mishary Rashid al-Afasy 🎵\n\n"

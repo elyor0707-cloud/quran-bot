@@ -1,251 +1,166 @@
-from aiogram import Router, F, Bot
+"""
+🎵 Qur'on audiolari — Mishary Rashid al-Afasy
+- Audio + Arabcha matn + Lotin + Sharh
+"""
+from aiogram import Router, F
 from aiogram.types import CallbackQuery, URLInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 router = Router()
 
-SURAHS = [
-    (1, "Al-Fotiha", "الفاتحة", 7, "Makkiy"),
-    (2, "Al-Baqara", "البقرة", 286, "Madiniy"),
-    (3, "Ali Imron", "آل عمران", 200, "Madiniy"),
-    (4, "An-Niso", "النساء", 176, "Madiniy"),
-    (5, "Al-Moida", "المائدة", 120, "Madiniy"),
-    (6, "Al-An'om", "الأنعام", 165, "Makkiy"),
-    (7, "Al-A'rof", "الأعراف", 206, "Makkiy"),
-    (8, "Al-Anfol", "الأنفال", 75, "Madiniy"),
-    (9, "At-Tavba", "التوبة", 129, "Madiniy"),
-    (10, "Yunus", "يونس", 109, "Makkiy"),
-    (11, "Hud", "هود", 123, "Makkiy"),
-    (12, "Yusuf", "يوسف", 111, "Makkiy"),
-    (13, "Ar-Ra'd", "الرعد", 43, "Madiniy"),
-    (14, "Ibrohim", "إبراهيم", 52, "Makkiy"),
-    (15, "Al-Hijr", "الحجر", 99, "Makkiy"),
-    (16, "An-Nahl", "النحل", 128, "Makkiy"),
-    (17, "Al-Isro", "الإسراء", 111, "Makkiy"),
-    (18, "Al-Kahf", "الكهف", 110, "Makkiy"),
-    (19, "Maryam", "مريم", 98, "Makkiy"),
-    (20, "Toha", "طه", 135, "Makkiy"),
-    (21, "Al-Anbiyo", "الأنبياء", 112, "Makkiy"),
-    (22, "Al-Hajj", "الحج", 78, "Madiniy"),
-    (23, "Al-Mu'minun", "المؤمنون", 118, "Makkiy"),
-    (24, "An-Nur", "النور", 64, "Madiniy"),
-    (25, "Al-Furqon", "الفرقان", 77, "Makkiy"),
-    (26, "Ash-Shuaro", "الشعراء", 227, "Makkiy"),
-    (27, "An-Naml", "النمل", 93, "Makkiy"),
-    (28, "Al-Qasas", "القصص", 88, "Makkiy"),
-    (29, "Al-Ankabut", "العنكبوت", 69, "Makkiy"),
-    (30, "Ar-Rum", "الروم", 60, "Makkiy"),
-    (31, "Luqmon", "لقمان", 34, "Makkiy"),
-    (32, "As-Sajda", "السجدة", 30, "Makkiy"),
-    (33, "Al-Ahzob", "الأحزاب", 73, "Madiniy"),
-    (34, "Sabo", "سبأ", 54, "Makkiy"),
-    (35, "Fotir", "فاطر", 45, "Makkiy"),
-    (36, "Yosin", "يس", 83, "Makkiy"),
-    (37, "As-Soffot", "الصافات", 182, "Makkiy"),
-    (38, "Sod", "ص", 88, "Makkiy"),
-    (39, "Az-Zumar", "الزمر", 75, "Makkiy"),
-    (40, "Gofir", "غافر", 85, "Makkiy"),
-    (41, "Fussilat", "فصلت", 54, "Makkiy"),
-    (42, "Ash-Shuro", "الشورى", 53, "Makkiy"),
-    (43, "Az-Zukhruf", "الزخرف", 89, "Makkiy"),
-    (44, "Ad-Duxon", "الدخان", 59, "Makkiy"),
-    (45, "Al-Josiya", "الجاثية", 37, "Makkiy"),
-    (46, "Al-Ahqof", "الأحقاف", 35, "Makkiy"),
-    (47, "Muhammad", "محمد", 38, "Madiniy"),
-    (48, "Al-Fath", "الفتح", 29, "Madiniy"),
-    (49, "Al-Hujurot", "الحجرات", 18, "Madiniy"),
-    (50, "Qof", "ق", 45, "Makkiy"),
-    (51, "Az-Zoriyot", "الذاريات", 60, "Makkiy"),
-    (52, "At-Tur", "الطور", 49, "Makkiy"),
-    (53, "An-Najm", "النجم", 62, "Makkiy"),
-    (54, "Al-Qamar", "القمر", 55, "Makkiy"),
-    (55, "Ar-Rahman", "الرحمن", 78, "Madiniy"),
-    (56, "Al-Voqia", "الواقعة", 96, "Makkiy"),
-    (57, "Al-Hadid", "الحديد", 29, "Madiniy"),
-    (58, "Al-Mujodala", "المجادلة", 22, "Madiniy"),
-    (59, "Al-Hashr", "الحشر", 24, "Madiniy"),
-    (60, "Al-Mumtahana", "الممتحنة", 13, "Madiniy"),
-    (61, "As-Saff", "الصف", 14, "Madiniy"),
-    (62, "Al-Juma", "الجمعة", 11, "Madiniy"),
-    (63, "Al-Munofiqun", "المنافقون", 11, "Madiniy"),
-    (64, "At-Tagobun", "التغابن", 18, "Madiniy"),
-    (65, "At-Toloq", "الطلاق", 12, "Madiniy"),
-    (66, "At-Tahrim", "التحريم", 12, "Madiniy"),
-    (67, "Al-Mulk", "الملك", 30, "Makkiy"),
-    (68, "Al-Qalam", "القلم", 52, "Makkiy"),
-    (69, "Al-Hoqqo", "الحاقة", 52, "Makkiy"),
-    (70, "Al-Ma'orij", "المعارج", 44, "Makkiy"),
-    (71, "Nuh", "نوح", 28, "Makkiy"),
-    (72, "Al-Jinn", "الجن", 28, "Makkiy"),
-    (73, "Al-Muzzammil", "المزمل", 20, "Makkiy"),
-    (74, "Al-Muddassir", "المدثر", 56, "Makkiy"),
-    (75, "Al-Qiyoma", "القيامة", 40, "Makkiy"),
-    (76, "Al-Inson", "الإنسان", 31, "Madiniy"),
-    (77, "Al-Mursalot", "المرسلات", 50, "Makkiy"),
-    (78, "An-Naba", "النبأ", 40, "Makkiy"),
-    (79, "An-Noziot", "النازعات", 46, "Makkiy"),
-    (80, "Abasa", "عبس", 42, "Makkiy"),
-    (81, "At-Takwir", "التكوير", 29, "Makkiy"),
-    (82, "Al-Infitor", "الانفطار", 19, "Makkiy"),
-    (83, "Al-Mutaffifin", "المطففين", 36, "Makkiy"),
-    (84, "Al-Inshiqoq", "الانشقاق", 25, "Makkiy"),
-    (85, "Al-Buruj", "البروج", 22, "Makkiy"),
-    (86, "At-Toriq", "الطارق", 17, "Makkiy"),
-    (87, "Al-A'lo", "الأعلى", 19, "Makkiy"),
-    (88, "Al-Goshiya", "الغاشية", 26, "Makkiy"),
-    (89, "Al-Fajr", "الفجر", 30, "Makkiy"),
-    (90, "Al-Balad", "البلد", 20, "Makkiy"),
-    (91, "Ash-Shams", "الشمس", 15, "Makkiy"),
-    (92, "Al-Layl", "الليل", 21, "Makkiy"),
-    (93, "Ad-Duha", "الضحى", 11, "Makkiy"),
-    (94, "Ash-Sharh", "الشرح", 8, "Makkiy"),
-    (95, "At-Tin", "التين", 8, "Makkiy"),
-    (96, "Al-Aloq", "العلق", 19, "Makkiy"),
-    (97, "Al-Qadr", "القدر", 5, "Makkiy"),
-    (98, "Al-Bayyina", "البينة", 8, "Madiniy"),
-    (99, "Az-Zalzala", "الزلزلة", 8, "Madiniy"),
-    (100, "Al-Odiyot", "العاديات", 11, "Makkiy"),
-    (101, "Al-Qoria", "القارعة", 11, "Makkiy"),
-    (102, "At-Takosur", "التكاثر", 8, "Makkiy"),
-    (103, "Al-Asr", "العصر", 3, "Makkiy"),
-    (104, "Al-Humaza", "الهمزة", 9, "Makkiy"),
-    (105, "Al-Fil", "الفيل", 5, "Makkiy"),
-    (106, "Quraysh", "قريش", 4, "Makkiy"),
-    (107, "Al-Mooun", "الماعون", 7, "Makkiy"),
-    (108, "Al-Kavsar", "الكوثر", 3, "Makkiy"),
-    (109, "Al-Kofirun", "الكافرون", 6, "Makkiy"),
-    (110, "An-Nasr", "النصر", 3, "Madiniy"),
-    (111, "Al-Masad", "المسد", 5, "Makkiy"),
-    (112, "Al-Ixlos", "الإخلاص", 4, "Makkiy"),
-    (113, "Al-Falaq", "الفلق", 5, "Makkiy"),
-    (114, "An-Nos", "الناس", 6, "Makkiy"),
-]
+# ============================================================
+# SURALAR MA'LUMOTLARI
+# ============================================================
+SURAS = {
+    1:   {"name": "Al-Fotiha",      "arabic": "الفاتحة",       "ayat": 7,   "page": 1},
+    2:   {"name": "Al-Baqara",      "arabic": "البقرة",         "ayat": 286, "page": 1},
+    3:   {"name": "Ali Imron",       "arabic": "آل عمران",       "ayat": 200, "page": 1},
+    4:   {"name": "An-Niso",         "arabic": "النساء",         "ayat": 176, "page": 1},
+    5:   {"name": "Al-Moida",        "arabic": "المائدة",        "ayat": 120, "page": 1},
+    6:   {"name": "Al-An'om",        "arabic": "الأنعام",        "ayat": 165, "page": 1},
+    7:   {"name": "Al-A'rof",        "arabic": "الأعراف",        "ayat": 206, "page": 1},
+    8:   {"name": "Al-Anfol",        "arabic": "الأنفال",        "ayat": 75,  "page": 1},
+    9:   {"name": "At-Tavba",        "arabic": "التوبة",         "ayat": 129, "page": 1},
+    10:  {"name": "Yunus",           "arabic": "يونس",           "ayat": 109, "page": 1},
+    36:  {"name": "Yosin",           "arabic": "يس",             "ayat": 83,  "page": 4},
+    55:  {"name": "Ar-Rohman",       "arabic": "الرحمن",         "ayat": 78,  "page": 6},
+    56:  {"name": "Al-Voqe'a",       "arabic": "الواقعة",        "ayat": 96,  "page": 6},
+    67:  {"name": "Al-Mulk",         "arabic": "الملك",          "ayat": 30,  "page": 7},
+    78:  {"name": "An-Naba",         "arabic": "النبأ",          "ayat": 40,  "page": 8},
+    108: {"name": "Al-Kavsar",       "arabic": "الكوثر",         "ayat": 3,   "page": 11},
+    112: {"name": "Al-Ixlos",        "arabic": "الإخلاص",        "ayat": 4,   "page": 11},
+    113: {"name": "Al-Falaq",        "arabic": "الفلق",          "ayat": 5,   "page": 11},
+    114: {"name": "An-Nas",          "arabic": "الناس",          "ayat": 6,   "page": 11},
+}
 
-def get_surah_list_page(page: int = 0):
-    per_page = 10
-    start = page * per_page
-    end = min(start + per_page, len(SURAHS))
+# Sura basmalasi + 1-oyat (namunalar)
+SURA_FIRST_AYAT = {
+    1:   "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+    36:  "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ يس",
+    55:  "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ الرَّحْمَٰنُ",
+    112: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ قُلْ هُوَ اللَّهُ أَحَدٌ",
+    113: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",
+    114: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
+}
+
+# Sura haqida qisqacha sharh
+SURA_SHARH = {
+    1:   "Fotiha — «Ochuvchi» demak. Bu sura Qur'onning kirish qismi bo'lib, namozda 17 marta o'qiladi. Shayx Muhammad Sodiq: «Fotiha — qisqa, lekin Qur'onning mohiyatini o'zida jamlagan.»",
+    36:  "Yosin — Qur'on qalbi deb ataladi. Mishary Rashid al-Afasy ovozida bu surani eshitish ko'ngilni yumshatadi. Shayx Muhammad Sodiq: «Yosin — o'liklarning ro'parasida o'qiladi, chunki u oxirat haqida.»",
+    55:  "Ar-Rohman — 31 marta «Rabbingizning qaysi ne'matini inkor etasiz?» oyati takrorlanadi. Shayx Muhammad Sodiq: «Bu sura shukr saboqidir.»",
+    112: "Al-Ixlos — Qur'onning uchdan biriga teng. Allohning sof tavsifi. Shayx Muhammad Sodiq: «Bu surani 3 marta o'qish — butun Qur'on savobiga teng.»",
+    113: "Al-Falaq — Himoya surasi. Shayx Muhammad Sodiq: «Uxlashdan oldin o'qing.»",
+    114: "An-Nas — Vasvasdan himoya. Qur'onning oxirgi surasi. Shayx Muhammad Sodiq: «Allohga panoh so'rash — eng kuchli himoya.»",
+}
+
+PAGES_PER_PAGE = 10
+TOTAL_SURAS = 114
+
+def get_audio_url(sura_num: int) -> str:
+    """Mishary Rashid al-Afasy audio URL"""
+    return f"https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/{sura_num:03d}.mp3"
+
+def get_sura_list_keyboard(page: int = 1):
     builder = InlineKeyboardBuilder()
-    for i in range(start, end):
-        s = SURAHS[i]
+    sura_nums = sorted(SURAS.keys())
+    start = (page - 1) * PAGES_PER_PAGE
+    end = start + PAGES_PER_PAGE
+    page_suras = sura_nums[start:end]
+
+    for num in page_suras:
+        sura = SURAS[num]
         builder.button(
-            text=f"{s[0]}. {s[1]} ({s[3]} oyat)",
-            callback_data=f"surah_{s[0]}"
+            text=f"🎵 {num}. {sura['name']} ({sura['arabic']})",
+            callback_data=f"surah_{num}"
         )
-    if page > 0:
-        builder.button(text="⬅️ Oldingi", callback_data=f"surah_page_{page - 1}")
-    builder.button(text=f"{page + 1}/{(len(SURAHS) - 1) // per_page + 1}", callback_data="menu_quran")
-    if end < len(SURAHS):
-        builder.button(text="Keyingi ➡️", callback_data=f"surah_page_{page + 1}")
-    builder.button(text="⬅️ Asosiy menyu", callback_data="menu_main")
-    builder.adjust(*([1] * (end - start)), 3, 1)
+    builder.adjust(1)
+
+    nav = []
+    if page > 1:
+        nav.append(("⬅️ Oldingi", f"surah_page_{page-1}"))
+    total_pages = (len(sura_nums) + PAGES_PER_PAGE - 1) // PAGES_PER_PAGE
+    if page < total_pages:
+        nav.append(("Keyingi ➡️", f"surah_page_{page+1}"))
+    for text, cb in nav:
+        builder.button(text=text, callback_data=cb)
+    if nav:
+        builder.adjust(1, len(nav))
+    builder.button(text="🏠 Bosh menyu", callback_data="menu_main")
+    builder.adjust(1)
     return builder.as_markup()
 
+def get_sura_back_keyboard(sura_num: int):
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⬅️ Suralar ro'yxati", callback_data="menu_quran")
+    builder.button(text="🏠 Bosh menyu", callback_data="menu_main")
+    builder.adjust(2)
+    return builder.as_markup()
+
+# ============================================================
+# HANDLERS
+# ============================================================
 @router.callback_query(F.data == "menu_quran")
 async def quran_menu(callback: CallbackQuery):
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📖 Suralar ro'yxati", callback_data="surah_page_0")
-    builder.button(text="⭐ Mashhur suralar", callback_data="quran_popular")
-    builder.button(text="🎵 Qori haqida", callback_data="quran_qari_info")
-    builder.button(text="⬅️ Asosiy menyu", callback_data="menu_main")
-    builder.adjust(2, 1, 1)
     await callback.message.edit_text(
-        "🎵 <b>Qur'on audiolari</b>\n\n"
-        "🎤 <b>Qori:</b> Mishary Rashid al-Afasy\n"
-        "📊 <b>Suralar soni:</b> 114\n\n"
-        "Tinglashni xohlagan surani tanlang:",
-        reply_markup=builder.as_markup()
+        "🎵 <b>Qur'on audiolari — Mishary Rashid al-Afasy</b>\n\n"
+        "Quyidan sura tanlang — audio + arabcha matn + sharh beriladi 👇",
+        reply_markup=get_sura_list_keyboard(1)
     )
     await callback.answer()
 
-@router.callback_query(F.data.startswith("surah_page_"))
+@router.callback_query(F.data.regexp(r"^surah_page_(\d+)$"))
 async def surah_page(callback: CallbackQuery):
     page = int(callback.data.split("_")[2])
     await callback.message.edit_text(
-        "📖 <b>Suralar ro'yxati</b>\n\nSurani tanlang:",
-        reply_markup=get_surah_list_page(page)
+        "🎵 <b>Qur'on audiolari — Mishary Rashid al-Afasy</b>\n\n"
+        "Quyidan sura tanlang 👇",
+        reply_markup=get_sura_list_keyboard(page)
     )
     await callback.answer()
 
-@router.callback_query(F.data == "quran_popular")
-async def popular_surahs(callback: CallbackQuery):
-    popular = [1, 2, 18, 36, 55, 56, 67, 78, 112, 113, 114]
-    builder = InlineKeyboardBuilder()
-    for num in popular:
-        s = SURAHS[num - 1]
-        builder.button(text=f"{s[0]}. {s[1]} - {s[2]}", callback_data=f"surah_{s[0]}")
-    builder.button(text="⬅️ Orqaga", callback_data="menu_quran")
-    builder.adjust(1)
-    await callback.message.edit_text("⭐ <b>Mashhur suralar:</b>", reply_markup=builder.as_markup())
-    await callback.answer()
-
-@router.callback_query(F.data == "quran_qari_info")
-async def qari_info(callback: CallbackQuery):
-    builder = InlineKeyboardBuilder()
-    builder.button(text="⬅️ Orqaga", callback_data="menu_quran")
-    await callback.message.edit_text(
-        "🎤 <b>Mishary Rashid al-Afasy</b>\n\n"
-        "📍 Vatan: Quvayt\n"
-        "🎂 Tug'ilgan: 5-sentabr 1976\n\n"
-        "Mishary Rashid al-Afasy — dunyodagi eng mashhur "
-        "Qur'on qorilaridan biri. U o'zining nozik, go'zal va "
-        "qalb tubiga yetadigan ovozi bilan jahon musulmonlarining "
-        "yuragida chuqur o'rin egallagan.\n\n"
-        "🏆 Ko'plab xalqaro Qur'on musobaqalari g'olibi\n"
-        "🎵 100+ million muxlislar",
-        reply_markup=builder.as_markup()
-    )
-    await callback.answer()
-
-@router.callback_query(F.data.regexp(r"^surah_\d+$"))
-async def show_surah(callback: CallbackQuery, bot: Bot):
-    try:
-        surah_num = int(callback.data.split("_")[1])
-    except (ValueError, IndexError):
-        await callback.answer()
+@router.callback_query(F.data.regexp(r"^surah_(\d+)$"))
+async def send_surah(callback: CallbackQuery):
+    sura_num = int(callback.data.split("_")[1])
+    sura = SURAS.get(sura_num)
+    if not sura:
+        await callback.answer("Sura topilmadi!", show_alert=True)
         return
 
-    surah = SURAHS[surah_num - 1]
-    surah_str = str(surah_num).zfill(3)
-    audio_url = f"https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/{surah_str}.mp3"
+    await callback.answer("Audio yuklanmoqda... ⏳")
 
-    builder = InlineKeyboardBuilder()
-    if surah_num > 1:
-        builder.button(text="⬅️", callback_data=f"surah_{surah_num - 1}")
-    builder.button(text=f"{surah_num}/114", callback_data="surah_page_0")
-    if surah_num < 114:
-        builder.button(text="➡️", callback_data=f"surah_{surah_num + 1}")
-    builder.button(text="⬅️ Suralar ro'yxati", callback_data="surah_page_0")
-    builder.button(text="⬅️ Qur'on menyusi", callback_data="menu_quran")
-
-    if surah_num > 1 and surah_num < 114:
-        builder.adjust(3, 2)
-    else:
-        builder.adjust(2, 2)
+    # Arabcha matn (birinchi oyat yoki umumiy)
+    arabic_text = SURA_FIRST_AYAT.get(sura_num, "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
+    sharh = SURA_SHARH.get(sura_num, f"{sura['name']} surasi — {sura['ayat']} oyat.")
 
     caption = (
-        f"🎵 <b>{surah[0]}. {surah[1]}</b>\n"
-        f"<i>{surah[2]}</i>\n\n"
-        f"📊 Oyatlar: {surah[3]}\n"
-        f"📍 Nozil bo'lgan joy: {surah[4]}\n"
-        f"🎤 Qori: Mishary Rashid al-Afasy"
+        f"🎵 <b>{sura_num}. {sura['name']} — {sura['arabic']}</b>\n"
+        f"({sura['ayat']} oyat) | Qori: Mishary Rashid al-Afasy\n\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"<b>📖 Arabcha matn:</b>\n\n"
+        f"<pre>{arabic_text}</pre>\n\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"<b>📚 Shayx Muhammad Sodiq sharhi:</b>\n"
+        f"{sharh}"
     )
 
+    audio_url = get_audio_url(sura_num)
     try:
+        audio = URLInputFile(audio_url, filename=f"{sura['name']}.mp3")
         await callback.message.answer_audio(
-            audio=URLInputFile(audio_url, filename=f"{surah[1]}.mp3"),
+            audio=audio,
             caption=caption,
-            reply_markup=builder.as_markup()
+            title=f"{sura_num}. {sura['name']} — {sura['arabic']}",
+            performer="Mishary Rashid al-Afasy",
         )
-        await callback.message.delete()
     except Exception:
-        builder2 = InlineKeyboardBuilder()
-        builder2.button(text="🔗 Audio havolasi", url=audio_url)
-        builder2.button(text="⬅️ Orqaga", callback_data="menu_quran")
-        builder2.adjust(1)
-        await callback.message.edit_text(
-            f"{caption}\n\n⚠️ Audio yuklash uchun pastdagi havolani bosing:",
-            reply_markup=builder2.as_markup()
+        # Agar audio yuklanmasa, matn bilan javob
+        await callback.message.answer(
+            caption + "\n\n🔗 Audio: " + audio_url,
+            reply_markup=get_sura_back_keyboard(sura_num)
         )
+        return
 
-    await callback.answer()
+    await callback.message.answer(
+        "Yuqoridagi audio haqida:",
+        reply_markup=get_sura_back_keyboard(sura_num)
+    )
