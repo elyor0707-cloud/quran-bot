@@ -1,4 +1,4 @@
-aiohttp==3.8.6
+aiohttp==3.9.5
 Pillow==12.1.1
 arabic-reshaper==3.0.0
 python-bidi==0.6.7
