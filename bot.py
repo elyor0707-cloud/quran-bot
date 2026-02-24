@@ -15,8 +15,11 @@ from handlers import start, alphabet, grammar, tajwid, quran, test, progress
 
 logging.basicConfig(level=logging.INFO)
 
-# Railway environment variable dan olish
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8482587837:AAGTFwZaf-a2ptn-vgqj0-XCRQKVcIqhY5g")
+# Faqat Railway environment variable dan olish (token bu yerda YOZILMAYDI)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN environment variable topilmadi!")
 
 async def main():
     bot = Bot(
@@ -27,7 +30,6 @@ async def main():
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
     
-    # Routerlarni qo'shish
     dp.include_router(start.router)
     dp.include_router(alphabet.router)
     dp.include_router(grammar.router)
@@ -36,7 +38,6 @@ async def main():
     dp.include_router(test.router)
     dp.include_router(progress.router)
     
-    # Telegram webhook tozalash (polling oldidan)
     await bot.delete_webhook(drop_pending_updates=True)
     
     print("🕌 Bot ishga tushdi!")
