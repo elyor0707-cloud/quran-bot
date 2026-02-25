@@ -4,9 +4,11 @@ from aiogram.filters import CommandStart, Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 router = Router()
-InlineKeyboardButton("📖 Suralar", callback_data="suralar")
+
 def get_main_menu():
     builder = InlineKeyboardBuilder()
+
+    builder.button(text="📖 Suralar", callback_data="suralar")
     builder.button(text="🔤 Arab alifbosi", callback_data="menu_alphabet")
     builder.button(text="📚 Arab grammatikasi", callback_data="menu_grammar")
     builder.button(text="📖 Tajvid kitobi", callback_data="menu_tajwid")
@@ -15,6 +17,7 @@ def get_main_menu():
     builder.button(text="✅ Test", callback_data="menu_test")
     builder.button(text="📊 Mening progressim", callback_data="menu_progress")
     builder.button(text="ℹ️ Bot haqida", callback_data="menu_about")
+
     builder.adjust(2, 2, 2, 2)
     return builder.as_markup()
 
