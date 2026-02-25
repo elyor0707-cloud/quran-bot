@@ -1,7 +1,7 @@
 import json
 from aiogram import types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.dispatcher import Dispatcher
+
 
 # JSON юклаймиз
 with open("quran.json", "r", encoding="utf-8") as f:
@@ -100,11 +100,11 @@ async def show_ayat(callback: types.CallbackQuery):
     )
 
     await callback.answer()
+    router = Router()
 
 
 # ==============================
 # HANDLER REGISTER
 # ==============================
-def register_handlers(dp: Dispatcher):
-    dp.register_callback_query_handler(show_suras, lambda c: c.data == "suralar")
-    dp.register_callback_query_handler(show_ayat, lambda c: c.data.startswith("sura_"))
+
+
