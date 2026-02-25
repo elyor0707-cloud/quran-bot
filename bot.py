@@ -11,7 +11,6 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from handlers import start, alphabet, grammar, tajwid, quran, quran_read, test, progress
 from handlers import quran
-quran.register_handlers(dp)
 logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
