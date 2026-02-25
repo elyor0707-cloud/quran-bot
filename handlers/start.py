@@ -4,7 +4,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 router = Router()
-
+InlineKeyboardButton("📖 Suralar", callback_data="suralar")
 def get_main_menu():
     builder = InlineKeyboardBuilder()
     builder.button(text="🔤 Arab alifbosi", callback_data="menu_alphabet")
